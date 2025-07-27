@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Full FM Movie Recommender System on SageMaker
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: ml.m5.large
+
+Resources:
+
+  SageMakerExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: SageMakerMovieRecommenderRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sagemaker.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+      Path: /
+
+  FMMovieTrainingJob:
+    Type: AWS::SageMaker::TrainingJob
+    Properties:
+      TrainingJobName: fm-movie-training
+      RoleArn: !GetAtt SageMakerExecutionRole.Arn
+      AlgorithmSpecification:
+        TrainingImage: 683313688378.dkr.ecr.eu-central-1.amazonaws.com/factorization-machines:1
+        TrainingInputMode: File
+      InputDataConfig:
+        - ChannelName: train
+          ContentType: text/csv
+          CompressionType: None
+          DataSource:
+            S3DataSource:
+              S3DataType: S3Prefix
+              S3Uri: s3://onur-master-dataset/initial_data/movies_interactions.csv
+              S3DataDistributionType: FullyReplicated
+      OutputDataConfig:
+        S3OutputPath: s3://onur-master-dataset/output/fm-movie/
+      ResourceConfig:
+        InstanceType: !Ref InstanceType
+        InstanceCount: 1
+        VolumeSizeInGB: 10
+      StoppingCondition:
+        MaxRuntimeInSeconds: 1800
+
+  FMModel:
+    Type: AWS::SageMaker::Model
+    Properties:
+      ExecutionRoleArn: !GetAtt SageMakerExecutionRole.Arn
+      ModelName: fm-movie-model
+      PrimaryContainer:
+        Image: 683313688378.dkr.ecr.eu-central-1.amazonaws.com/factorization-machines:1
+        ModelDataUrl: !Sub s3://onur-master-dataset/output/fm-movie/fm-movie-training/output/model.tar.gz
+
+  FMEndpointConfig:
+    Type: AWS::SageMaker::EndpointConfig
+    Properties:
+      EndpointConfigName: fm-movie-endpoint-config
+      ProductionVariants:
+        - InitialInstanceCount: 1
+          InstanceType: !Ref InstanceType
+          ModelName: !Ref FMModel
+          VariantName: AllTraffic
+
+  FMEndpoint:
+    Type: AWS::SageMaker::Endpoint
+    Properties:
+      EndpointName: fm-movie-endpoint
+      EndpointConfigName: !Ref FMEndpointConfig
+
+Outputs:
+  TrainingJob:
+    Description: Training job for FM Movie recommender
+    Value: !Ref FMMovieTrainingJob
+
+  ModelName:
+    Description: SageMaker model name
+    Value: !Ref FMModel
+
+  EndpointName:
+    Description: SageMaker endpoint name
+    Value: !Ref FMEndpoint
+
+  RoleArn:
+    Description: IAM Role ARN used by SageMaker
+    Value: !GetAtt SageMakerExecutionRole.Arn

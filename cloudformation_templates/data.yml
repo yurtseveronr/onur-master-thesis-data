@@ -1,0 +1,218 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'DynamoDB Tables and Glue ETL Jobs for Movies and TV Series'
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Description: Name of the S3 bucket containing data and scripts
+    Default: onur-master-dataset
+
+Resources:
+  GlueServiceRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: GlueETLServiceRole
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: glue.amazonaws.com
+              Action: sts:AssumeRole
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+        Policies:
+          - PolicyName: GlueETLPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                # DynamoDB permissions
+                - Effect: Allow
+                  Action:
+                    - dynamodb:PutItem
+                    - dynamodb:BatchWriteItem
+                    - dynamodb:DescribeTable
+                  Resource: 
+                    - !GetAtt MoviesTable.Arn
+                    - !GetAtt SeriesTable.Arn
+                    - !GetAtt UserMoviesTable.Arn
+                    - !GetAtt UserSeriesTable.Arn
+                # S3 permissions
+                - Effect: Allow
+                  Action:
+                    - s3:GetObject
+                    - s3:PutObject
+                    - s3:DeleteObject
+                    - s3:ListBucket
+                  Resource:
+                    - !Sub 'arn:aws:s3:::${S3BucketName}'
+                    - !Sub 'arn:aws:s3:::${S3BucketName}/*'
+                # CloudWatch Logs permissions
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                    - kms:*
+                  Resource: '*'
+
+  # DynamoDB Tables
+  MoviesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: movies
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: imdbID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: imdbID
+          KeyType: HASH
+      Tags:
+        - Key: Name
+          Value: Movies Table
+        - Key: Environment
+          Value: production
+
+  SeriesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: TVSeries
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: imdbID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: imdbID
+          KeyType: HASH
+      Tags:
+        - Key: Name
+          Value: TV Series Table
+        - Key: Environment
+          Value: production
+
+  UserMoviesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: UserMovies
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: email
+          AttributeType: S
+        - AttributeName: imdbID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email
+          KeyType: HASH
+        - AttributeName: imdbID
+          KeyType: RANGE
+      Tags:
+        - Key: Name
+          Value: User Movies Table
+        - Key: Environment
+          Value: production
+
+  UserSeriesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: UserSeries
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: email
+          AttributeType: S
+        - AttributeName: imdbID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email
+          KeyType: HASH
+        - AttributeName: imdbID
+          KeyType: RANGE
+      Tags:
+        - Key: Name
+          Value: User Series Table
+        - Key: Environment
+          Value: production
+
+  # Glue Jobs
+  TVSeriesGlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: tv-series_etl_job
+      Role: !GetAtt GlueServiceRole.Arn
+      WorkerType: G.1X
+      NumberOfWorkers: 5
+      GlueVersion: '3.0'
+      Timeout: 60
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub 's3://${S3BucketName}/scripts/glue_etl_tv-series.py'
+        PythonVersion: '3'
+      DefaultArguments:
+        '--TempDir': !Sub 's3://${S3BucketName}/temp/'
+        '--job-language': 'python'
+        '--input_path': !Sub 's3://${S3BucketName}/dataset/raw/TVseries.csv'
+        '--output_path': !Sub 's3://${S3BucketName}/dataset/processed/personalize_tvseries.csv'
+        '--dynamodb_table': !Ref SeriesTable
+        '--enable-metrics': 'true'
+        '--enable-continuous-cloudwatch-log': 'true'
+        '--enable-spark-ui': 'true'
+
+  MoviesGlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: movies_etl_job
+      Role: !GetAtt GlueServiceRole.Arn
+      GlueVersion: '3.0'
+      WorkerType: G.1X
+      NumberOfWorkers: 5
+      Timeout: 60
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub 's3://${S3BucketName}/scripts/glue_etl_movies.py'
+        PythonVersion: '3'
+      DefaultArguments:
+        '--TempDir': !Sub 's3://${S3BucketName}/temp/'
+        '--job-language': 'python'
+        '--input_path': !Sub 's3://${S3BucketName}/dataset/raw/movies.csv'
+        '--output_path': !Sub 's3://${S3BucketName}/dataset/processed/personalize_movies.csv'
+        '--dynamodb_table': !Ref MoviesTable
+        '--enable-metrics': 'true'
+        '--enable-continuous-cloudwatch-log': 'true'
+        '--enable-spark-ui': 'true'
+
+Outputs:
+  MoviesTableName:
+    Description: Name of the Movies DynamoDB table
+    Value: !Ref MoviesTable
+    Export:
+      Name: !Sub '${AWS::StackName}-MoviesTable'
+
+  SeriesTableName:
+    Description: Name of the TV Series DynamoDB table
+    Value: !Ref SeriesTable
+    Export:
+      Name: !Sub '${AWS::StackName}-SeriesTable'
+
+  UserMoviesTableName:
+    Description: Name of the User Movies DynamoDB table
+    Value: !Ref UserMoviesTable
+    Export:
+      Name: !Sub '${AWS::StackName}-UserMoviesTable'
+
+  UserSeriesTableName:
+    Description: Name of the User Series DynamoDB table
+    Value: !Ref UserSeriesTable
+    Export:
+      Name: !Sub '${AWS::StackName}-UserSeriesTable'
+
+  MoviesGlueJobName:
+    Description: Name of the Movies Glue ETL job
+    Value: !Ref MoviesGlueJob
+    Export:
+      Name: !Sub '${AWS::StackName}-MoviesGlueJob'
+
+  TVSeriesGlueJobName:
+    Description: Name of the TV Series Glue ETL job
+    Value: !Ref TVSeriesGlueJob
+    Export:
+      Name: !Sub '${AWS::StackName}-TVSeriesGlueJob'

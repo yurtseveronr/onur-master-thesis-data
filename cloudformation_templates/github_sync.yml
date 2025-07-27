@@ -1,0 +1,250 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'GitHub to S3 sync using CloudFormation Custom Resource'
+
+Parameters:
+  GitHubRepoOwner:
+    Type: String
+    Description: GitHub repository owner/organization name
+  
+  GitHubRepoName:
+    Type: String
+    Description: GitHub repository name
+  
+  GitHubBranch:
+    Type: String
+    Description: GitHub branch to sync
+    Default: "main"
+  
+  GitHubToken:
+    Type: String
+    Description: GitHub Personal Access Token
+    NoEcho: true
+  
+  S3BucketName:
+    Type: String
+    Description: S3 bucket name for syncing
+
+Resources:
+  # S3 Bucket
+  SyncBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketName
+
+  # IAM Role for Lambda
+  GitHubSyncLambdaRole:
+    DependsOn: SyncBucket
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: GitHubSyncPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub "arn:aws:s3:::${S3BucketName}/*"
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "arn:aws:s3:::${S3BucketName}"
+
+  # Lambda Function
+  GitHubSyncLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: SyncBucket
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-github-sync"
+      Runtime: python3.9
+      Handler: index.lambda_handler
+      Role: !GetAtt GitHubSyncLambdaRole.Arn
+      Timeout: 900
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref S3BucketName
+          GITHUB_TOKEN: !Ref GitHubToken
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import urllib3
+          import os
+          
+          def lambda_handler(event, context):
+              print(f"Event: {json.dumps(event, indent=2)}")
+              
+              try:
+                  def send_response(event, context, response_status, response_data={}):
+                      response_url = event['ResponseURL']
+                      response_body = {
+                          'Status': response_status,
+                          'Reason': f'See CloudWatch Log Stream: {context.log_stream_name}',
+                          'PhysicalResourceId': context.log_stream_name,
+                          'StackId': event['StackId'],
+                          'RequestId': event['RequestId'],
+                          'LogicalResourceId': event['LogicalResourceId'],
+                          'Data': response_data
+                      }
+                      
+                      json_response_body = json.dumps(response_body)
+                      headers = {'content-type': '', 'content-length': str(len(json_response_body))}
+                      
+                      http = urllib3.PoolManager()
+                      try:
+                          response = http.request('PUT', response_url, body=json_response_body, headers=headers)
+                          print(f"Status code: {response.status}")
+                      except Exception as e:
+                          print(f"send_response Error: {e}")
+                  
+                  bucket_name = os.environ['BUCKET_NAME']
+                  github_token = os.environ['GITHUB_TOKEN']
+                  
+                  print(f"DEBUG - Token length: {len(github_token) if github_token else 0}")
+                  
+                  if not github_token:
+                      raise ValueError("GitHub token is required")
+                  
+                  properties = event.get('ResourceProperties', {})
+                  repo_owner = properties.get('RepoOwner')
+                  repo_name = properties.get('RepoName')
+                  branch = properties.get('Branch', 'main')
+                  
+                  if not repo_owner or not repo_name:
+                      raise ValueError("RepoOwner and RepoName are required")
+                  
+                  if event['RequestType'] == 'Delete':
+                      print("Delete request - cleaning up S3 bucket")
+                      s3 = boto3.client('s3')
+                      try:
+                          paginator = s3.get_paginator('list_objects_v2')
+                          for page in paginator.paginate(Bucket=bucket_name):
+                              if 'Contents' in page:
+                                  delete_keys = [{'Key': obj['Key']} for obj in page['Contents']]
+                                  s3.delete_objects(Bucket=bucket_name, Delete={'Objects': delete_keys})
+                      except Exception as e:
+                          print(f"S3 cleanup error: {e}")
+                      
+                      send_response(event, context, 'SUCCESS')
+                      return
+                  
+                  if event['RequestType'] in ['Create', 'Update']:
+                      sync_result = sync_github_to_s3(repo_owner, repo_name, branch, bucket_name, github_token)
+                      
+                      send_response(event, context, 'SUCCESS', {
+                          'Message': f'Synced {repo_owner}/{repo_name}:{branch}',
+                          'FilesCount': sync_result.get('files_count', 0)
+                      })
+                      return
+                  
+              except Exception as e:
+                  print(f"Error: {str(e)}")
+                  send_response(event, context, 'FAILED', {'Error': str(e)})
+          
+          def sync_github_to_s3(repo_owner, repo_name, branch, bucket_name, github_token):
+              http = urllib3.PoolManager()
+              s3 = boto3.client('s3')
+              api_base = "https://api.github.com"
+              
+              headers = {
+                  'Accept': 'application/vnd.github.v3+json', 
+                  'User-Agent': 'AWS-Lambda-GitHub-Sync',
+                  'Authorization': f'token {github_token}'
+              }
+              
+              print(f"Using GitHub token for repository access")
+              
+              files_count = 0
+              
+              def get_repo_contents(path=""):
+                  url = f"{api_base}/repos/{repo_owner}/{repo_name}/contents/{path}"
+                  if branch != 'main':
+                      url += f"?ref={branch}"
+                  
+                  print(f"DEBUG - Full URL: {url}")
+                  print(f"DEBUG - Headers: {headers}")
+                  print(f"DEBUG - Repo Owner: '{repo_owner}'")
+                  print(f"DEBUG - Repo Name: '{repo_name}'")
+                  print(f"DEBUG - Branch: '{branch}'")
+                  
+                  response = http.request('GET', url, headers=headers)
+                  
+                  print(f"DEBUG - Response Status: {response.status}")
+                  print(f"DEBUG - Response Data: {response.data.decode()[:1000]}")
+                  
+                  if response.status == 404:
+                      raise Exception(f"Repository not found: {repo_owner}/{repo_name} - URL: {url}")
+                  elif response.status == 401:
+                      raise Exception("Authentication failed")
+                  elif response.status == 403:
+                      raise Exception("Access forbidden")
+                  elif response.status != 200:
+                      raise Exception(f"GitHub API error: {response.status}")
+                  
+                  return json.loads(response.data.decode())
+              
+              def download_and_upload_file(file_info):
+                  nonlocal files_count
+                  
+                  if file_info['type'] != 'file':
+                      return
+                  
+                  download_url = file_info['download_url']
+                  download_headers = {'Authorization': f'token {github_token}'}
+                  
+                  download_response = http.request('GET', download_url, headers=download_headers)
+                  if download_response.status != 200:
+                      raise Exception(f"Failed to download {file_info['path']}")
+                  
+                  s3.put_object(
+                      Bucket=bucket_name,
+                      Key=file_info['path'],
+                      Body=download_response.data
+                  )
+                  files_count += 1
+                  print(f"Uploaded: {file_info['path']}")
+              
+              def process_contents(contents):
+                  for item in contents:
+                      if item['type'] == 'file':
+                          download_and_upload_file(item)
+                      elif item['type'] == 'dir':
+                          subdir_contents = get_repo_contents(item['path'])
+                          process_contents(subdir_contents)
+              
+              print(f"Starting sync: {repo_owner}/{repo_name}:{branch}")
+              root_contents = get_repo_contents()
+              process_contents(root_contents)
+              
+              print(f"Sync completed. Files: {files_count}")
+              return {'files_count': files_count}
+
+  # Custom Resource
+  GitHubSyncResource:
+    Type: Custom::GitHubSync
+    Properties:
+      ServiceToken: !GetAtt GitHubSyncLambda.Arn
+      RepoOwner: !Ref GitHubRepoOwner
+      RepoName: !Ref GitHubRepoName
+      Branch: !Ref GitHubBranch
+
+Outputs:
+  BucketName:
+    Description: S3 Bucket name
+    Value: !Ref SyncBucket
+  
+  SyncedFiles:
+    Description: Number of synced files
+    Value: !GetAtt GitHubSyncResource.FilesCount

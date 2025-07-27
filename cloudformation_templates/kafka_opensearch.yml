@@ -1,0 +1,383 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: MSK + OpenSearch + Glue Connections via Lambda
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: onur-master
+
+  AllowedIP:
+    Type: String
+    Default: 0.0.0.0/0
+
+  NetworkStackName:
+    Type: String
+    Default: network-stack
+
+Resources:
+  MSKSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: MSK SG
+      VpcId:
+        Fn::ImportValue: !Join ["-", [!Ref NetworkStackName, "VPC"]]
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 9098
+          ToPort: 9098
+          CidrIp: 10.0.0.0/16
+        - IpProtocol: tcp
+          FromPort: 2181
+          ToPort: 2181
+          CidrIp: 10.0.0.0/16
+
+  MSKCluster:
+    Type: AWS::MSK::Cluster
+    Properties:
+      ClusterName: !Join ["-", [!Ref EnvironmentName, "msk"]]
+      KafkaVersion: 2.8.1
+      NumberOfBrokerNodes: 2
+      BrokerNodeGroupInfo:
+        InstanceType: kafka.t3.small
+        ClientSubnets:
+          - Fn::Select:
+              - 0
+              - Fn::Split:
+                  - ","
+                  - Fn::ImportValue: !Join ["-", [!Ref NetworkStackName, "PrivateSubnets"]]
+          - Fn::Select:
+              - 1
+              - Fn::Split:
+                  - ","
+                  - Fn::ImportValue: !Join ["-", [!Ref NetworkStackName, "PrivateSubnets"]]
+        SecurityGroups:
+          - !Ref MSKSecurityGroup
+        StorageInfo:
+          EBSStorageInfo:
+            VolumeSize: 20
+      ClientAuthentication:
+        Sasl:
+          Iam:
+            Enabled: true
+      EncryptionInfo:
+        EncryptionInTransit:
+          ClientBroker: TLS
+          InCluster: true
+
+  OpenSearchDomain:
+    Type: AWS::OpenSearchService::Domain
+    Properties:
+      DomainName: !Join ["-", [!Ref EnvironmentName, "opensearch"]]
+      EngineVersion: OpenSearch_2.11
+      ClusterConfig:
+        InstanceType: t3.small.search
+        InstanceCount: 1
+      EBSOptions:
+        EBSEnabled: true
+        VolumeType: gp3
+        VolumeSize: 20
+      AccessPolicies:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: "es:*"
+            Resource: !Join
+              - ""
+              - - "arn:aws:es:"
+                - !Ref AWS::Region
+                - ":"
+                - !Ref AWS::AccountId
+                - ":domain/"
+                - !Ref EnvironmentName
+                - "-opensearch/*"
+            Condition:
+              IpAddress:
+                aws:SourceIp:
+                  - !Ref AllowedIP
+      DomainEndpointOptions:
+        EnforceHTTPS: true
+      EncryptionAtRestOptions:
+        Enabled: true
+      NodeToNodeEncryptionOptions:
+        Enabled: true
+
+  KafkaGlueConnectionLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${EnvironmentName}-create-kafka-connection
+      Handler: index.lambda_handler
+      Runtime: python3.12
+      Role: arn:aws:iam::708778582346:role/lambda-admin
+      Timeout: 60
+      Environment:
+        Variables:
+          BOOTSTRAP_SERVERS: !Sub 'b-1.${EnvironmentName}-msk.kafka.${AWS::Region}.amazonaws.com:9098,b-2.${EnvironmentName}-msk.kafka.${AWS::Region}.amazonaws.com:9098'
+          SUBNET_ID:
+            Fn::Select:
+              - 0
+              - Fn::Split:
+                  - ","
+                  - Fn::ImportValue: !Join ["-", [!Ref NetworkStackName, "PrivateSubnets"]]
+          SECURITY_GROUP_ID: !Ref MSKSecurityGroup
+      Code:
+        ZipFile: |
+          import boto3
+          import os
+          import json
+          import urllib.request
+          import urllib.parse
+
+          def lambda_handler(event, context):
+              print(f"Event: {json.dumps(event)}")
+              
+              response_url = event['ResponseURL']
+              stack_id = event['StackId']
+              request_id = event['RequestId']
+              logical_resource_id = event['LogicalResourceId']
+              request_type = event['RequestType']
+              
+              response_data = {}
+              status = 'SUCCESS'
+              reason = 'Operation completed successfully'
+              
+              try:
+                  if request_type == 'Create' or request_type == 'Update':
+                      glue = boto3.client('glue')
+                      
+                      # Check if connection already exists
+                      try:
+                          glue.get_connection(Name='kafka-conn')
+                          print("Connection already exists, skipping creation")
+                      except glue.exceptions.EntityNotFoundException:
+                          # Connection doesn't exist, create it
+                          glue.create_connection(
+                              ConnectionInput={
+                                  'Name': 'kafka-conn',
+                                  'ConnectionType': 'KAFKA',
+                                  'ConnectionProperties': {
+                                      'BOOTSTRAP_SERVERS': os.environ['BOOTSTRAP_SERVERS'],
+                                      'SECURITY_PROTOCOL': 'SASL_SSL',
+                                      'SASL_MECHANISM': 'IAM'
+                                  },
+                                  'PhysicalConnectionRequirements': {
+                                      'SubnetId': os.environ['SUBNET_ID'],
+                                      'SecurityGroupIdList': [os.environ['SECURITY_GROUP_ID']]
+                                  }
+                              }
+                          )
+                          print("Kafka connection created successfully")
+                  
+                  elif request_type == 'Delete':
+                      glue = boto3.client('glue')
+                      try:
+                          glue.delete_connection(ConnectionName='kafka-conn')
+                          print("Kafka connection deleted successfully")
+                      except Exception as e:
+                          print(f"Error deleting connection (may not exist): {e}")
+                          # Don't fail on delete if connection doesn't exist
+                  
+              except Exception as e:
+                  print(f"Error: {e}")
+                  status = 'FAILED'
+                  reason = str(e)
+              
+              # Send response to CloudFormation
+              response_body = {
+                  'Status': status,
+                  'Reason': reason,
+                  'PhysicalResourceId': 'kafka-conn',
+                  'StackId': stack_id,
+                  'RequestId': request_id,
+                  'LogicalResourceId': logical_resource_id,
+                  'Data': response_data
+              }
+              
+              # Use urllib.request (standard library)
+              req = urllib.request.Request(
+                  response_url,
+                  data=json.dumps(response_body).encode('utf-8'),
+                  headers={'Content-Type': 'application/json'}
+              )
+              
+              with urllib.request.urlopen(req) as response:
+                  print(f"Response sent to CloudFormation: {response.status}")
+              
+              return {'status': 'Response sent to CloudFormation'}
+
+  OpenSearchGlueConnectionLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${EnvironmentName}-create-opensearch-connection
+      Handler: index.lambda_handler
+      Runtime: python3.12
+      Role: arn:aws:iam::708778582346:role/lambda-admin
+      Timeout: 60
+      Environment:
+        Variables:
+          ENDPOINT: !GetAtt OpenSearchDomain.DomainEndpoint
+          REGION: !Ref AWS::Region
+          SUBNET_ID:
+            Fn::Select:
+              - 0
+              - Fn::Split:
+                  - ","
+                  - Fn::ImportValue: !Join ["-", [!Ref NetworkStackName, "PrivateSubnets"]]
+          SECURITY_GROUP_ID: !Ref MSKSecurityGroup
+      Code:
+        ZipFile: |
+          import boto3
+          import os
+          import json
+          import urllib.request
+          import urllib.parse
+
+          def lambda_handler(event, context):
+              print(f"Event: {json.dumps(event)}")
+              
+              response_url = event['ResponseURL']
+              stack_id = event['StackId']
+              request_id = event['RequestId']
+              logical_resource_id = event['LogicalResourceId']
+              request_type = event['RequestType']
+              
+              response_data = {}
+              status = 'SUCCESS'
+              reason = 'Operation completed successfully'
+              
+              try:
+                  if request_type == 'Create' or request_type == 'Update':
+                      glue = boto3.client('glue')
+                      
+                      # Check if connection already exists
+                      try:
+                          glue.get_connection(Name='opensearch-conn')
+                          print("Connection already exists, skipping creation")
+                      except glue.exceptions.EntityNotFoundException:
+                          # Connection doesn't exist, create it
+                          glue.create_connection(
+                              ConnectionInput={
+                                  'Name': 'opensearch-conn',
+                                  'ConnectionType': 'CUSTOM',
+                                  'ConnectionProperties': {
+                                      'ENDPOINT': os.environ['ENDPOINT'],
+                                      'REGION': os.environ['REGION']
+                                  },
+                                  'PhysicalConnectionRequirements': {
+                                      'SubnetId': os.environ['SUBNET_ID'],
+                                      'SecurityGroupIdList': [os.environ['SECURITY_GROUP_ID']]
+                                  }
+                              }
+                          )
+                          print("OpenSearch connection created successfully")
+                  
+                  elif request_type == 'Delete':
+                      glue = boto3.client('glue')
+                      try:
+                          glue.delete_connection(ConnectionName='opensearch-conn')
+                          print("OpenSearch connection deleted successfully")
+                      except Exception as e:
+                          print(f"Error deleting connection (may not exist): {e}")
+                          # Don't fail on delete if connection doesn't exist
+                  
+              except Exception as e:
+                  print(f"Error: {e}")
+                  status = 'FAILED'
+                  reason = str(e)
+              
+              # Send response to CloudFormation
+              response_body = {
+                  'Status': status,
+                  'Reason': reason,
+                  'PhysicalResourceId': 'opensearch-conn',
+                  'StackId': stack_id,
+                  'RequestId': request_id,
+                  'LogicalResourceId': logical_resource_id,
+                  'Data': response_data
+              }
+              
+              # Use urllib.request (standard library)
+              req = urllib.request.Request(
+                  response_url,
+                  data=json.dumps(response_body).encode('utf-8'),
+                  headers={'Content-Type': 'application/json'}
+              )
+              
+              with urllib.request.urlopen(req) as response:
+                  print(f"Response sent to CloudFormation: {response.status}")
+              
+              return {'status': 'Response sent to CloudFormation'}
+
+  KafkaConnectionTrigger:
+    Type: Custom::KafkaConnectionInvoke
+    Properties:
+      ServiceToken: !GetAtt KafkaGlueConnectionLambda.Arn
+
+  OpenSearchConnectionTrigger:
+    Type: Custom::OpenSearchConnectionInvoke
+    Properties:
+      ServiceToken: !GetAtt OpenSearchGlueConnectionLambda.Arn
+
+  GlueS3Job:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: glue-s3-connector
+      Role: arn:aws:iam::708778582346:role/glue-admin
+      Command:
+        Name: glueetl
+        ScriptLocation: s3://onur-master-dataset/scripts/glue_s3_connector.py
+        PythonVersion: 3
+      GlueVersion: 3.0
+      DefaultArguments:
+        --job-language: python
+        --enable-continuous-cloudwatch-log: true
+        --enable-metrics: true
+        --class: glue.SparkStreamingJob
+      Connections:
+        Connections:
+          - kafka-conn
+      MaxRetries: 1
+      Timeout: 60
+      NumberOfWorkers: 5
+      WorkerType: G.1X
+
+  GlueOpenSearchJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: glue-opensearch-connector
+      Role: arn:aws:iam::708778582346:role/glue-admin
+      Command:
+        Name: glueetl
+        ScriptLocation: s3://onur-master-dataset/scripts/glue_opensearch_connector.py
+        PythonVersion: 3
+      GlueVersion: 3.0
+      DefaultArguments:
+        --job-language: python
+        --enable-continuous-cloudwatch-log: true
+        --enable-metrics: true
+        --class: glue.SparkStreamingJob
+      Connections:
+        Connections:
+          - kafka-conn
+          - opensearch-conn
+      MaxRetries: 1
+      Timeout: 60
+      NumberOfWorkers: 5
+      WorkerType: G.1X
+
+Outputs:
+  MSKClusterArn:
+    Value: !Ref MSKCluster
+
+  MSKClusterName:
+    Value: !Join ["-", [!Ref EnvironmentName, "msk"]]
+
+  OpenSearchEndpoint:
+    Value: !GetAtt OpenSearchDomain.DomainEndpoint
+
+  OpenSearchDashboards:
+    Value: !Join
+      - ""
+      - - "https://"
+        - !GetAtt OpenSearchDomain.DomainEndpoint
+        - "/_dashboards/"

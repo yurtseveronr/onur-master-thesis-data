@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'OpenSearch Stack - Public Access with IP Restriction (No FGAC)'
+
+Parameters:
+  EnvironmentName:
+    Description: Environment name prefix
+    Type: String
+    Default: onur-master
+
+  AllowedIP:
+    Description: Your IP address for dashboard access (check whatismyip.com)
+    Type: String
+    Default: 0.0.0.0/0
+    AllowedPattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]{1,2})?$
+
+Resources:
+  OpenSearchDomain:
+    Type: AWS::OpenSearchService::Domain
+    Properties:
+      DomainName: !Sub ${EnvironmentName}-opensearch
+      EngineVersion: OpenSearch_2.11
+
+      ClusterConfig:
+        InstanceType: t3.small.search
+        InstanceCount: 1
+        DedicatedMasterEnabled: false
+
+      EBSOptions:
+        EBSEnabled: true
+        VolumeType: gp3
+        VolumeSize: 10
+
+      AccessPolicies:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: "es:ESHttp*"
+            Resource: !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${EnvironmentName}-opensearch/*
+            Condition:
+              IpAddress:
+                aws:SourceIp:
+                  - !Ref AllowedIP
+
+      DomainEndpointOptions:
+        EnforceHTTPS: true
+        TLSSecurityPolicy: 'Policy-Min-TLS-1-2-2019-07'
+
+      EncryptionAtRestOptions:
+        Enabled: true
+
+      NodeToNodeEncryptionOptions:
+        Enabled: true
+
+      AdvancedOptions:
+        rest.action.multi.allow_explicit_index: 'true'
+
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Service
+          Value: OpenSearch
+        - Key: Access
+          Value: Public
+
+  OpenSearchEndpointsSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub ${EnvironmentName}/opensearch-public/endpoints
+      Description: OpenSearch Public Domain Endpoints
+      SecretString: !Sub |
+        {
+          "domain_name": "${EnvironmentName}-opensearch",
+          "domain_endpoint": "${OpenSearchDomain.DomainEndpoint}",
+          "kibana_endpoint": "${OpenSearchDomain.DomainEndpoint}/_dashboards",
+          "region": "${AWS::Region}",
+          "access_type": "public"
+        }
+
+Outputs:
+  OpenSearchDomainEndpoint:
+    Description: OpenSearch Domain Endpoint
+    Value: !GetAtt OpenSearchDomain.DomainEndpoint
+    Export:
+      Name: !Sub '${AWS::StackName}-DomainEndpoint'
+
+  OpenSearchDomainArn:
+    Description: OpenSearch Domain ARN
+    Value: !GetAtt OpenSearchDomain.DomainArn
+    Export:
+      Name: !Sub '${AWS::StackName}-DomainArn'
+
+  OpenSearchDashboardsURL:
+    Description: OpenSearch Dashboards URL (Public Access)
+    Value: !Sub 'https://${OpenSearchDomain.DomainEndpoint}/_dashboards'
+
+  AccessInfo:
+    Description: Dashboard access info
+    Value: !Sub 'Direct browser access from IP: ${AllowedIP}'
+
+  EndpointsSecretName:
+    Description: Secret name for OpenSearch endpoints
+    Value: !Ref OpenSearchEndpointsSecret

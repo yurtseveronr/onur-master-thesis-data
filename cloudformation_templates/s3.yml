@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'KMS + S3 for dataset storage'
+
+Resources:
+  # KMS Key
+  DatasetKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      KeyPolicy:
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+
+  # S3 Bucket
+  DatasetBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: onur-master-dataset
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'aws:kms'
+              KMSMasterKeyID: !Ref DatasetKMSKey
+
+Outputs:
+  BucketName:
+    Value: !Ref DatasetBucket

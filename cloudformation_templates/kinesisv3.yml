@@ -1,0 +1,145 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: 'ONUR-MASTER: Exact copy of working blog template'
+
+Parameters:
+  DeliveryStreamName:
+    Description: Name of Data Firehose stream
+    Type: String
+    Default: onur-master-dynamic-firehose
+
+  BucketName:
+    Description: Name of the destination S3 Bucket
+    Type: String
+    Default: onur-master-dataset
+
+Resources:
+  EventsKinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: 'onur-master-events-stream'
+      StreamModeDetails:
+        StreamMode: ON_DEMAND
+      RetentionPeriodHours: 24
+      StreamEncryption:
+        EncryptionType: KMS
+        KeyId: alias/aws/kinesis
+      Tags:
+        - Key: Name
+          Value: 'onur-master-events-stream'
+        - Key: Purpose
+          Value: 'Source for Dynamic Partitioning Firehose'
+
+  DeliveryStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Ref DeliveryStreamName
+      DeliveryStreamType: KinesisStreamAsSource
+      KinesisStreamSourceConfiguration:
+        KinesisStreamARN: !GetAtt EventsKinesisStream.Arn
+        RoleARN: !GetAtt deliveryRole.Arn
+      ExtendedS3DestinationConfiguration:
+        RoleARN: !GetAtt deliveryRole.Arn
+        BucketARN: !Sub 'arn:aws:s3:::${BucketName}'
+        Prefix: "events/!{partitionKeyFromQuery:event_type}/"
+        ErrorOutputPrefix: "errors/"
+        BufferingHints:
+          SizeInMBs: 64
+          IntervalInSeconds: 60
+        CompressionFormat: UNCOMPRESSED
+        FileExtension: ".json"
+        EncryptionConfiguration:
+          NoEncryptionConfig: NoEncryption
+        DynamicPartitioningConfiguration:
+          Enabled: true
+          RetryOptions:
+            DurationInSeconds: 300
+        ProcessingConfiguration:
+          Enabled: true
+          Processors:
+            - Type: MetadataExtraction
+              Parameters:
+                - ParameterName: MetadataExtractionQuery
+                  ParameterValue: "{event_type:.event_type}"
+                - ParameterName: JsonParsingEngine
+                  ParameterValue: "JQ-1.6"
+            - Type: AppendDelimiterToRecord
+              Parameters:
+                - ParameterName: Delimiter
+                  ParameterValue: "\\n"
+
+  FirehoseLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 1
+
+  FirehoseLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref FirehoseLogGroup
+
+  deliveryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action: 'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                'sts:ExternalId': !Ref 'AWS::AccountId'
+      Path: "/"
+      Policies:
+        - PolicyName: firehose_delivery_policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:AbortMultipartUpload'
+                  - 's3:GetBucketLocation'
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                  - 's3:ListBucketMultipartUploads'
+                  - 's3:PutObject'
+                Resource:
+                  - !Sub 'arn:aws:s3:::${BucketName}'
+                  - !Sub 'arn:aws:s3:::${BucketName}/*'
+              - Effect: Allow
+                Action:
+                  - 'kinesis:DescribeStream'
+                  - 'kinesis:GetShardIterator'
+                  - 'kinesis:GetRecords'
+                  - 'kinesis:ListShards'
+                Resource: !GetAtt EventsKinesisStream.Arn
+              - Effect: Allow
+                Action:
+                  - 'kms:*'
+                Resource: '*'
+
+Outputs:
+  KinesisStreamName:
+    Value: !Ref EventsKinesisStream
+    Description: 'Kinesis Data Stream name (for SDK)'
+
+  KinesisStreamArn:
+    Value: !GetAtt EventsKinesisStream.Arn
+    Description: 'Kinesis Data Stream ARN'
+
+  FirehoseStreamName:
+    Value: !Ref DeliveryStream
+    Description: 'Firehose delivery stream name'
+
+  S3BucketName:
+    Value: !Ref BucketName
+    Description: 'S3 destination bucket name (existing onur-master-dataset)'
+
+  UsageInstructions:
+    Value: |
+      1. Send data to Kinesis Stream: 'onur-master-events-stream'
+      2. Firehose automatically reads from stream
+      3. Dynamic partitioning by event_type
+      4. Data lands in S3: events/event_type=<type>/...

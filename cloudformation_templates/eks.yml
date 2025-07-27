@@ -1,0 +1,262 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'EKS Cluster with NodeGroups - Circular Dependency Fixed'
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: 'onur-master-eks'
+
+  KubernetesVersion:
+    Type: String
+    Default: '1.28'
+
+  NetworkStackName:
+    Type: String
+    Default: 'network-stack'
+
+Resources:
+##############################################
+# Security Groups
+##############################################
+  EKSClusterSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub '${ClusterName} Cluster SG'
+      VpcId: !ImportValue
+        Fn::Sub: '${NetworkStackName}-VPC'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 10.0.0.0/16
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub '${ClusterName}-ClusterSG'
+
+  EKSNodeGroupSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub '${ClusterName} NodeGroup SG'
+      VpcId: !ImportValue
+        Fn::Sub: '${NetworkStackName}-VPC'
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub '${ClusterName}-NodeGroupSG'
+
+  NodeSGIngressSelf:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref EKSNodeGroupSecurityGroup
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref EKSNodeGroupSecurityGroup
+      Description: Allow node-to-node communication
+
+  NodeSGIngressCluster:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref EKSNodeGroupSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref EKSClusterSecurityGroup
+      Description: Allow cluster API to nodes
+
+  ClusterSGIngressNode:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref EKSClusterSecurityGroup
+      IpProtocol: tcp
+      FromPort: 10250
+      ToPort: 10250
+      SourceSecurityGroupId: !Ref EKSNodeGroupSecurityGroup
+      Description: Allow nodes to communicate with control plane
+
+##############################################
+# IAM Roles
+##############################################
+  EKSClusterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ClusterName}-ClusterRole'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+      Tags:
+        - Key: Name
+          Value: !Sub '${ClusterName}-ClusterRole'
+
+  NodeGroupRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ClusterName}-NodeGroupRole'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      Tags:
+        - Key: Name
+          Value: !Sub '${ClusterName}-NodeGroupRole'
+
+##############################################
+# EKS Cluster
+##############################################
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Ref ClusterName
+      Version: !Ref KubernetesVersion
+      RoleArn: !GetAtt EKSClusterRole.Arn
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - !Ref EKSClusterSecurityGroup
+        SubnetIds:
+          - !ImportValue
+            Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
+          - !ImportValue
+            Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
+        EndpointPrivateAccess: true
+        EndpointPublicAccess: true
+        PublicAccessCidrs:
+          - 0.0.0.0/0
+      Logging:
+        ClusterLogging:
+          EnabledTypes:
+            - Type: api
+            - Type: audit
+            - Type: authenticator
+            - Type: controllerManager
+            - Type: scheduler
+      Tags:
+        - Key: Name
+          Value: !Ref ClusterName
+
+##############################################
+# OIDC Provider
+##############################################
+  EKSClusterOIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: !GetAtt EKSCluster.OpenIdConnectIssuerUrl
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 9e99a48a9960b14926bb7f3b02e22da2b0ab7280
+
+##############################################
+# NodeGroups
+##############################################
+  DevOpsNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    DependsOn: EKSCluster
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: 'devops'
+      NodeRole: !GetAtt NodeGroupRole.Arn
+      InstanceTypes:
+        - t3.large
+      AmiType: AL2_x86_64
+      CapacityType: ON_DEMAND
+      Subnets:
+        - !ImportValue
+          Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
+        - !ImportValue
+          Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
+      ScalingConfig:
+        MinSize: 1
+        MaxSize: 2
+        DesiredSize: 1
+      UpdateConfig:
+        MaxUnavailablePercentage: 25
+      Labels:
+        workload-type: devops
+        node-type: devops
+      Tags:
+        Name: !Sub '${ClusterName}-devops-nodegroup'
+        workload-type: devops
+
+  AuthServiceNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    DependsOn: EKSCluster
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: 'auth-service'
+      NodeRole: !GetAtt NodeGroupRole.Arn
+      InstanceTypes:
+        - t3.large
+      AmiType: AL2_x86_64
+      CapacityType: ON_DEMAND
+      Subnets:
+        - !ImportValue
+          Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
+        - !ImportValue
+          Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
+      ScalingConfig:
+        MinSize: 1
+        MaxSize: 2
+        DesiredSize: 1
+      UpdateConfig:
+        MaxUnavailablePercentage: 25
+      Labels:
+        workload-type: auth-service
+        node-type: auth-service
+      Tags:
+        Name: !Sub '${ClusterName}-auth-service-nodegroup'
+        workload-type: auth-service
+
+##############################################
+# Outputs
+##############################################
+Outputs:
+  ClusterName:
+    Value: !Ref EKSCluster
+    Export:
+      Name: !Sub '${AWS::StackName}-ClusterName'
+
+  ClusterEndpoint:
+    Value: !GetAtt EKSCluster.Endpoint
+    Export:
+      Name: !Sub '${AWS::StackName}-ClusterEndpoint'
+
+  ClusterArn:
+    Value: !GetAtt EKSCluster.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-ClusterArn'
+
+  ClusterSecurityGroupId:
+    Value: !Ref EKSClusterSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-ClusterSecurityGroupId'
+
+  NodeGroupSecurityGroupId:
+    Value: !Ref EKSNodeGroupSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-NodeGroupSecurityGroupId'
+
+  OIDCIssuerURL:
+    Value: !GetAtt EKSCluster.OpenIdConnectIssuerUrl
+    Export:
+      Name: !Sub '${AWS::StackName}-OIDCIssuerURL'
+
+  NodeGroupRoleArn:
+    Value: !GetAtt NodeGroupRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-NodeGroupRoleArn'

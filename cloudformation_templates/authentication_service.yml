@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Authentication application with Cognito User Pool and Secrets Manager'
+
+Parameters:
+  AppName:
+    Type: String
+    Default: auth-app
+    Description: Application name
+  
+  AwsRegion:
+    Type: String
+    Default: us-east-1
+    Description: AWS Region
+
+Resources:
+  # Cognito User Pool
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub '${AppName}-user-pool'
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: false
+          RequireNumbers: false
+          RequireSymbols: false
+          RequireUppercase: false
+
+  # Cognito User Pool Client
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub '${AppName}-client'
+      UserPoolId: !Ref CognitoUserPool
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+
+  # AWS Secrets Manager Secret
+  SecretsManagerSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AppName}-config'
+      SecretString: !Sub |
+        {
+          "USER_POOL_ID": "${CognitoUserPool}",
+          "CLIENT_ID": "${CognitoUserPoolClient}",
+          "REGION": "${AwsRegion}",
+          "DEBUG": "True",
+          "PORT": "5000"
+        }
+
+Outputs:
+  CognitoUserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref CognitoUserPool
+    Export:
+      Name: !Sub '${AWS::StackName}-UserPoolId'
+
+  CognitoClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref CognitoUserPoolClient
+    Export:
+      Name: !Sub '${AWS::StackName}-ClientId'
+
+  AwsRegion:
+    Description: AWS Region
+    Value: !Ref AwsRegion
+    Export:
+      Name: !Sub '${AWS::StackName}-Region'
+
+  SecretArn:
+    Description: Secrets Manager Secret ARN
+    Value: !Ref SecretsManagerSecret
+    Export:
+      Name: !Sub '${AWS::StackName}-SecretArn'
