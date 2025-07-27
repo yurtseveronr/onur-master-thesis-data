@@ -45,15 +45,27 @@ jobs:
       - name: Retrieve Bucket Name
         id: get-bucket
         run: |
-          echo "bucket=$(aws cloudformation describe-stacks \
+          # Try to get bucket name from CloudFormation
+          BUCKET_NAME=$(aws cloudformation describe-stacks \
             --stack-name s3-bucket-stack \
             --region us-east-1 \
-            --query \"Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue\" \
-            --output text)" >> $GITHUB_OUTPUT
+            --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue" \
+            --output text 2>/dev/null || echo "None")
+          
+          # If CloudFormation fails or returns None, use fallback
+          if [ "$BUCKET_NAME" = "None" ] || [ -z "$BUCKET_NAME" ]; then
+            echo "CloudFormation bucket name not found, using fallback: onur-master-dataset"
+            BUCKET_NAME="onur-master-dataset"
+          fi
+          
+          echo "Using bucket: $BUCKET_NAME"
+          echo "bucket=$BUCKET_NAME" >> $GITHUB_OUTPUT
             
       - name: Upload CSV files to S3
         run: |
           BUCKET=${{ steps.get-bucket.outputs.bucket }}
+          echo "Using bucket: $BUCKET"
+          
           echo "Uploading CSV files to s3://$BUCKET/"
           
           # Find and upload CSV files
