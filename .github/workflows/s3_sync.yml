@@ -39,7 +39,8 @@ jobs:
             --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue" \
             --output text)
         
-      
+          ls
+          
           aws s3 sync . s3://$BUCKET \
             --exclude ".git/*" \
             --exclude ".github/*"
