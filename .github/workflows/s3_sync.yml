@@ -1,0 +1,45 @@
+name: S3 Setup & Sync
+
+## Only Manuel Trigger
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # for OIDC 
+  contents: read    # code checkout
+
+jobs:
+  deploy-and-sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
+          aws-region: us-east-1
+
+      - name: Deploy S3 CloudFormation Stack
+        run: |
+          aws cloudformation deploy \
+            --template-file cloudformation_templates/s3.yml \
+            --stack-name s3-bucket-stack \
+            --capabilities CAPABILITY_NAMED_IAM
+
+      - name: Wait 1 second
+        run: sleep 1
+
+      - name: Sync repository with S3 bucket ## to make sure the bucket is created before syncing
+        run: |
+          BUCKET=$(aws cloudformation describe-stacks \
+            --stack-name s3-bucket-stack \
+            --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue" \
+            --output text)
+        
+      
+          aws s3 sync . s3://$BUCKET \
+            --exclude ".git/*" \
+            --exclude ".github/*"
