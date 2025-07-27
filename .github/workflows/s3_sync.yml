@@ -1,38 +1,42 @@
-# .github/workflows/s3-deploy-sync.yml
-name: S3 CFN Deploy & Sync All
+# .github/workflows/csv-only-upload.yml
+name: S3 CFN Deploy & CSV Upload
 
 on:
   workflow_dispatch:
 
 permissions:
-  id-token: write   # OIDC token izni
-  contents: read    # kodu checkout edebilmek için
+  id-token: write
+  contents: read
 
 jobs:
-  deploy-and-sync:
+  deploy-and-upload-csv:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository (with LFS)
+      - name: Checkout (with LFS)
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0   # tam geçmiş
-          lfs: true        # LFS objelerini indir
+          fetch-depth: 0
+          lfs: true
 
-      - name: Pull LFS files
-        run: git lfs checkout
+      - name: Fetch and checkout all LFS objects
+        run: |
+          git lfs install --local
+          git lfs fetch --all
+          git lfs checkout
 
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
-          aws-region: eu-central-1
+          aws-region: us-east-1
 
       - name: Deploy S3 CloudFormation Stack
         run: |
           aws cloudformation deploy \
             --template-file cloudformation_templates/s3.yml \
             --stack-name s3-bucket-stack \
+            --region us-east-1 \
             --capabilities CAPABILITY_NAMED_IAM
 
       - name: Retrieve Bucket Name
@@ -40,12 +44,21 @@ jobs:
         run: |
           echo "bucket=$(aws cloudformation describe-stacks \
             --stack-name s3-bucket-stack \
+            --region us-east-1 \
             --query \"Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue\" \
             --output text)" >> $GITHUB_OUTPUT
 
-      - name: Sync all files to S3
+      - name: Upload only CSV files to S3
         run: |
-          aws s3 sync . s3://${{ steps.get-bucket.outputs.bucket }} \
-            --delete \
-            --exclude ".git/*" \
-            --exclude ".github/*"
+          BUCKET=${{ steps.get-bucket.outputs.bucket }}
+          echo "Uploading CSV files to s3://$BUCKET/"
+          find . -type f -iname '*.csv' \
+            ! -path "./.git/*" \
+            ! -path "./.github/*" \
+            ! -path "*/Macos/*" \
+            ! -path "*/Git/*" \
+          | sed 's|^\./||' \
+          | while read file; do
+              echo "→ $file"
+              aws s3 cp "$file" "s3://$BUCKET/$file"
+            done
