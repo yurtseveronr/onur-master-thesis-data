@@ -1,36 +1,39 @@
 # .github/workflows/csv-only-upload.yml
 name: S3 CFN Deploy & CSV Upload
-
 on:
   workflow_dispatch:
-
 permissions:
   id-token: write
   contents: read
-
 jobs:
   deploy-and-upload-csv:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout (with LFS)
-        uses: actions/checkout@v3
+      - name: Checkout repository with LFS
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           lfs: true
-
-      - name: Fetch and checkout all LFS objects
+          
+      - name: Configure Git LFS and checkout files
         run: |
-          git lfs install --local
-          git lfs fetch --all
-          git lfs checkout
-
+          git lfs install
+          git lfs pull
+          
+      - name: Verify LFS files are downloaded
+        run: |
+          echo "Checking LFS files status:"
+          git lfs ls-files -l
+          echo ""
+          echo "CSV file sizes:"
+          find . -name "*.csv" -exec ls -lh {} \;
+          
       - name: Configure AWS Credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
           aws-region: us-east-1
-
+          
       - name: Deploy S3 CloudFormation Stack
         run: |
           aws cloudformation deploy \
@@ -38,7 +41,7 @@ jobs:
             --stack-name s3-bucket-stack \
             --region us-east-1 \
             --capabilities CAPABILITY_NAMED_IAM
-
+            
       - name: Retrieve Bucket Name
         id: get-bucket
         run: |
@@ -47,11 +50,13 @@ jobs:
             --region us-east-1 \
             --query \"Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue\" \
             --output text)" >> $GITHUB_OUTPUT
-
-      - name: Upload only CSV files to S3
+            
+      - name: Upload CSV files to S3
         run: |
           BUCKET=${{ steps.get-bucket.outputs.bucket }}
           echo "Uploading CSV files to s3://$BUCKET/"
+          
+          # Find and upload CSV files
           find . -type f -iname '*.csv' \
             ! -path "./.git/*" \
             ! -path "./.github/*" \
@@ -59,6 +64,24 @@ jobs:
             ! -path "*/Git/*" \
           | sed 's|^\./||' \
           | while read file; do
-              echo "→ $file"
-              aws s3 cp "$file" "s3://$BUCKET/$file"
+              if [ -f "$file" ]; then
+                file_size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "unknown")
+                echo "→ Uploading: $file (size: $file_size bytes)"
+                
+                # Use multipart upload for large files
+                if [ "$file_size" != "unknown" ] && [ "$file_size" -gt 104857600 ]; then
+                  echo "  Using multipart upload for large file"
+                  aws s3 cp "$file" "s3://$BUCKET/$file" --storage-class STANDARD
+                else
+                  aws s3 cp "$file" "s3://$BUCKET/$file"
+                fi
+              else
+                echo "⚠️  File not found: $file"
+              fi
             done
+            
+      - name: Verify upload success
+        run: |
+          BUCKET=${{ steps.get-bucket.outputs.bucket }}
+          echo "Verifying uploaded files:"
+          aws s3 ls "s3://$BUCKET/" --recursive --human-readable
