@@ -1,15 +1,14 @@
-name: S3 Setup & Sync
+name: S3 CFN Deploy & Individual Upload
 
-## Only Manuel Trigger
 on:
   workflow_dispatch:
 
 permissions:
-  id-token: write   # for OIDC 
-  contents: read    # code checkout
+  id-token: write
+  contents: read
 
 jobs:
-  deploy-and-sync:
+  deploy-and-upload:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,18 +28,26 @@ jobs:
             --stack-name s3-bucket-stack \
             --capabilities CAPABILITY_NAMED_IAM
 
-      - name: Wait 1 second
-        run: sleep 1
-
-      - name: Sync repository with S3 bucket ## to make sure the bucket is created before syncing
+      - name: Retrieve Bucket Name
+        id: get-bucket
         run: |
           BUCKET=$(aws cloudformation describe-stacks \
             --stack-name s3-bucket-stack \
             --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue" \
             --output text)
-        
-          ls
-          
-          aws s3 sync . s3://$BUCKET \
-            --exclude ".git/*" \
-            --exclude ".github/*"
+          echo "bucket=$BUCKET" >> $GITHUB_OUTPUT
+
+      - name: Upload files individually to S3
+        run: |
+          cd $GITHUB_WORKSPACE
+          # $BUCKET değişkenini aşağıdaki şekilde kullanıyoruz
+          for file in $(find . -type f \
+            ! -path "./.git/*" \
+            ! -path "./.github/*" \
+            ! -path "*/Macos/*" \
+            ! -path "*/Git/*" \
+            ! -name ".DS_Store" \
+            | sed 's|^\./||'); do
+            echo "Uploading $file..."
+            aws s3 cp "$file" "s3://${{ steps.get-bucket.outputs.bucket }}/$file"
+          done
