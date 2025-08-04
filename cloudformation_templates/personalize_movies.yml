@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS Personalize setup for Movies Recommendation System'
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Default: 'onur-master-dataset'
+    Description: 'S3 bucket containing the datasets'
+  PersonalizeRoleArn:
+    Type: String
+    Default: 'arn:aws:iam::708778582346:role/personalize_full_access'
+    Description: 'IAM Role ARN for Personalize operations'
+
+Resources:
+  # --- Dataset Group ---
+  MoviesDatasetGroup:
+    Type: AWS::Personalize::DatasetGroup
+    Properties:
+      Name: movies-dataset-group
+
+  # --- Item Schema ---
+  MoviesItemSchema:
+    Type: AWS::Personalize::Schema
+    Properties:
+      Name: movies_item_schema
+      Schema: |
+        {
+          "type": "record",
+          "name": "Items",
+          "namespace": "com.amazonaws.personalize.schema",
+          "fields": [
+            { "name": "ITEM_ID", "type": "string" },
+            { "name": "Title",   "type": "string", "categorical": false },
+            { "name": "Genre",   "type": "string", "categorical": true  }
+          ],
+          "version": "1.0"
+        }
+
+  # --- Item Dataset & Import Job ---
+  MoviesItemsDataset:
+    Type: AWS::Personalize::Dataset
+    Properties:
+      Name: tv-Movies-items
+      DatasetType: Items
+      DatasetGroupArn: !GetAtt MoviesDatasetGroup.DatasetGroupArn
+      SchemaArn:       !GetAtt MoviesItemSchema.SchemaArn
+      DatasetImportJob:
+        JobName: import-tv-Movies-items
+        DataSource:
+          DataLocation: !Sub "s3://${S3BucketName}/dataset/processed/personalize_movies.csv"
+        RoleArn: !Ref PersonalizeRoleArn
+
+  # --- Interaction Schema ---
+  MoviesInteractionSchema:
+    Type: AWS::Personalize::Schema
+    Properties:
+      Name: movies_interaction_schema
+      Schema: |
+        {
+          "type": "record",
+          "name": "Interactions",
+          "namespace": "com.amazonaws.personalize.schema",
+          "fields": [
+            { "name": "USER_ID",   "type": "string" },
+            { "name": "ITEM_ID",   "type": "string" },
+            { "name": "TIMESTAMP", "type": "long"   }
+          ],
+          "version": "1.0"
+        }
+
+  # --- Interaction Dataset & Import Job ---
+  MoviesInteractionsDataset:
+    Type: AWS::Personalize::Dataset
+    Properties:
+      Name: movies-interactions
+      DatasetType: Interactions
+      DatasetGroupArn: !GetAtt MoviesDatasetGroup.DatasetGroupArn
+      SchemaArn:       !GetAtt MoviesInteractionSchema.SchemaArn
+      DatasetImportJob:
+        JobName: import-movies-interactions
+        DataSource:
+          DataLocation: !Sub "s3://${S3BucketName}/initial_data/movies_interactions.csv"
+        RoleArn: !Ref PersonalizeRoleArn
+
+  # --- Solution ---
+  MoviesSolution:
+    Type: AWS::Personalize::Solution
+    DependsOn:
+      - MoviesItemsDataset
+      - MoviesInteractionsDataset
+    Properties:
+      Name: movies-similar-items-solution
+      DatasetGroupArn: !GetAtt MoviesDatasetGroup.DatasetGroupArn
+      RecipeArn: arn:aws:personalize:::recipe/aws-similar-items
+      
+      

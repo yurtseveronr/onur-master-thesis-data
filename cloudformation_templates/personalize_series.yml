@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS Personalize setup for Series Recommendation System'
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Default: 'onur-master-dataset'
+    Description: 'S3 bucket containing the datasets'
+  PersonalizeRoleArn:
+    Type: String
+    Default: 'arn:aws:iam::708778582346:role/personalize_full_access'
+    Description: 'IAM Role ARN for Personalize operations'
+
+Resources:
+  # --- Dataset Group ---
+  SeriesDatasetGroup:
+    Type: AWS::Personalize::DatasetGroup
+    Properties:
+      Name: tv_series-dataset-group
+
+  # --- Item Schema ---
+  SeriesItemSchema:
+    Type: AWS::Personalize::Schema
+    Properties:
+      Name: tv_series_item_schema
+      Schema: |
+        {
+          "type": "record",
+          "name": "Items",
+          "namespace": "com.amazonaws.personalize.schema",
+          "fields": [
+            { "name": "ITEM_ID", "type": "string" },
+            { "name": "Title",   "type": "string", "categorical": false },
+            { "name": "Genre",   "type": "string", "categorical": true  }
+          ],
+          "version": "1.0"
+        }
+
+  # --- Item Dataset & Import Job ---
+  SeriesItemsDataset:
+    Type: AWS::Personalize::Dataset
+    Properties:
+      Name: tv-series-items
+      DatasetType: Items
+      DatasetGroupArn: !GetAtt SeriesDatasetGroup.DatasetGroupArn
+      SchemaArn:       !GetAtt SeriesItemSchema.SchemaArn
+      DatasetImportJob:
+        JobName: import-tv-series-items
+        DataSource:
+          DataLocation: !Sub "s3://${S3BucketName}/dataset/processed/personalize_tvseries.csv"
+        RoleArn: !Ref PersonalizeRoleArn
+
+  # --- Interaction Schema ---
+  SeriesInteractionSchema:
+    Type: AWS::Personalize::Schema
+    Properties:
+      Name: tv_series_interaction_schema
+      Schema: |
+        {
+          "type": "record",
+          "name": "Interactions",
+          "namespace": "com.amazonaws.personalize.schema",
+          "fields": [
+            { "name": "USER_ID",   "type": "string" },
+            { "name": "ITEM_ID",   "type": "string" },
+            { "name": "TIMESTAMP", "type": "long"   }
+          ],
+          "version": "1.0"
+        }
+
+  # --- Interaction Dataset & Import Job ---
+  SeriesInteractionsDataset:
+    Type: AWS::Personalize::Dataset
+    Properties:
+      Name: tv-series-interactions
+      DatasetType: Interactions
+      DatasetGroupArn: !GetAtt SeriesDatasetGroup.DatasetGroupArn
+      SchemaArn:       !GetAtt SeriesInteractionSchema.SchemaArn
+      DatasetImportJob:
+        JobName: import-tv-series-interactions
+        DataSource:
+          DataLocation: !Sub "s3://${S3BucketName}/initial_data/series_interactions.csv"
+        RoleArn: !Ref PersonalizeRoleArn
+
+  # --- Solution ---
+  SeriesSolution:
+    Type: AWS::Personalize::Solution
+    DependsOn:
+      - SeriesItemsDataset
+      - SeriesInteractionsDataset
+    Properties:
+      Name: tv-series-similar-items-solution
+      DatasetGroupArn: !GetAtt SeriesDatasetGroup.DatasetGroupArn
+      RecipeArn: arn:aws:personalize:::recipe/aws-similar-items
+      
+      

@@ -1,0 +1,12 @@
+{
+  "fileLocations": [
+    {
+      "URIPrefixes": [
+        "s3://onur-master-dataset/events/movie_likes/"
+      ]
+    }
+  ],
+  "globalUploadSettings": {
+    "format": "JSON"
+  }
+}

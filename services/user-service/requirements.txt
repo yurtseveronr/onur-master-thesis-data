@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+boto3
+pytest
+coverage
+bandit
+pydantic[email]
+email-validator
+httpx

@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  dynamodb:
+    image: amazon/dynamodb-local
+    container_name: dynamodb
+    ports:
+      - "8000:8000"
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb"]
+    networks:
+      - mynetwork
+
+  user-service:
+    build: .
+    container_name: user-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      - dynamodb
+    environment:
+      - DYNAMODB_URL=http://dynamodb:8000  # DynamoDB’ye bağlanmak için
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
+    driver: bridge

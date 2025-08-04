@@ -1,0 +1,75 @@
+from fastapi import APIRouter, HTTPException
+from app.services.personalize_service import PersonalizeService
+from app.models.schemas import (
+    RecommendationRequest,
+    EventRequest,
+    RecommendationResponse,
+    EventResponse,
+    ErrorResponse
+)
+import logging
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
+personalize_service = PersonalizeService()
+
+@router.post(
+    "/get-recommendation/",
+    response_model=RecommendationResponse,
+    summary="Get series recommendations",
+    description="Get personalized series recommendations for a user"
+)
+async def get_series_recommendation(request: RecommendationRequest):
+    try:
+        recommendations = await personalize_service.get_recommendations(
+            content_type='series',
+            user_id=request.user_id,
+            num_results=request.num_results
+        )
+        
+        return RecommendationResponse(
+            success=True,
+            data=recommendations,
+            count=len(recommendations),
+            message=f"Successfully retrieved {len(recommendations)} series recommendations"
+        )
+    except Exception as e:
+        logger.error(f"Series recommendation error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=ErrorResponse(
+                error="Error retrieving series recommendations",
+                detail=str(e)
+            ).dict()
+        )
+
+# Series endpoint  
+@router.post(
+    "/create-event/",
+    response_model=EventResponse,
+    summary="Create series interaction event",
+    description="Record user interaction with a series (VIEW, LIKE, etc.)"
+)
+async def create_series_event(request: EventRequest):
+    try:
+        event_id = await personalize_service.create_event(
+            content_type='series',
+            user_id=request.user_id,
+            item_id=request.item_id,
+            event_type=request.event_type
+        )
+        
+        return EventResponse(
+            success=True,
+            message=f"Series interaction event successfully recorded: {request.event_type}",
+            event_id=event_id
+        )
+    except Exception as e:
+        logger.error(f"Series event error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=ErrorResponse(
+                error="Error recording series interaction event",
+                detail=str(e)
+            ).dict()
+        )

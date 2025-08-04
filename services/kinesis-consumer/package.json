@@ -1,0 +1,19 @@
+{
+  "name": "kinesis-consumer",
+  "version": "1.0.0",
+  "description": "Kinesis stream consumer",
+  "main": "consumer.js",
+  "scripts": {
+    "start": "node consumer.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@aws-sdk/client-kinesis": "^3.500.0",
+    "jest": "^29.7.0",
+  "supertest": "^6.3.3"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "type": "commonjs"
+}

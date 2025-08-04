@@ -1,0 +1,161 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: 'ONUR-MASTER: QuickSight Data Sources + Datasets + Dashboards'
+
+Parameters:
+  BucketName:
+    Description: Name of the existing S3 Bucket (where Kinesis data lands)
+    Type: String
+    Default: onur-master-dataset
+
+  QuickSightUserArn:
+    Description: QuickSight user ARN
+    Type: String
+    Default: "arn:aws:quicksight:us-east-1:708778582346:user/default/AWSReservedSSO_AdministratorAccess_d58e90fb67f5d77e/onur.yurtsever@commencis.com"
+
+Resources:
+  # ===== QUICKSIGHT DATA SOURCES =====
+  MoviesDataSource:
+    Type: AWS::QuickSight::DataSource
+    Properties:
+      DataSourceId: !Sub 'movies-datasource-${AWS::StackName}'
+      Name: 'Movies Events Data Source'
+      AwsAccountId: !Ref AWS::AccountId
+      Type: S3
+      DataSourceParameters:
+        S3Parameters:
+          ManifestFileLocation:
+            Bucket: !Ref BucketName
+            Key: 'movies_manifest.json'
+      Permissions:
+        - Principal: !Ref QuickSightUserArn
+          Actions:
+            - 'quicksight:UpdateDataSourcePermissions'
+            - 'quicksight:DescribeDataSource'
+            - 'quicksight:DescribeDataSourcePermissions'
+            - 'quicksight:PassDataSource'
+            - 'quicksight:UpdateDataSource'
+            - 'quicksight:DeleteDataSource'
+
+  SeriesDataSource:
+    Type: AWS::QuickSight::DataSource
+    Properties:
+      DataSourceId: !Sub 'series-datasource-${AWS::StackName}'
+      Name: 'Series Events Data Source'
+      AwsAccountId: !Ref AWS::AccountId
+      Type: S3
+      DataSourceParameters:
+        S3Parameters:
+          ManifestFileLocation:
+            Bucket: !Ref BucketName
+            Key: 'series_manifest.json'
+      Permissions:
+        - Principal: !Ref QuickSightUserArn
+          Actions:
+            - 'quicksight:UpdateDataSourcePermissions'
+            - 'quicksight:DescribeDataSource'
+            - 'quicksight:DescribeDataSourcePermissions'
+            - 'quicksight:PassDataSource'
+            - 'quicksight:UpdateDataSource'
+            - 'quicksight:DeleteDataSource'
+
+  # ===== QUICKSIGHT DATASETS =====
+  MoviesDataSet:
+    Type: AWS::QuickSight::DataSet
+    Properties:
+      DataSetId: !Sub 'movies-dataset-${AWS::StackName}'
+      Name: 'Movies Analytics Dataset'
+      AwsAccountId: !Ref AWS::AccountId
+      ImportMode: 'SPICE'
+      PhysicalTableMap:
+        MoviesTable:
+          S3Source:
+            DataSourceArn: !GetAtt MoviesDataSource.Arn
+            InputColumns:
+              - Name: 'event_type'
+                Type: 'STRING'
+              - Name: 'user_id'
+                Type: 'STRING'
+              - Name: 'imdbID'
+                Type: 'STRING'
+              - Name: 'time'
+                Type: 'STRING'
+      Permissions:
+        - Principal: !Ref QuickSightUserArn
+          Actions:
+            - 'quicksight:UpdateDataSetPermissions'
+            - 'quicksight:DescribeDataSet'
+            - 'quicksight:DescribeDataSetPermissions'
+            - 'quicksight:PassDataSet'
+            - 'quicksight:DescribeIngestion'
+            - 'quicksight:ListIngestions'
+            - 'quicksight:UpdateDataSet'
+            - 'quicksight:DeleteDataSet'
+            - 'quicksight:CreateIngestion'
+            - 'quicksight:CancelIngestion'
+
+  SeriesDataSet:
+    Type: AWS::QuickSight::DataSet
+    Properties:
+      DataSetId: !Sub 'series-dataset-${AWS::StackName}'
+      Name: 'Series Analytics Dataset'
+      AwsAccountId: !Ref AWS::AccountId
+      ImportMode: 'SPICE'
+      PhysicalTableMap:
+        SeriesTable:
+          S3Source:
+            DataSourceArn: !GetAtt SeriesDataSource.Arn
+            InputColumns:
+              - Name: 'event_type'
+                Type: 'STRING'
+              - Name: 'user_id'
+                Type: 'STRING'
+              - Name: 'imdbID'
+                Type: 'STRING'
+              - Name: 'time'
+                Type: 'STRING'
+      Permissions:
+        - Principal: !Ref QuickSightUserArn
+          Actions:
+            - 'quicksight:UpdateDataSetPermissions'
+            - 'quicksight:DescribeDataSet'
+            - 'quicksight:DescribeDataSetPermissions'
+            - 'quicksight:PassDataSet'
+            - 'quicksight:DescribeIngestion'
+            - 'quicksight:ListIngestions'
+            - 'quicksight:UpdateDataSet'
+            - 'quicksight:DeleteDataSet'
+            - 'quicksight:CreateIngestion'
+            - 'quicksight:CancelIngestion'
+
+Outputs:
+  MoviesDataSourceArn:
+    Value: !GetAtt MoviesDataSource.Arn
+    Description: 'Movies Data Source ARN'
+
+  SeriesDataSourceArn:
+    Value: !GetAtt SeriesDataSource.Arn
+    Description: 'Series Data Source ARN'
+
+  MoviesDataSetArn:
+    Value: !GetAtt MoviesDataSet.Arn
+    Description: 'Movies DataSet ARN'
+
+  SeriesDataSetArn:
+    Value: !GetAtt SeriesDataSet.Arn
+    Description: 'Series DataSet ARN'
+
+  Instructions:
+    Value: |
+      ✅ DATA SOURCES + DATASETS OLUŞTU!
+      
+      📋 ŞİMDİ MANUEL DASHBOARD OLUŞTUR:
+      1. QuickSight Console'a git
+      2. Analyses → New analysis
+      3. Movies Analytics Dataset seç
+      4. Bar chart ekle: imdbID (X) vs Count(imdbID) (Y)
+      5. "Publish dashboard" bas
+      6. Aynısını Series için tekrarla
+      
+      🎯 HEDEF:
+      📽️ En Çok Sevilen Filmler Dashboard
+      📺 En Çok Sevilen Diziler Dashboard
