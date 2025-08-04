@@ -1,0 +1,48 @@
+17:59:30.581259 exec-cmd.c:139          trace: resolved executable path from Darwin stack: /Library/Developer/CommandLineTools/usr/bin/git
+17:59:30.581657 exec-cmd.c:238          trace: resolved executable dir: /Library/Developer/CommandLineTools/usr/bin
+17:59:30.583048 git.c:460               trace: built-in: git push origin master
+17:59:30.584427 run-command.c:655       trace: run_command: GIT_DIR=.git git remote-https origin https://github.com/yurtseveronr/onur-master-thesis-data.git
+17:59:30.588951 exec-cmd.c:139          trace: resolved executable path from Darwin stack: /Library/Developer/CommandLineTools/usr/libexec/git-core/git
+17:59:30.589289 exec-cmd.c:238          trace: resolved executable dir: /Library/Developer/CommandLineTools/usr/libexec/git-core
+17:59:30.589615 git.c:750               trace: exec: git-remote-https origin https://github.com/yurtseveronr/onur-master-thesis-data.git
+17:59:30.589623 run-command.c:655       trace: run_command: git-remote-https origin https://github.com/yurtseveronr/onur-master-thesis-data.git
+17:59:30.593308 exec-cmd.c:139          trace: resolved executable path from Darwin stack: /Library/Developer/CommandLineTools/usr/libexec/git-core/git-remote-https
+17:59:30.593570 exec-cmd.c:238          trace: resolved executable dir: /Library/Developer/CommandLineTools/usr/libexec/git-core
+17:59:30.862460 run-command.c:655       trace: run_command: 'git credential-osxkeychain get'
+17:59:30.876927 exec-cmd.c:139          trace: resolved executable path from Darwin stack: /Library/Developer/CommandLineTools/usr/libexec/git-core/git
+17:59:30.877539 exec-cmd.c:238          trace: resolved executable dir: /Library/Developer/CommandLineTools/usr/libexec/git-core
+17:59:30.878287 git.c:750               trace: exec: git-credential-osxkeychain get
+17:59:30.878300 run-command.c:655       trace: run_command: git-credential-osxkeychain get
+17:59:31.290475 run-command.c:655       trace: run_command: 'git credential-osxkeychain store'
+17:59:31.310713 exec-cmd.c:139          trace: resolved executable path from Darwin stack: /Library/Developer/CommandLineTools/usr/libexec/git-core/git
+17:59:31.311466 exec-cmd.c:238          trace: resolved executable dir: /Library/Developer/CommandLineTools/usr/libexec/git-core
+17:59:31.312164 git.c:750               trace: exec: git-credential-osxkeychain store
+17:59:31.312178 run-command.c:655       trace: run_command: git-credential-osxkeychain store
+17:59:31.359885 pkt-line.c:80           packet:          git< # service=git-receive-pack
+17:59:31.359910 pkt-line.c:80           packet:          git< 0000
+17:59:31.359914 pkt-line.c:80           packet:          git< c54310966e96822d0e1e789ed2d0dff9a8441c91 refs/heads/master\0report-status report-status-v2 delete-refs side-band-64k ofs-delta atomic object-format=sha1 quiet agent=github/spokes-receive-pack-acac8763c60f636c44baaf5c3887895cf5f55c30 session-id=B9ED:F7C2B:C9E33BB:AC9D9DA:6890CAD2 push-options
+17:59:31.359922 pkt-line.c:80           packet:          git< 0000
+17:59:31.361386 run-command.c:655       trace: run_command: .git/hooks/pre-push origin https://github.com/yurtseveronr/onur-master-thesis-data.git
+17:59:31.371033 exec-cmd.c:139          trace: resolved executable path from Darwin stack: /Library/Developer/CommandLineTools/usr/libexec/git-core/git
+17:59:31.371427 exec-cmd.c:238          trace: resolved executable dir: /Library/Developer/CommandLineTools/usr/libexec/git-core
+17:59:31.371879 git.c:750               trace: exec: git-lfs pre-push origin https://github.com/yurtseveronr/onur-master-thesis-data.git
+17:59:31.371889 run-command.c:655       trace: run_command: git-lfs pre-push origin https://github.com/yurtseveronr/onur-master-thesis-data.git
+17:59:31.413451 trace git-lfs: exec: git '-c' 'filter.lfs.smudge=' '-c' 'filter.lfs.clean=' '-c' 'filter.lfs.process=' '-c' 'filter.lfs.required=false' 'remote' '-v'
+17:59:31.417906 trace git-lfs: exec: git '-c' 'filter.lfs.smudge=' '-c' 'filter.lfs.clean=' '-c' 'filter.lfs.process=' '-c' 'filter.lfs.required=false' 'remote'
+17:59:31.422023 trace git-lfs: exec: git '-c' 'filter.lfs.smudge=' '-c' 'filter.lfs.clean=' '-c' 'filter.lfs.process=' '-c' 'filter.lfs.required=false' 'rev-parse' 'HEAD' '--symbolic-full-name' 'HEAD'
+17:59:31.425730 trace git-lfs: exec: git '-c' 'filter.lfs.smudge=' '-c' 'filter.lfs.clean=' '-c' 'filter.lfs.process=' '-c' 'filter.lfs.required=false' 'rev-parse' '--git-dir' '--show-toplevel'
+17:59:31.429481 trace git-lfs: exec: git 'config' '--includes' '-l'
+17:59:31.432894 trace git-lfs: exec: git 'rev-parse' '--is-bare-repository'
+17:59:31.436644 trace git-lfs: exec: git 'config' '--includes' '-l' '--blob' ':.lfsconfig'
+17:59:31.449586 trace git-lfs: exec: git 'config' '--includes' '-l' '--blob' 'HEAD:.lfsconfig'
+17:59:31.455050 trace git-lfs: exec: git '-c' 'filter.lfs.smudge=' '-c' 'filter.lfs.clean=' '-c' 'filter.lfs.process=' '-c' 'filter.lfs.required=false' 'rev-parse' '--git-dir'
+17:59:31.458909 trace git-lfs: exec: git '-c' 'filter.lfs.smudge=' '-c' 'filter.lfs.clean=' '-c' 'filter.lfs.process=' '-c' 'filter.lfs.required=false' 'remote'
+17:59:31.463114 trace git-lfs: pre-push: refs/heads/master dec1e96c25cffb774bc2f6e96ec113c020917f74 refs/heads/master c54310966e96822d0e1e789ed2d0dff9a8441c91
+17:59:31.463188 trace git-lfs: exec: git '-c' 'filter.lfs.smudge=' '-c' 'filter.lfs.clean=' '-c' 'filter.lfs.process=' '-c' 'filter.lfs.required=false' 'show-ref'
+17:59:31.467452 trace git-lfs: exec: git '-c' 'filter.lfs.smudge=' '-c' 'filter.lfs.clean=' '-c' 'filter.lfs.process=' '-c' 'filter.lfs.required=false' 'ls-remote' '--heads' '-q' 'origin'
+17:59:31.903390 trace git-lfs: creds: git credential fill ("https", "github.com", "")
+17:59:31.903449 trace git-lfs: exec: git 'credential' 'fill'
+17:59:31.938635 trace git-lfs: Filled credentials for https://github.com/yurtseveronr/onur-master-thesis-data.git
+17:59:31.940008 trace git-lfs: exec: /usr/bin/security 'list-keychains'
+17:59:31.958740 trace git-lfs: exec: /usr/bin/security 'find-certificate' '-a' '-p' '-c' 'github.com' '/Library/Keychains/System.keychain'
+17:59:31.975263 trace git-lfs: HTTP: POST https://github.com/yurtseveronr/onur-master-thesis-data.git/info/lfs/locks/verify
