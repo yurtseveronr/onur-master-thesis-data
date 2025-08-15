@@ -5,23 +5,16 @@ Parameters:
   ClusterName:
     Type: String
     Default: 'onur-master-eks'
-
   KubernetesVersion:
     Type: String
-    Default: '1.31'  # Auto Mode requires 1.30+
-    AllowedValues:
-      - '1.30'
-      - '1.31'
+    Default: '1.31'
+    AllowedValues: ['1.30','1.31']
     Description: 'Auto Mode requires Kubernetes 1.30 or later'
-
   NetworkStackName:
     Type: String
     Default: 'network-stack'
 
 Resources:
-##############################################
-# Security Groups (Simplified for Auto Mode)
-##############################################
   EKSClusterSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -40,9 +33,6 @@ Resources:
         - Key: Name
           Value: !Sub '${ClusterName}-ClusterSG'
 
-##############################################
-# IAM Roles
-##############################################
   EKSClusterRole:
     Type: AWS::IAM::Role
     Properties:
@@ -60,7 +50,6 @@ Resources:
         - Key: Name
           Value: !Sub '${ClusterName}-ClusterRole'
 
-  # Node Role (EKS will assign this to EC2 instances)
   NodeRole:
     Type: AWS::IAM::Role
     Properties:
@@ -80,9 +69,79 @@ Resources:
         - Key: Name
           Value: !Sub '${ClusterName}-NodeRole'
 
-##############################################
-# EKS Auto Mode Cluster
-##############################################
+  NodeAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${ClusterName}-NodeAccess'
+      Roles:
+        - !Ref NodeRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - dynamodb:DeleteItem
+              - dynamodb:Query
+              - dynamodb:Scan
+              - dynamodb:BatchGetItem
+              - dynamodb:BatchWriteItem
+              - dynamodb:DescribeTable
+            Resource:
+              - arn:aws:dynamodb:us-east-1:708778582346:table/movies
+              - arn:aws:dynamodb:us-east-1:708778582346:table/TVSeries
+          - Effect: Allow
+            Action:
+              - personalize-runtime:GetRecommendations
+              - personalize:DescribeCampaign
+              - personalize:DescribeDataset
+              - personalize-events:PutEvents
+            Resource:
+              - arn:aws:personalize:us-east-1:708778582346:campaign/*
+              - arn:aws:personalize:us-east-1:708778582346:dataset/*
+              - arn:aws:personalize:us-east-1:708778582346:event-tracker/*
+          - Effect: Allow
+            Action:
+              - kms:GenerateDataKey
+              - kms:Decrypt
+              - kms:Encrypt
+              - kms:DescribeKey
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action:
+              - s3:List*
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+              - s3:ListBucket
+              - s3:GetBucketLocation
+            Resource:
+              - arn:aws:s3:::onur-master-*
+              - arn:aws:s3:::onur-master-*/*
+          - Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+              - bedrock-agent-runtime:InvokeAgent
+            Resource: "*"
+          - Sid: SecretsManagerAccess
+            Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource:
+              - arn:aws:secretsmanager:us-east-1:708778582346:secret:*
+          - Effect: Allow
+            Action:
+              - kinesis:GetShardIterator
+              - kinesis:GetRecords
+              - kinesis:DescribeStream
+              - kinesis:PutRecord
+              - kinesis:PutRecords
+            Resource:
+              - arn:aws:kinesis:us-east-1:708778582346:stream/*
+
   EKSCluster:
     Type: AWS::EKS::Cluster
     Properties:
@@ -105,7 +164,6 @@ Resources:
         EndpointPublicAccess: true
         PublicAccessCidrs:
           - 0.0.0.0/0
-      # AUTO MODE CONFIGURATION
       ComputeConfig:
         Enabled: true
         NodeRoleArn: !GetAtt NodeRole.Arn
@@ -126,9 +184,6 @@ Resources:
         - Key: Mode
           Value: 'Auto'
 
-##############################################
-# OIDC Provider (Auto Mode still needs this)
-##############################################
   EKSClusterOIDCProvider:
     Type: AWS::IAM::OIDCProvider
     Properties:
@@ -138,35 +193,27 @@ Resources:
       ThumbprintList:
         - 9e99a48a9960b14926bb7f3b02e22da2b0ab7280
 
-##############################################
-# Outputs
-##############################################
 Outputs:
   ClusterName:
     Value: !Ref EKSCluster
     Export:
       Name: !Sub '${AWS::StackName}-ClusterName'
-
   ClusterEndpoint:
     Value: !GetAtt EKSCluster.Endpoint
     Export:
       Name: !Sub '${AWS::StackName}-ClusterEndpoint'
-
   ClusterArn:
     Value: !GetAtt EKSCluster.Arn
     Export:
       Name: !Sub '${AWS::StackName}-ClusterArn'
-
   ClusterSecurityGroupId:
     Value: !Ref EKSClusterSecurityGroup
     Export:
       Name: !Sub '${AWS::StackName}-ClusterSecurityGroupId'
-
   OIDCIssuerURL:
     Value: !GetAtt EKSCluster.OpenIdConnectIssuerUrl
     Export:
       Name: !Sub '${AWS::StackName}-OIDCIssuerURL'
-
   NodeRoleArn:
     Value: !GetAtt NodeRole.Arn
     Export:
