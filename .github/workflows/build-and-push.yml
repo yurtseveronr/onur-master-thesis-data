@@ -63,7 +63,7 @@ jobs:
         run: |
           echo "Building authentication-service..."
           # Use absolute path to be sure
-          docker build --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f $(pwd)/services/authentication-service/codebase/Dockerfile $(pwd)/services/authentication-service/codebase
+          docker build --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f $(pwd)/services/authentication-service/Dockerfile $(pwd)/services/authentication-service/
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ authentication-service pushed successfully"
 
