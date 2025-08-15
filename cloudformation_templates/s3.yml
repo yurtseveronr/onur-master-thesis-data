@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'KMS + S3 for dataset storage'
+Description: 'KMS + S3 for dataset storage with Amazon Personalize permissions'
 
 Resources:
   # KMS Key
@@ -8,11 +8,30 @@ Resources:
     Properties:
       KeyPolicy:
         Statement:
+          # Root account permissions
           - Effect: Allow
             Principal:
               AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
             Action: 'kms:*'
             Resource: '*'
+          # Amazon Personalize permissions
+          - Effect: Allow
+            Principal:
+              Service: personalize.amazonaws.com
+            Action:
+              - 'kms:Decrypt'
+              - 'kms:GenerateDataKey'
+              - 'kms:GenerateDataKey*'
+              - 'kms:CreateGrant'
+              - 'kms:DescribeKey'
+            Resource: '*'
+
+  # KMS Key Alias for easier reference
+  DatasetKMSKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/personalize-dataset-key
+      TargetKeyId: !Ref DatasetKMSKey
 
   # S3 Bucket
   DatasetBucket:
@@ -24,7 +43,98 @@ Resources:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: 'aws:kms'
               KMSMasterKeyID: !Ref DatasetKMSKey
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # S3 Bucket Policy for Personalize
+  DatasetBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DatasetBucket
+      PolicyDocument:
+        Statement:
+          # Allow Personalize to read objects
+          - Effect: Allow
+            Principal:
+              Service: personalize.amazonaws.com
+            Action:
+              - 's3:GetObject'
+              - 's3:ListBucket'
+            Resource:
+              - !Sub '${DatasetBucket}/*'
+              - !Ref DatasetBucket
+          # Allow Personalize to write batch inference results (optional)
+          - Effect: Allow
+            Principal:
+              Service: personalize.amazonaws.com
+            Action:
+              - 's3:PutObject'
+              - 's3:PutObjectAcl'
+            Resource: !Sub '${DatasetBucket}/batch-inference-results/*'
+
+  # IAM Role for Personalize (if you need to create datasets programmatically)
+  PersonalizeServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: PersonalizeDatasetRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: personalize.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: PersonalizeS3Access
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                Resource:
+                  - !Sub '${DatasetBucket}/*'
+                  - !Ref DatasetBucket
+              - Effect: Allow
+                Action:
+                  - 's3:PutObject'
+                  - 's3:PutObjectAcl'
+                Resource: !Sub '${DatasetBucket}/batch-inference-results/*'
+        - PolicyName: PersonalizeKMSAccess
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'kms:Decrypt'
+                  - 'kms:GenerateDataKey'
+                  - 'kms:GenerateDataKey*'
+                  - 'kms:CreateGrant'
+                  - 'kms:DescribeKey'
+                Resource: !GetAtt DatasetKMSKey.Arn
 
 Outputs:
   BucketName:
+    Description: 'S3 Bucket name for datasets'
     Value: !Ref DatasetBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketName'
+  
+  KMSKeyId:
+    Description: 'KMS Key ID for encryption'
+    Value: !Ref DatasetKMSKey
+    Export:
+      Name: !Sub '${AWS::StackName}-KMSKeyId'
+  
+  KMSKeyArn:
+    Description: 'KMS Key ARN'
+    Value: !GetAtt DatasetKMSKey.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-KMSKeyArn'
+  
+  PersonalizeRoleArn:
+    Description: 'IAM Role ARN for Personalize service'
+    Value: !GetAtt PersonalizeServiceRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-PersonalizeRoleArn'

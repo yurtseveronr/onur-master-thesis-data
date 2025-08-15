@@ -9,4 +9,4 @@ COPY consumer.js ./
 
 EXPOSE 3000
 
-CMD ["node", "consumer.js"]
+CMD ["node", "consumer_api.js"]

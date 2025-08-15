@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  ECR repositories for custom microservices.
+Resources:
+  AuthenticationRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: authentication-service
+
+  UserRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: user-service
+
+  MoviesRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: movies-service
+
+  SeriesRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: series-service
+
+  SearchRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: search-service
+
+  FrontendRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: frontend-service
+
+  ChatbotRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: chatbot-service
+
+  PersonalizeRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: personalize-service
+
+  ProducerRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: producer-service
+
+  ConsumerRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: consumer-service
