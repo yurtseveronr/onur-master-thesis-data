@@ -34,6 +34,13 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Clear Docker cache
+        run: |
+          echo "Clearing Docker cache..."
+          docker system prune -f
+          docker builder prune -f
+          docker image prune -f
+
       - name: Debug authentication path
         run: |
           echo "Current directory: $(pwd)"
@@ -182,6 +189,13 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Clear Docker cache
+        run: |
+          echo "Clearing Docker cache..."
+          docker system prune -f
+          docker builder prune -f
+          docker image prune -f
+
       - name: Debug frontend path
         run: |
           echo "Current directory: $(pwd)"
@@ -315,6 +329,6 @@ jobs:
         run: |
           echo "Building consumer-service..."
           # Force rebuild without any cache
-          docker build --no-cache --pull --force-rm -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/kinesis-consumer/Dockerfile services/kinesis-consumer
+          docker build --no-cache --pull --force-rm --progress=plain -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/kinesis-consumer/Dockerfile services/kinesis-consumer
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ consumer-service pushed successfully" 
