@@ -1,18 +1,19 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'EKS Auto Mode Cluster - No NodeGroups Required'
+Description: 'EKS Auto Mode Cluster with NodeRole inline policy'
 
 Parameters:
   ClusterName:
     Type: String
-    Default: 'onur-master-eks'
+    Default: onur-master-eks
   KubernetesVersion:
     Type: String
     Default: '1.31'
-    AllowedValues: ['1.30','1.31']
-    Description: 'Auto Mode requires Kubernetes 1.30 or later'
+    AllowedValues:
+      - '1.30'
+      - '1.31'
   NetworkStackName:
     Type: String
-    Default: 'network-stack'
+    Default: network-stack
 
 Resources:
   EKSClusterSecurityGroup:
@@ -125,7 +126,8 @@ Resources:
             Action:
               - bedrock:InvokeModel
               - bedrock-agent-runtime:InvokeAgent
-            Resource: "*"
+            Resource:
+              - "*"
           - Sid: SecretsManagerAccess
             Effect: Allow
             Action:
@@ -142,6 +144,7 @@ Resources:
             Resource:
               - arn:aws:kinesis:us-east-1:708778582346:stream/*
 
+  # EKS Auto Mode Cluster - Sadece temel config
   EKSCluster:
     Type: AWS::EKS::Cluster
     Properties:
@@ -153,23 +156,34 @@ Resources:
           - !Ref EKSClusterSecurityGroup
         SubnetIds:
           - !ImportValue
-            Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
+              Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
           - !ImportValue
-            Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
+              Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
           - !ImportValue
-            Fn::Sub: '${NetworkStackName}-PublicSubnet1'
+              Fn::Sub: '${NetworkStackName}-PublicSubnet1'
           - !ImportValue
-            Fn::Sub: '${NetworkStackName}-PublicSubnet2'
+              Fn::Sub: '${NetworkStackName}-PublicSubnet2'
         EndpointPrivateAccess: true
         EndpointPublicAccess: true
         PublicAccessCidrs:
           - 0.0.0.0/0
+      
+      # EKS Auto Mode Configuration
       ComputeConfig:
         Enabled: true
         NodeRoleArn: !GetAtt NodeRole.Arn
+        NodePools:
+          - general-purpose
+          - system
+      
+      KubernetesNetworkConfig:
+        ElasticLoadBalancing:
+          Enabled: true
+      
       StorageConfig:
         BlockStorage:
           Enabled: true
+      
       Logging:
         ClusterLogging:
           EnabledTypes:
@@ -178,6 +192,12 @@ Resources:
             - Type: authenticator
             - Type: controllerManager
             - Type: scheduler
+      
+      # Container Insights için Access Config
+      AccessConfig:
+        BootstrapClusterCreatorAdminPermissions: true
+        AuthenticationMode: API_AND_CONFIG_MAP
+      
       Tags:
         - Key: Name
           Value: !Ref ClusterName
@@ -192,6 +212,36 @@ Resources:
         - sts.amazonaws.com
       ThumbprintList:
         - 9e99a48a9960b14926bb7f3b02e22da2b0ab7280
+
+  # CloudWatch Observability Add-on için Service Account Role
+  CloudWatchObservabilityRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ClusterName}-CloudWatchObservability'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref EKSClusterOIDCProvider
+            Action: sts:AssumeRoleWithWebIdentity
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Tags:
+        - Key: Name
+          Value: !Sub '${ClusterName}-CloudWatchObservability'
+
+  # Container Insights - CloudWatch Observability Add-on
+  CloudWatchObservabilityAddon:
+    Type: AWS::EKS::Addon
+    Properties:
+      ClusterName: !Ref EKSCluster
+      AddonName: amazon-cloudwatch-observability
+      ResolveConflicts: OVERWRITE
+      ServiceAccountRoleArn: !GetAtt CloudWatchObservabilityRole.Arn
+      Tags:
+        - Key: Name
+          Value: !Sub '${ClusterName}-CloudWatchObservability'
 
 Outputs:
   ClusterName:
