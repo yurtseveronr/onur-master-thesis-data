@@ -43,17 +43,6 @@ jobs:
           docker builder prune -f
           docker image prune -f
 
-      - name: Debug authentication path
-        run: |
-          echo "Current directory: $(pwd)"
-          echo "Checking authentication service path..."
-          ls -la services/authentication-service/
-          echo ""
-          echo "Checking codebase directory..."
-          ls -la services/authentication-service/codebase/
-          echo ""
-          echo "Checking Dockerfile..."
-          ls -la services/authentication-service/codebase/Dockerfile
 
       - name: Build and push authentication-service
         env:
