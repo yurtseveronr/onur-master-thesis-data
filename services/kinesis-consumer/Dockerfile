@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-COPY consumer.js ./
+COPY consumer_api.js ./
 
 EXPOSE 3000
 

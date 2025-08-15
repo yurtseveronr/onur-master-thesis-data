@@ -226,7 +226,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building chatbot-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/bedrock_backend/Dockerfile services/bedrock_backend
+          docker build --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/bedrock_backend/Dockerfile services/bedrock_backend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ chatbot-service pushed successfully"
 
@@ -253,7 +253,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building personalize-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/machine_learning_service/Dockerfile services/machine_learning_service
+          docker build --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/machine_learning_service/Dockerfile services/machine_learning_service
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ personalize-service pushed successfully"
 
@@ -280,7 +280,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building producer-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/kinesis-producer/Dockerfile services/kinesis-producer
+          docker build --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/kinesis-producer/Dockerfile services/kinesis-producer
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ producer-service pushed successfully"
 
@@ -307,6 +307,6 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building consumer-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/kinesis-consumer/Dockerfile services/kinesis-consumer
+          docker build --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/kinesis-consumer/Dockerfile services/kinesis-consumer
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ consumer-service pushed successfully" 
