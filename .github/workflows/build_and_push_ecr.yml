@@ -41,7 +41,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building authentication-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/authentication-service/codebase/Dockerfile services/authentication-service/codebase
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/authentication-service/Dockerfile services/authentication-service/
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ authentication-service pushed successfully"
 
