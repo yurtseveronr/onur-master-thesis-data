@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 0  # Fetch all history for accurate cache handling
           clean: true
           
-      - name: Sanity check path
+      - name: File check
         run: |
           pwd
           ls -la
