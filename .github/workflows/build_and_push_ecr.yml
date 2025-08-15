@@ -12,6 +12,7 @@ on:
 env:
   AWS_REGION: ${{ github.event.inputs.aws_region || 'us-east-1' }}
   AWS_ACCOUNT_ID: '708778582346'
+  DOCKER_BUILD_FLAGS: '--no-cache --pull'
 
 permissions:
   id-token: write
@@ -41,7 +42,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building authentication-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/authentication-service/Dockerfile services/authentication-service/
+          docker build $DOCKER_BUILD_FLAGS -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/authentication-service/Dockerfile services/authentication-service/
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ authentication-service pushed successfully"
 
@@ -50,17 +51,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
           aws-region: ${{ env.AWS_REGION }}
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-
       - name: Build and push user-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -68,26 +66,23 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building user-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/user-service/Dockerfile services/user-service
+          docker build $DOCKER_BUILD_FLAGS -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/user-service/Dockerfile services/user-service
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ user-service pushed successfully"
 
   build-movies:
-    runs-on: ubuntu:24.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
           aws-region: ${{ env.AWS_REGION }}
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-
       - name: Build and push movies-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -95,7 +90,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building movies-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/movie-service/movie-service/Dockerfile services/movie-service/movie-service
+          docker build $DOCKER_BUILD_FLAGS -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/movie-service/movie-service/Dockerfile services/movie-service/movie-service
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ movies-service pushed successfully"
 
@@ -104,17 +99,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
           aws-region: ${{ env.AWS_REGION }}
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-
       - name: Build and push series-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -122,7 +114,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building series-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/series-service/series-service/Dockerfile services/series-service/series-service
+          docker build $DOCKER_BUILD_FLAGS -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/series-service/series-service/Dockerfile services/series-service/series-service
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ series-service pushed successfully"
 
@@ -131,17 +123,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
           aws-region: ${{ env.AWS_REGION }}
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-
       - name: Build and push search-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -149,7 +138,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building search-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/search-service/Dockerfile services/search-service
+          docker build $DOCKER_BUILD_FLAGS -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/search-service/Dockerfile services/search-service
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ search-service pushed successfully"
 
@@ -158,17 +147,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
           aws-region: ${{ env.AWS_REGION }}
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-
       - name: Build and push frontend-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -176,7 +162,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building frontend-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/frontend/Dockerfile services/frontend
+          docker build $DOCKER_BUILD_FLAGS -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/frontend/Dockerfile services/frontend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ frontend-service pushed successfully"
 
@@ -185,17 +171,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
           aws-region: ${{ env.AWS_REGION }}
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-
       - name: Build and push chatbot-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -203,7 +186,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building chatbot-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/bedrock_backend/Dockerfile services/bedrock_backend
+          docker build $DOCKER_BUILD_FLAGS -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/bedrock_backend/Dockerfile services/bedrock_backend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ chatbot-service pushed successfully"
 
@@ -212,17 +195,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
           aws-region: ${{ env.AWS_REGION }}
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-
       - name: Build and push personalize-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -230,7 +210,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building personalize-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/machine_learning_service/Dockerfile services/machine_learning_service
+          docker build $DOCKER_BUILD_FLAGS -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/machine_learning_service/Dockerfile services/machine_learning_service
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ personalize-service pushed successfully"
 
@@ -239,17 +219,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
           aws-region: ${{ env.AWS_REGION }}
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-
       - name: Build and push producer-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -257,7 +234,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building producer-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/kinesis-producer/Dockerfile services/kinesis-producer
+          docker build $DOCKER_BUILD_FLAGS -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/kinesis-producer/Dockerfile services/kinesis-producer
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ producer-service pushed successfully"
 
@@ -266,17 +243,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
           aws-region: ${{ env.AWS_REGION }}
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-
       - name: Build and push consumer-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -284,6 +258,6 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building consumer-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/kinesis-consumer/Dockerfile services/kinesis-consumer
+          docker build $DOCKER_BUILD_FLAGS -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/kinesis-consumer/Dockerfile services/kinesis-consumer
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "✅ consumer-service pushed successfully" 
+          echo "✅ consumer-service pushed successfully"
