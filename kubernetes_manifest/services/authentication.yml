@@ -9,33 +9,17 @@ spec:
   replicas: 2
   selector:
     matchLabels:
-      app: authentication
+      app: authentication  # Bu pod label'ı
   template:
     metadata:
       labels:
         app: authentication
     spec:
       nodeSelector:
-        nodegroup: services
+        node-type: services  # Bu node label'ı
       containers:
         - name: authentication
           image: 708778582346.dkr.ecr.us-east-1.amazonaws.com/authentication-service:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: authentication
-  namespace: services
-  labels:
-    app: authentication
-spec:
-  type: ClusterIP
-  selector:
-    app: authentication
-  ports:
-    - name: http
-      port: 5000
-      targetPort: 5000

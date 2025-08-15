@@ -1,6 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'EKS Auto Mode — minimal permissions (Cluster: required 5, Node: minimal)'
-
+Description: 'Normal EKS Cluster with NodeGroups'
 Parameters:
   ClusterName:
     Type: String
@@ -12,7 +11,6 @@ Parameters:
   NetworkStackName:
     Type: String
     Default: network-stack
-
 Resources:
   EKSClusterSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -29,7 +27,7 @@ Resources:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
 
-  # Cluster IAM Role — Auto Mode için gerekli managed policy seti (minimum “gereken”)
+  # Cluster IAM Role - Normal EKS için
   EKSClusterRole:
     Type: AWS::IAM::Role
     Properties:
@@ -42,12 +40,8 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
-        - arn:aws:iam::aws:policy/AmazonEKSComputePolicy
-        - arn:aws:iam::aws:policy/AmazonEKSBlockStoragePolicy
-        - arn:aws:iam::aws:policy/AmazonEKSLoadBalancingPolicy
-        - arn:aws:iam::aws:policy/AmazonEKSNetworkingPolicy
 
-  # Node IAM Role — minimal (uygulama izinleri burada YOK; Pod Identity ile vereceksin)
+  # Node IAM Role - NodeGroup için
   NodeRole:
     Type: AWS::IAM::Role
     Properties:
@@ -59,13 +53,12 @@ Resources:
             Principal: { Service: ec2.amazonaws.com }
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodeMinimalPolicy
-        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly
-        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy  
         - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
 
-  # EKS Cluster — Auto Mode compute/network/storage enabled + NodeRoleArn verildi
+  # EKS Cluster - Normal mode
   EKSCluster:
     Type: AWS::EKS::Cluster
     Properties:
@@ -85,17 +78,126 @@ Resources:
               Fn::Sub: '${NetworkStackName}-PublicSubnet2'
         EndpointPrivateAccess: true
         EndpointPublicAccess: true
-      ComputeConfig:
-        Enabled: true
-        NodeRoleArn: !GetAtt NodeRole.Arn
-        NodePools: [ general-purpose, system ]
-      KubernetesNetworkConfig:
-        ElasticLoadBalancing: { Enabled: true }
-      StorageConfig:
-        BlockStorage: { Enabled: true }
-      AccessConfig:
-        AuthenticationMode: API_AND_CONFIG_MAP
-        BootstrapClusterCreatorAdminPermissions: true
+
+  # Services NodeGroup - t3.xlarge (6 node)
+  ServicesNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: services-nodegroup
+      NodeRole: !GetAtt NodeRole.Arn
+      Subnets:
+        - !ImportValue
+            Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
+        - !ImportValue
+            Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
+      InstanceTypes: [t3.xlarge]
+      ScalingConfig:
+        MinSize: 1
+        MaxSize: 2
+        DesiredSize: 1
+      Labels:
+        node-type: services
+
+  # DevOps NodeGroup - t3.xlarge (4 node)
+  DevOpsNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: devops-nodegroup
+      NodeRole: !GetAtt NodeRole.Arn
+      Subnets:
+        - !ImportValue
+            Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
+        - !ImportValue
+            Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
+      InstanceTypes: [t3.xlarge]
+      ScalingConfig:
+        MinSize: 1
+        MaxSize: 2
+        DesiredSize: 1
+      Labels:
+        node-type: devops
+
+  # GitOps NodeGroup - t3.medium (1 node)
+  GitOpsNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: gitops-nodegroup
+      NodeRole: !GetAtt NodeRole.Arn
+      Subnets:
+        - !ImportValue
+            Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
+        - !ImportValue
+            Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
+      InstanceTypes: [t3.medium]
+      ScalingConfig:
+        MinSize: 1
+        MaxSize: 3
+        DesiredSize: 1
+      Labels:
+        node-type: gitops
+
+  # AI NodeGroup - t3.medium (1 node)
+  AINodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: ai-nodegroup
+      NodeRole: !GetAtt NodeRole.Arn
+      Subnets:
+        - !ImportValue
+            Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
+        - !ImportValue
+            Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
+      InstanceTypes: [t3.medium]
+      ScalingConfig:
+        MinSize: 1
+        MaxSize: 3
+        DesiredSize: 1
+      Labels:
+        node-type: ai
+
+  # Recommendation NodeGroup - t3.medium (1 node)
+  RecommendationNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: recommendation-nodegroup
+      NodeRole: !GetAtt NodeRole.Arn
+      Subnets:
+        - !ImportValue
+            Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
+        - !ImportValue
+            Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
+      InstanceTypes: [t3.medium]
+      ScalingConfig:
+        MinSize: 1
+        MaxSize: 3
+        DesiredSize: 1
+      Labels:
+        node-type: recommendation
+
+  # Streaming NodeGroup - t3.medium (2 node)
+  StreamingNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: streaming-nodegroup
+      NodeRole: !GetAtt NodeRole.Arn
+      Subnets:
+        - !ImportValue
+            Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
+        - !ImportValue
+            Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
+      InstanceTypes: [t3.medium]
+      ScalingConfig:
+        MinSize: 1
+        MaxSize: 2
+        DesiredSize: 2
+      Labels:
+        node-type: streaming
 
 Outputs:
   ClusterName:
