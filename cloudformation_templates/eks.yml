@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'EKS Auto Mode Cluster with NodeRole inline policy'
+Description: 'EKS Auto Mode — minimal permissions (Cluster: required 5, Node: minimal)'
 
 Parameters:
   ClusterName:
@@ -8,9 +8,7 @@ Parameters:
   KubernetesVersion:
     Type: String
     Default: '1.31'
-    AllowedValues:
-      - '1.30'
-      - '1.31'
+    AllowedValues: ['1.30','1.31']
   NetworkStackName:
     Type: String
     Default: network-stack
@@ -30,10 +28,8 @@ Resources:
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
-      Tags:
-        - Key: Name
-          Value: !Sub '${ClusterName}-ClusterSG'
 
+  # Cluster IAM Role — Auto Mode için gerekli managed policy seti (minimum “gereken”)
   EKSClusterRole:
     Type: AWS::IAM::Role
     Properties:
@@ -42,15 +38,16 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
-            Principal:
-              Service: eks.amazonaws.com
+            Principal: { Service: eks.amazonaws.com }
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
-      Tags:
-        - Key: Name
-          Value: !Sub '${ClusterName}-ClusterRole'
+        - arn:aws:iam::aws:policy/AmazonEKSComputePolicy
+        - arn:aws:iam::aws:policy/AmazonEKSBlockStoragePolicy
+        - arn:aws:iam::aws:policy/AmazonEKSLoadBalancingPolicy
+        - arn:aws:iam::aws:policy/AmazonEKSNetworkingPolicy
 
+  # Node IAM Role — minimal (uygulama izinleri burada YOK; Pod Identity ile vereceksin)
   NodeRole:
     Type: AWS::IAM::Role
     Properties:
@@ -59,92 +56,16 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
-            Principal:
-              Service: ec2.amazonaws.com
+            Principal: { Service: ec2.amazonaws.com }
             Action: sts:AssumeRole
       ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodeMinimalPolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy  
         - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
-        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
-        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-      Tags:
-        - Key: Name
-          Value: !Sub '${ClusterName}-NodeRole'
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
 
-  NodeAccessPolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: !Sub '${ClusterName}-NodeAccess'
-      Roles:
-        - !Ref NodeRole
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Action:
-              - dynamodb:GetItem
-              - dynamodb:PutItem
-              - dynamodb:UpdateItem
-              - dynamodb:DeleteItem
-              - dynamodb:Query
-              - dynamodb:Scan
-              - dynamodb:BatchGetItem
-              - dynamodb:BatchWriteItem
-              - dynamodb:DescribeTable
-            Resource:
-              - arn:aws:dynamodb:us-east-1:708778582346:table/movies
-              - arn:aws:dynamodb:us-east-1:708778582346:table/TVSeries
-          - Effect: Allow
-            Action:
-              - personalize-runtime:GetRecommendations
-              - personalize:DescribeCampaign
-              - personalize:DescribeDataset
-              - personalize-events:PutEvents
-            Resource:
-              - arn:aws:personalize:us-east-1:708778582346:campaign/*
-              - arn:aws:personalize:us-east-1:708778582346:dataset/*
-              - arn:aws:personalize:us-east-1:708778582346:event-tracker/*
-          - Effect: Allow
-            Action:
-              - kms:GenerateDataKey
-              - kms:Decrypt
-              - kms:Encrypt
-              - kms:DescribeKey
-            Resource:
-              - "*"
-          - Effect: Allow
-            Action:
-              - s3:List*
-              - s3:GetObject
-              - s3:PutObject
-              - s3:DeleteObject
-              - s3:ListBucket
-              - s3:GetBucketLocation
-            Resource:
-              - arn:aws:s3:::onur-master-*
-              - arn:aws:s3:::onur-master-*/*
-          - Effect: Allow
-            Action:
-              - bedrock:InvokeModel
-              - bedrock-agent-runtime:InvokeAgent
-            Resource:
-              - "*"
-          - Sid: SecretsManagerAccess
-            Effect: Allow
-            Action:
-              - secretsmanager:GetSecretValue
-            Resource:
-              - arn:aws:secretsmanager:us-east-1:708778582346:secret:*
-          - Effect: Allow
-            Action:
-              - kinesis:GetShardIterator
-              - kinesis:GetRecords
-              - kinesis:DescribeStream
-              - kinesis:PutRecord
-              - kinesis:PutRecords
-            Resource:
-              - arn:aws:kinesis:us-east-1:708778582346:stream/*
-
-  # EKS Auto Mode Cluster - Sadece temel config
+  # EKS Cluster — Auto Mode compute/network/storage enabled + NodeRoleArn verildi
   EKSCluster:
     Type: AWS::EKS::Cluster
     Properties:
@@ -152,8 +73,7 @@ Resources:
       Version: !Ref KubernetesVersion
       RoleArn: !GetAtt EKSClusterRole.Arn
       ResourcesVpcConfig:
-        SecurityGroupIds:
-          - !Ref EKSClusterSecurityGroup
+        SecurityGroupIds: [ !Ref EKSClusterSecurityGroup ]
         SubnetIds:
           - !ImportValue
               Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
@@ -165,106 +85,24 @@ Resources:
               Fn::Sub: '${NetworkStackName}-PublicSubnet2'
         EndpointPrivateAccess: true
         EndpointPublicAccess: true
-        PublicAccessCidrs:
-          - 0.0.0.0/0
-      
-      # EKS Auto Mode Configuration
       ComputeConfig:
         Enabled: true
         NodeRoleArn: !GetAtt NodeRole.Arn
-        NodePools:
-          - general-purpose
-          - system
-      
+        NodePools: [ general-purpose, system ]
       KubernetesNetworkConfig:
-        ElasticLoadBalancing:
-          Enabled: true
-      
+        ElasticLoadBalancing: { Enabled: true }
       StorageConfig:
-        BlockStorage:
-          Enabled: true
-      
-      Logging:
-        ClusterLogging:
-          EnabledTypes:
-            - Type: api
-            - Type: audit
-            - Type: authenticator
-            - Type: controllerManager
-            - Type: scheduler
-      
-      # Container Insights için Access Config
+        BlockStorage: { Enabled: true }
       AccessConfig:
-        BootstrapClusterCreatorAdminPermissions: true
         AuthenticationMode: API_AND_CONFIG_MAP
-      
-      Tags:
-        - Key: Name
-          Value: !Ref ClusterName
-        - Key: Mode
-          Value: 'Auto'
-
-  EKSClusterOIDCProvider:
-    Type: AWS::IAM::OIDCProvider
-    Properties:
-      Url: !GetAtt EKSCluster.OpenIdConnectIssuerUrl
-      ClientIdList:
-        - sts.amazonaws.com
-      ThumbprintList:
-        - 9e99a48a9960b14926bb7f3b02e22da2b0ab7280
-
-  # CloudWatch Observability Add-on için Service Account Role
-  CloudWatchObservabilityRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Sub '${ClusterName}-CloudWatchObservability'
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Federated: !Ref EKSClusterOIDCProvider
-            Action: sts:AssumeRoleWithWebIdentity
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
-      Tags:
-        - Key: Name
-          Value: !Sub '${ClusterName}-CloudWatchObservability'
-
-  # Container Insights - CloudWatch Observability Add-on
-  CloudWatchObservabilityAddon:
-    Type: AWS::EKS::Addon
-    Properties:
-      ClusterName: !Ref EKSCluster
-      AddonName: amazon-cloudwatch-observability
-      ResolveConflicts: OVERWRITE
-      ServiceAccountRoleArn: !GetAtt CloudWatchObservabilityRole.Arn
-      Tags:
-        - Key: Name
-          Value: !Sub '${ClusterName}-CloudWatchObservability'
+        BootstrapClusterCreatorAdminPermissions: true
 
 Outputs:
   ClusterName:
     Value: !Ref EKSCluster
-    Export:
-      Name: !Sub '${AWS::StackName}-ClusterName'
   ClusterEndpoint:
     Value: !GetAtt EKSCluster.Endpoint
-    Export:
-      Name: !Sub '${AWS::StackName}-ClusterEndpoint'
   ClusterArn:
     Value: !GetAtt EKSCluster.Arn
-    Export:
-      Name: !Sub '${AWS::StackName}-ClusterArn'
-  ClusterSecurityGroupId:
-    Value: !Ref EKSClusterSecurityGroup
-    Export:
-      Name: !Sub '${AWS::StackName}-ClusterSecurityGroupId'
-  OIDCIssuerURL:
-    Value: !GetAtt EKSCluster.OpenIdConnectIssuerUrl
-    Export:
-      Name: !Sub '${AWS::StackName}-OIDCIssuerURL'
   NodeRoleArn:
     Value: !GetAtt NodeRole.Arn
-    Export:
-      Name: !Sub '${AWS::StackName}-NodeRoleArn'
