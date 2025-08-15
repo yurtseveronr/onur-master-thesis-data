@@ -34,6 +34,18 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Debug authentication path
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Checking authentication service path..."
+          ls -la services/authentication-service/
+          echo ""
+          echo "Checking codebase directory..."
+          ls -la services/authentication-service/codebase/
+          echo ""
+          echo "Checking Dockerfile..."
+          ls -la services/authentication-service/codebase/Dockerfile
+
       - name: Build and push authentication-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -41,7 +53,8 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building authentication-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/authentication-service/codebase/Dockerfile services/authentication-service/codebase
+          # Use absolute path to be sure
+          docker build --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f $(pwd)/services/authentication-service/codebase/Dockerfile $(pwd)/services/authentication-service/codebase
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ authentication-service pushed successfully"
 
@@ -68,7 +81,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building user-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/user-service/Dockerfile services/user-service
+          docker build --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/user-service/Dockerfile services/user-service
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ user-service pushed successfully"
 
@@ -95,7 +108,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building movies-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/movie-service/movie-service/Dockerfile services/movie-service/movie-service
+          docker build --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/movie-service/movie-service/Dockerfile services/movie-service/movie-service
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ movies-service pushed successfully"
 
@@ -122,7 +135,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building series-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/series-service/series-service/Dockerfile services/series-service/series-service
+          docker build --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/series-service/series-service/Dockerfile services/series-service/series-service
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ series-service pushed successfully"
 
@@ -149,7 +162,7 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building search-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/search-service/Dockerfile services/search-service
+          docker build --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/search-service/Dockerfile services/search-service
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ search-service pushed successfully"
 
@@ -169,6 +182,15 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Debug frontend path
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Checking frontend service path..."
+          ls -la services/frontend/
+          echo ""
+          echo "Checking Dockerfile..."
+          ls -la services/frontend/Dockerfile
+
       - name: Build and push frontend-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -176,7 +198,8 @@ jobs:
           IMAGE_TAG: latest
         run: |
           echo "Building frontend-service..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/frontend/Dockerfile services/frontend
+          # Use absolute path and add retry for apt-get
+          docker build --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f $(pwd)/services/frontend/Dockerfile $(pwd)/services/frontend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ frontend-service pushed successfully"
 

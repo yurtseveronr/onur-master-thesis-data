@@ -18,7 +18,8 @@ RUN apt-get update --fix-missing && \
     ca-certificates \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /var/cache/apt/archives/*
+    && rm -rf /var/cache/apt/archives/* \
+    && apt-get autoremove -y
 
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
