@@ -64,8 +64,7 @@ Resources:
               - 's3:GetObject'
               - 's3:ListBucket'
             Resource:
-              - !Sub 'arn:aws:s3:::${DatasetBucket}/*'
-              - !Sub 'arn:aws:s3:::${DatasetBucket}'
+              - !Sub '*'
           # Allow Personalize to write batch inference results
           - Effect: Allow
             Principal:
@@ -73,7 +72,7 @@ Resources:
             Action:
               - 's3:PutObject'
               - 's3:PutObjectAcl'
-            Resource: !Sub 'arn:aws:s3:::${DatasetBucket}/*'
+            Resource: !Sub '*'
 
 Outputs:
   BucketName:
