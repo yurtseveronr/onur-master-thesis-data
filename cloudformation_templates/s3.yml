@@ -73,7 +73,7 @@ Resources:
             Action:
               - 's3:PutObject'
               - 's3:PutObjectAcl'
-            Resource: !Sub '${DatasetBucket}/batch-inference-results/*'
+            Resource: !Sub '${DatasetBucket}/*'
 
   # IAM Role for Personalize (if you need to create datasets programmatically)
   PersonalizeServiceRole:
@@ -95,13 +95,13 @@ Resources:
                   - 's3:GetObject'
                   - 's3:ListBucket'
                 Resource:
-                  - !Sub 'arn:aws:s3:::${DatasetBucket}/*'
-                  - !Sub 'arn:aws:s3:::${DatasetBucket}'
+                  - !Sub 'arn:aws:s3:::onur-master-dataset/*'
+                  - !Sub 'arn:aws:s3:::onur-master-dataset'
               - Effect: Allow
                 Action:
                   - 's3:PutObject'
                   - 's3:PutObjectAcl'
-                Resource: !Sub 'arn:aws:s3:::${DatasetBucket}/batch-inference-results/*'
+                Resource: !Sub 'arn:aws:s3:::onur-master-dataset/batch-inference-results/*'
         - PolicyName: PersonalizeKMSAccess
           PolicyDocument:
             Statement:
