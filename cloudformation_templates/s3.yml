@@ -66,53 +66,14 @@ Resources:
             Resource:
               - !Sub '${DatasetBucket}/*'
               - !Ref DatasetBucket
-          # Allow Personalize to write batch inference results (optional)
+          # Allow Personalize to write batch inference results
           - Effect: Allow
             Principal:
               Service: personalize.amazonaws.com
             Action:
               - 's3:PutObject'
               - 's3:PutObjectAcl'
-            Resource: !Sub '${DatasetBucket}/*'
-
-  # IAM Role for Personalize (if you need to create datasets programmatically)
-  PersonalizeServiceRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: PersonalizeDatasetRole
-      AssumeRolePolicyDocument:
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: personalize.amazonaws.com
-            Action: 'sts:AssumeRole'
-      Policies:
-        - PolicyName: PersonalizeS3Access
-          PolicyDocument:
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 's3:GetObject'
-                  - 's3:ListBucket'
-                Resource:
-                  - !Sub 'arn:aws:s3:::onur-master-dataset/*'
-                  - !Sub 'arn:aws:s3:::onur-master-dataset'
-              - Effect: Allow
-                Action:
-                  - 's3:PutObject'
-                  - 's3:PutObjectAcl'
-                Resource: !Sub 'arn:aws:s3:::onur-master-dataset/batch-inference-results/*'
-        - PolicyName: PersonalizeKMSAccess
-          PolicyDocument:
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'kms:Decrypt'
-                  - 'kms:GenerateDataKey'
-                  - 'kms:GenerateDataKey*'
-                  - 'kms:CreateGrant'
-                  - 'kms:DescribeKey'
-                Resource: !GetAtt DatasetKMSKey.Arn
+            Resource: !Sub '${DatasetBucket}/batch-inference-results/*'
 
 Outputs:
   BucketName:
@@ -132,9 +93,3 @@ Outputs:
     Value: !GetAtt DatasetKMSKey.Arn
     Export:
       Name: !Sub '${AWS::StackName}-KMSKeyArn'
-  
-  PersonalizeRoleArn:
-    Description: 'IAM Role ARN for Personalize service'
-    Value: !GetAtt PersonalizeServiceRole.Arn
-    Export:
-      Name: !Sub '${AWS::StackName}-PersonalizeRoleArn'
