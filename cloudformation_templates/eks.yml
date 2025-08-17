@@ -1,5 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'EKS Auto Mode + NodeGroups + Pod Identity + Add-ons'
+Description: 'EKS Cluster + NodeGroups + Add-ons + IAM Roles (Auto Mode OFF)'
+
 Parameters:
   ClusterName:
     Type: String
@@ -11,7 +12,9 @@ Parameters:
   NetworkStackName:
     Type: String
     Default: network-stack
+
 Resources:
+  # Cluster SG
   EKSClusterSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -27,7 +30,7 @@ Resources:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
 
-  # Cluster IAM Role - Auto Mode için gerekli managed policy seti
+  # Cluster IAM Role
   EKSClusterRole:
     Type: AWS::IAM::Role
     Properties:
@@ -37,15 +40,13 @@ Resources:
         Statement:
           - Effect: Allow
             Principal: { Service: eks.amazonaws.com }
-            Action: sts:AssumeRole
+            Action:
+              - sts:AssumeRole
+              - sts:TagSession
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
-        - arn:aws:iam::aws:policy/AmazonEKSComputePolicy
-        - arn:aws:iam::aws:policy/AmazonEKSBlockStoragePolicy
-        - arn:aws:iam::aws:policy/AmazonEKSLoadBalancingPolicy
-        - arn:aws:iam::aws:policy/AmazonEKSNetworkingPolicy
 
-  # Node IAM Role - NodeGroup + Pod Identity için
+  # Node IAM Role
   NodeRole:
     Type: AWS::IAM::Role
     Properties:
@@ -61,18 +62,8 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-      # Pod Identity için ek izin
-      Policies:
-        - PolicyName: EKSPodIdentityAgentPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - eks-auth:AssumeRoleForPodIdentity
-                Resource: '*'
 
-  # EKS Cluster - Auto Mode + Manual NodeGroups
+  # EKS Cluster (Auto Mode OFF)
   EKSCluster:
     Type: AWS::EKS::Cluster
     Properties:
@@ -82,30 +73,19 @@ Resources:
       ResourcesVpcConfig:
         SecurityGroupIds: [ !Ref EKSClusterSecurityGroup ]
         SubnetIds:
-          - !ImportValue
-              Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
-          - !ImportValue
-              Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
-          - !ImportValue
-              Fn::Sub: '${NetworkStackName}-PublicSubnet1'
-          - !ImportValue
-              Fn::Sub: '${NetworkStackName}-PublicSubnet2'
+          - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet1' }
+          - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet2' }
+          - !ImportValue { Fn::Sub: '${NetworkStackName}-PublicSubnet1' }
+          - !ImportValue { Fn::Sub: '${NetworkStackName}-PublicSubnet2' }
         EndpointPrivateAccess: true
         EndpointPublicAccess: true
-      # Auto Mode enabled
-      ComputeConfig:
-        Enabled: true
-        NodeRoleArn: !GetAtt NodeRole.Arn
-        NodePools: [ general-purpose, system ]
       KubernetesNetworkConfig:
-        ElasticLoadBalancing: { Enabled: true }
-      StorageConfig:
-        BlockStorage: { Enabled: true }
+        IpFamily: ipv4
       AccessConfig:
-        AuthenticationMode: API_AND_CONFIG_MAP
+        AuthenticationMode: CONFIG_MAP
         BootstrapClusterCreatorAdminPermissions: true
 
-  # Services NodeGroup - t3.xlarge (6 node)
+  # NodeGroups
   ServicesNodeGroup:
     Type: AWS::EKS::Nodegroup
     Properties:
@@ -113,19 +93,15 @@ Resources:
       NodegroupName: services-nodegroup
       NodeRole: !GetAtt NodeRole.Arn
       Subnets:
-        - !ImportValue
-            Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
-        - !ImportValue
-            Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
+        - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet1' }
+        - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet2' }
       InstanceTypes: [t3.xlarge]
       ScalingConfig:
         MinSize: 1
-        MaxSize: 2
+        MaxSize: 3
         DesiredSize: 1
-      Labels:
-        node-type: services
+      Labels: { node-type: services }
 
-  # DevOps NodeGroup - t3.xlarge (4 node)
   DevOpsNodeGroup:
     Type: AWS::EKS::Nodegroup
     Properties:
@@ -133,19 +109,15 @@ Resources:
       NodegroupName: devops-nodegroup
       NodeRole: !GetAtt NodeRole.Arn
       Subnets:
-        - !ImportValue
-            Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
-        - !ImportValue
-            Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
+        - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet1' }
+        - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet2' }
       InstanceTypes: [t3.xlarge]
       ScalingConfig:
         MinSize: 1
-        MaxSize: 2
+        MaxSize: 3
         DesiredSize: 1
-      Labels:
-        node-type: devops
+      Labels: { node-type: devops }
 
-  # GitOps NodeGroup - t3.medium (1 node)
   GitOpsNodeGroup:
     Type: AWS::EKS::Nodegroup
     Properties:
@@ -153,19 +125,15 @@ Resources:
       NodegroupName: gitops-nodegroup
       NodeRole: !GetAtt NodeRole.Arn
       Subnets:
-        - !ImportValue
-            Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
-        - !ImportValue
-            Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
+        - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet1' }
+        - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet2' }
       InstanceTypes: [t3.medium]
       ScalingConfig:
         MinSize: 1
-        MaxSize: 2
+        MaxSize: 3
         DesiredSize: 1
-      Labels:
-        node-type: gitops
+      Labels: { node-type: gitops }
 
-  # Recommendation NodeGroup - t3.medium (1 node)
   RecommendationNodeGroup:
     Type: AWS::EKS::Nodegroup
     Properties:
@@ -173,19 +141,15 @@ Resources:
       NodegroupName: recommendation-nodegroup
       NodeRole: !GetAtt NodeRole.Arn
       Subnets:
-        - !ImportValue
-            Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
-        - !ImportValue
-            Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
+        - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet1' }
+        - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet2' }
       InstanceTypes: [t3.medium]
       ScalingConfig:
         MinSize: 1
-        MaxSize: 2
+        MaxSize: 3
         DesiredSize: 1
-      Labels:
-        node-type: recommendation
+      Labels: { node-type: recommendation }
 
-  # Streaming NodeGroup - t3.medium (2 node)
   StreamingNodeGroup:
     Type: AWS::EKS::Nodegroup
     Properties:
@@ -193,280 +157,21 @@ Resources:
       NodegroupName: streaming-nodegroup
       NodeRole: !GetAtt NodeRole.Arn
       Subnets:
-        - !ImportValue
-            Fn::Sub: '${NetworkStackName}-PrivateSubnet1'
-        - !ImportValue
-            Fn::Sub: '${NetworkStackName}-PrivateSubnet2'
+        - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet1' }
+        - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet2' }
       InstanceTypes: [t3.medium]
       ScalingConfig:
         MinSize: 1
-        MaxSize: 2
+        MaxSize: 3
         DesiredSize: 1
-      Labels:
-        node-type: streaming
+      Labels: { node-type: streaming }
 
-  # Add-ons
-  PodIdentityAddon:
-    Type: AWS::EKS::Addon
-    Properties:
-      ClusterName: !Ref EKSCluster
-      AddonName: eks-pod-identity-agent
-      AddonVersion: v1.0.0-eksbuild.1
-
+  # Add-on (CloudWatch)
   ContainerInsightsAddon:
     Type: AWS::EKS::Addon
     Properties:
       ClusterName: !Ref EKSCluster
       AddonName: amazon-cloudwatch-observability
-
-  # ===========================================
-  # Pod Identity IAM Roles
-  # ===========================================
-  
-  # Services Role (Common + DynamoDB + Secrets + Cognito)
-  ServicesRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Sub '${ClusterName}-services-role'
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: pods.eks.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: CommonPolicyForServices
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Sid: S3Access
-                Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:PutObject
-                  - s3:DeleteObject
-                  - s3:ListBucket
-                Resource:
-                  - arn:aws:s3:::onur-master*
-              - Sid: KMSAccess
-                Effect: Allow
-                Action:
-                  - kms:Decrypt
-                  - kms:Encrypt
-                  - kms:GenerateDataKey
-                  - kms:GenerateDataKeyWithoutPlaintext
-                  - kms:DescribeKey
-                Resource:
-                  - arn:aws:kms:us-east-1:*:key/*
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                  - logs:DescribeLogGroups
-                  - logs:DescribeLogStreams
-                Resource:
-                  - arn:aws:logs:us-east-1:*:*
-              - Sid: DynamoDBAccess
-                Effect: Allow
-                Action:
-                  - dynamodb:GetItem
-                  - dynamodb:PutItem
-                  - dynamodb:UpdateItem
-                  - dynamodb:DeleteItem
-                  - dynamodb:Query
-                  - dynamodb:Scan
-                  - dynamodb:BatchGetItem
-                  - dynamodb:BatchWriteItem
-                  - dynamodb:DescribeTable
-                Resource:
-                  - arn:aws:dynamodb:us-east-1:708778582346:table/*
-              - Sid: SecretsManagerAccess
-                Effect: Allow
-                Action:
-                  - secretsmanager:GetSecretValue
-                Resource:
-                  - arn:aws:secretsmanager:us-east-1:708778582346:secret:auth-app-config*
-              - Sid: CognitoAccess
-                Effect: Allow
-                Action:
-                  - cognito-idp:SignUp
-                  - cognito-idp:ConfirmSignUp
-                  - cognito-idp:InitiateAuth
-                  - cognito-idp:RespondToAuthChallenge
-                  - cognito-idp:GetUser
-                  - cognito-idp:AdminGetUser
-                  - cognito-idp:AdminCreateUser
-                  - cognito-idp:AdminSetUserPassword
-                  - cognito-idp:AdminConfirmSignUp
-                Resource: arn:aws:cognito-idp:us-east-1:708778582346:userpool/*
-
-  # Personalize Role (Common + Personalize)
-  PersonalizeRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Sub '${ClusterName}-personalize-role'
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: pods.eks.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: CommonPolicyForPersonalize
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Sid: S3Access
-                Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:PutObject
-                  - s3:DeleteObject
-                  - s3:ListBucket
-                Resource:
-                  - arn:aws:s3:::onur-master*
-              - Sid: KMSAccess
-                Effect: Allow
-                Action:
-                  - kms:Decrypt
-                  - kms:Encrypt
-                  - kms:GenerateDataKey
-                  - kms:GenerateDataKeyWithoutPlaintext
-                  - kms:DescribeKey
-                Resource:
-                  - arn:aws:kms:us-east-1:*:key/*
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                  - logs:DescribeLogGroups
-                  - logs:DescribeLogStreams
-                Resource:
-                  - arn:aws:logs:us-east-1:*:*
-              - Sid: PersonalizeAccess
-                Effect: Allow
-                Action:
-                  - personalize-runtime:GetRecommendations
-                  - personalize:DescribeCampaign
-                  - personalize:DescribeDataset
-                  - personalize:DescribeEventTracker
-                  - personalize:ListEventTrackers
-                  - personalize:CreateEventTracker
-                  - personalize-events:PutEvents
-                Resource:
-                  - arn:aws:personalize:us-east-1:708778582346:campaign/tv-series-campaign
-                  - arn:aws:personalize:us-east-1:708778582346:campaign/movies-campaign
-                  - arn:aws:personalize:us-east-1:708778582346:dataset/tv_series-dataset-group
-                  - arn:aws:personalize:us-east-1:708778582346:dataset/movies-dataset-group
-                  - arn:aws:personalize:us-east-1:708778582346:event-tracker/*
-
-  # Chatbot Role (Common + Bedrock + Secrets)
-  ChatbotRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Sub '${ClusterName}-chatbot-role'
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: pods.eks.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: CommonPolicyForChatbot
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Sid: S3Access
-                Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:PutObject
-                  - s3:DeleteObject
-                  - s3:ListBucket
-                Resource:
-                  - arn:aws:s3:::onur-master*
-              - Sid: KMSAccess
-                Effect: Allow
-                Action:
-                  - kms:Decrypt
-                  - kms:Encrypt
-                  - kms:GenerateDataKey
-                  - kms:GenerateDataKeyWithoutPlaintext
-                  - kms:DescribeKey
-                Resource:
-                  - arn:aws:kms:us-east-1:*:key/*
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                  - logs:DescribeLogGroups
-                  - logs:DescribeLogStreams
-                Resource:
-                  - arn:aws:logs:us-east-1:*:*
-              - Sid: BedrockAccess
-                Effect: Allow
-                Action:
-                  - bedrock:InvokeModel
-                  - bedrock-agent-runtime:InvokeAgent
-                Resource: '*'
-              - Sid: SecretsManagerAccess
-                Effect: Allow
-                Action:
-                  - secretsmanager:GetSecretValue
-                Resource:
-                  - arn:aws:secretsmanager:us-east-1:708778582346:secret:movies-series-agent-creds-v2*
-
-  # Streaming Role (Common only)
-  StreamingRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Sub '${ClusterName}-streaming-role'
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: pods.eks.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: CommonPolicyForStreaming
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Sid: S3Access
-                Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:PutObject
-                  - s3:DeleteObject
-                  - s3:ListBucket
-                Resource:
-                  - arn:aws:s3:::onur-master*
-              - Sid: KMSAccess
-                Effect: Allow
-                Action:
-                  - kms:Decrypt
-                  - kms:Encrypt
-                  - kms:GenerateDataKey
-                  - kms:GenerateDataKeyWithoutPlaintext
-                  - kms:DescribeKey
-                Resource:
-                  - arn:aws:kms:us-east-1:*:key/*
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                  - logs:DescribeLogGroups
-                  - logs:DescribeLogStreams
-                Resource:
-                  - arn:aws:logs:us-east-1:*:*
 
 Outputs:
   ClusterName:
@@ -477,11 +182,3 @@ Outputs:
     Value: !GetAtt EKSCluster.Arn
   NodeRoleArn:
     Value: !GetAtt NodeRole.Arn
-  ServicesRoleArn:
-    Value: !GetAtt ServicesRole.Arn
-  PersonalizeRoleArn:
-    Value: !GetAtt PersonalizeRole.Arn
-  ChatbotRoleArn:
-    Value: !GetAtt ChatbotRole.Arn
-  StreamingRoleArn:
-    Value: !GetAtt StreamingRole.Arn

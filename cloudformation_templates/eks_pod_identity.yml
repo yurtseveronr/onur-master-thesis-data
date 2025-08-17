@@ -1,0 +1,280 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'EKS Pod Identity ONLY: IAM ManagedPolicies + IAM Roles + PodIdentityAssociations (no addon)'
+
+Parameters:
+  ClusterName:
+    Type: String
+    Description: Existing EKS cluster name (e.g., onur-master-eks)
+  AccountId:
+    Type: String
+    Description: AWS Account ID (e.g., 708778582346)
+  Region:
+    Type: String
+    Default: us-east-1
+  ServicesServiceAccount:
+    Type: String
+    Default: services-sa
+  AIServiceAccount:
+    Type: String
+    Default: ai-sa
+  RecommendationServiceAccount:
+    Type: String
+    Default: recommendation-sa
+  StreamingServiceAccount:
+    Type: String
+    Default: streaming-sa
+
+Resources:
+  # ---------- COMMON POLICY (attach to all roles) ----------
+  CommonPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub '${ClusterName}-CommonPolicy'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: S3Access
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+              - s3:ListBucket
+              - s3:GetBucketLocation
+            Resource:
+              - 'arn:aws:s3:::onur-master*'
+              - 'arn:aws:s3:::onur-master*/*'   # object-level
+          - Sid: KMSAccess
+            Effect: Allow
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:GenerateDataKey
+              - kms:DescribeKey
+            Resource: !Sub 'arn:aws:kms:${Region}:*:key/*'
+          - Sid: CloudWatchLogsAccess
+            Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - logs:DescribeLogGroups
+              - logs:DescribeLogStreams
+            Resource: !Sub 'arn:aws:logs:${Region}:*:*'
+          - Sid: CloudwatchMetricsAccess
+            Effect: Allow
+            Action:
+              - cloudwatch:PutMetricData
+              - cloudwatch:GetMetricData
+              - cloudwatch:ListMetrics
+            Resource: '*'
+
+  # ==================== SERVICES ====================
+  ServicesExtraPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub '${ClusterName}-ServicesExtra'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DynamoDBAccess
+            Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - dynamodb:DeleteItem
+              - dynamodb:Query
+              - dynamodb:Scan
+              - dynamodb:BatchGetItem
+              - dynamodb:BatchWriteItem
+              - dynamodb:DescribeTable
+            Resource:
+              - !Sub 'arn:aws:dynamodb:${Region}:${AccountId}:table/movies'
+              - !Sub 'arn:aws:dynamodb:${Region}:${AccountId}:table/TVSeries'
+              - !Sub 'arn:aws:dynamodb:${Region}:${AccountId}:table/users'
+          - Sid: SecretsManagerAccess
+            Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Sub 'arn:aws:secretsmanager:${Region}:${AccountId}:secret:auth-app-config*'
+          - Sid: CognitoAccess
+            Effect: Allow
+            Action:
+              - cognito-idp:SignUp
+              - cognito-idp:ConfirmSignUp
+              - cognito-idp:InitiateAuth
+              - cognito-idp:RespondToAuthChallenge
+              - cognito-idp:GetUser
+              - cognito-idp:AdminGetUser
+              - cognito-idp:AdminCreateUser
+              - cognito-idp:AdminSetUserPassword
+              - cognito-idp:AdminConfirmSignUp
+            Resource: !Sub 'arn:aws:cognito-idp:${Region}:${AccountId}:userpool/*'
+
+  ServicesRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ClusterName}-services-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: pods.eks.amazonaws.com }
+            Action:
+              - sts:AssumeRole
+              - sts:TagSession
+      ManagedPolicyArns:
+        - !Ref CommonPolicy
+        - !Ref ServicesExtraPolicy
+
+  ServicesPodIdentity:
+    Type: AWS::EKS::PodIdentityAssociation
+    Properties:
+      ClusterName: !Ref ClusterName
+      Namespace: services
+      ServiceAccount: !Ref ServicesServiceAccount
+      RoleArn: !GetAtt ServicesRole.Arn
+
+  # ==================== AI ====================
+  AIExtraPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub '${ClusterName}-AIExtra'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: BedrockAccess
+            Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+              - bedrock-agent-runtime:InvokeAgent
+            Resource: '*'
+          - Sid: SecretsManagerAccess
+            Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Sub 'arn:aws:secretsmanager:${Region}:${AccountId}:secret:movies-series-agent-creds-v2*'
+
+  AIRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ClusterName}-ai-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: pods.eks.amazonaws.com }
+            Action:
+              - sts:AssumeRole
+              - sts:TagSession
+      ManagedPolicyArns:
+        - !Ref CommonPolicy
+        - !Ref AIExtraPolicy
+
+  AIPodIdentity:
+    Type: AWS::EKS::PodIdentityAssociation
+    Properties:
+      ClusterName: !Ref ClusterName
+      Namespace: ai
+      ServiceAccount: !Ref AIServiceAccount
+      RoleArn: !GetAtt AIRole.Arn
+
+  # ==================== RECOMMENDATION ====================
+  RecommendationExtraPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub '${ClusterName}-RecommendationExtra'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PersonalizeAccess
+            Effect: Allow
+            Action:
+              - personalize-runtime:GetRecommendations
+              - personalize:DescribeCampaign
+              - personalize:DescribeDataset
+              - personalize:DescribeEventTracker
+              - personalize:ListEventTrackers
+              - personalize:CreateEventTracker
+              - personalize-events:PutEvents
+            Resource:
+              - !Sub 'arn:aws:personalize:${Region}:${AccountId}:campaign/tv-series-campaign'
+              - !Sub 'arn:aws:personalize:${Region}:${AccountId}:campaign/movies-campaign'
+              - !Sub 'arn:aws:personalize:${Region}:${AccountId}:dataset/tv_series-dataset-group'
+              - !Sub 'arn:aws:personalize:${Region}:${AccountId}:dataset/movies-dataset-group'
+              - !Sub 'arn:aws:personalize:${Region}:${AccountId}:event-tracker/*'
+
+  RecommendationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ClusterName}-recommendation-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: pods.eks.amazonaws.com }
+            Action:
+              - sts:AssumeRole
+              - sts:TagSession
+      ManagedPolicyArns:
+        - !Ref CommonPolicy
+        - !Ref RecommendationExtraPolicy
+
+  RecommendationPodIdentity:
+    Type: AWS::EKS::PodIdentityAssociation
+    Properties:
+      ClusterName: !Ref ClusterName
+      Namespace: recommendation
+      ServiceAccount: !Ref RecommendationServiceAccount
+      RoleArn: !GetAtt RecommendationRole.Arn
+
+  # ==================== STREAMING ====================
+  StreamingExtraPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub '${ClusterName}-StreamingExtra'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: KinesisAccess
+            Effect: Allow
+            Action:
+              - kinesis:GetShardIterator
+              - kinesis:GetRecords
+              - kinesis:DescribeStream
+              - kinesis:PutRecord
+              - kinesis:PutRecords
+            Resource: !Sub 'arn:aws:kinesis:${Region}:${AccountId}:stream/*'
+
+  StreamingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ClusterName}-streaming-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: pods.eks.amazonaws.com }
+            Action:
+              - sts:AssumeRole
+              - sts:TagSession
+      ManagedPolicyArns:
+        - !Ref CommonPolicy
+        - !Ref StreamingExtraPolicy
+
+  StreamingPodIdentity:
+    Type: AWS::EKS::PodIdentityAssociation
+    Properties:
+      ClusterName: !Ref ClusterName
+      Namespace: streaming
+      ServiceAccount: !Ref StreamingServiceAccount
+      RoleArn: !GetAtt StreamingRole.Arn
+
+Outputs:
+  ServicesRoleArn:
+    Value: !GetAtt ServicesRole.Arn
+  AIRoleArn:
+    Value: !GetAtt AIRole.Arn
+  RecommendationRoleArn:
+    Value: !GetAtt RecommendationRole.Arn
+  StreamingRoleArn:
+    Value: !GetAtt StreamingRole.Arn

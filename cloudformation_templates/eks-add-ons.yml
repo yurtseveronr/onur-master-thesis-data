@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'EKS Add-ons for existing cluster: onur-master-eks'
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: onur-master-eks
+    Description: Name of the existing EKS cluster
+
+Resources:
+  # ADOT için Service Account Role
+  ADOTRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ClusterName}-adot-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: pods.eks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+              - sts:TagSession
+            Condition:
+              StringEquals:
+                'aws:SourceAccount': !Ref 'AWS::AccountId'
+              ArnLike:
+                'aws:SourceArn': !Sub 'arn:aws:eks:${AWS::Region}:${AWS::AccountId}:cluster/${ClusterName}'
+      Policies:
+        - PolicyName: ADOTPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                  - logs:PutLogEvents
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:DescribeLogStreams
+                  - logs:DescribeLogGroups
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                  - xray:GetSamplingRules
+                  - xray:GetSamplingTargets
+                Resource: '*'
+
+  # AWS Distro for OpenTelemetry Add-on
+  ADOTAddon:
+    Type: AWS::EKS::Addon
+    DependsOn: ADOTRole
+    Properties:
+      ClusterName: !Ref ClusterName
+      AddonName: adot
+      AddonVersion: v0.117.0-eksbuild.1
+      ServiceAccountRoleArn: !GetAtt ADOTRole.Arn
+      ResolveConflicts: OVERWRITE
+
+  # Amazon EKS Pod Identity Agent Add-on
+  PodIdentityAddon:
+    Type: AWS::EKS::Addon
+    Properties:
+      ClusterName: !Ref ClusterName
+      AddonName: eks-pod-identity-agent
+      AddonVersion: v1.3.8-eksbuild.2
+      ResolveConflicts: OVERWRITE
+
+  # CoreDNS Add-on
+  CoreDNSAddon:
+    Type: AWS::EKS::Addon
+    Properties:
+      ClusterName: !Ref ClusterName
+      AddonName: coredns
+      AddonVersion: v1.11.3-eksbuild.1
+      ResolveConflicts: OVERWRITE
+
+  # kube-proxy Add-on
+  KubeProxyAddon:
+    Type: AWS::EKS::Addon
+    Properties:
+      ClusterName: !Ref ClusterName
+      AddonName: kube-proxy
+      AddonVersion: v1.29.0-eksbuild.1
+      ResolveConflicts: OVERWRITE
+
+  # Amazon VPC CNI Add-on
+  VPCCNIAddon:
+    Type: AWS::EKS::Addon
+    Properties:
+      ClusterName: !Ref ClusterName
+      AddonName: vpc-cni
+      AddonVersion: v1.16.0-eksbuild.1
+      ResolveConflicts: OVERWRITE
+
+  # Cert Manager Add-on
+  CertManagerAddon:
+    Type: AWS::EKS::Addon
+    Properties:
+      ClusterName: !Ref ClusterName
+      AddonName: cert-manager
+      AddonVersion: v1.18.2-eksbuild.1
+      ResolveConflicts: OVERWRITE
+
+Outputs:
+  ADOTRoleArn:
+    Description: ARN of the ADOT Role
+    Value: !GetAtt ADOTRole.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-ADOTRole
+
+  AddonsStatus:
+    Description: EKS Add-ons have been installed
+    Value: !Sub "All add-ons installed for cluster: ${ClusterName}"

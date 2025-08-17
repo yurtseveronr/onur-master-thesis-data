@@ -1,0 +1,41 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer
+  namespace: streaming
+  labels:
+    app: consumer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: consumer
+  template:
+    metadata:
+      labels:
+        app: consumer
+    spec:
+      serviceAccountName: streaming-sa
+      nodeSelector:
+        node-type: streaming
+      containers:
+        - name: consumer
+          image: 708778582346.dkr.ecr.us-east-1.amazonaws.com/consumer-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: consumer
+  namespace: streaming
+spec:
+  type: ClusterIP
+  selector:
+    app: consumer
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000

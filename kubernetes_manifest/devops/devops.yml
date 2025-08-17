@@ -1,0 +1,220 @@
+# ===================== LOCUST CONFIGMAP (ÖNCE) =====================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: locustfile
+  namespace: devops
+data:
+  locustfile.py: |
+    from locust import HttpUser, task, between
+    class QuickstartUser(HttpUser):
+        wait_time = between(1, 3)
+        @task
+        def index(self):
+            self.client.get("/")
+
+---
+# ===================== SONARQUBE =====================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarqube
+  namespace: devops
+  labels:
+    app: sonarqube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sonarqube
+  template:
+    metadata:
+      labels:
+        app: sonarqube
+    spec:
+      nodeSelector:
+        node-type: devops
+      initContainers:
+        - name: init-sysctl
+          image: busybox:1.36
+          securityContext:
+            privileged: true
+          command: ["sh","-c","sysctl -w vm.max_map_count=524288"]
+      containers:
+        - name: sonarqube
+          image: sonarqube:community
+          ports:
+            - containerPort: 9000
+          env:
+            - name: SONAR_ES_BOOTSTRAP_CHECKS_DISABLE
+              value: "true"
+          readinessProbe:
+            httpGet:
+              path: /api/system/status
+              port: 9000
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/system/status
+              port: 9000
+            initialDelaySeconds: 90
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonarqube
+  namespace: devops
+  labels:
+    app: sonarqube
+spec:
+  type: ClusterIP
+  selector:
+    app: sonarqube
+  ports:
+    - name: http
+      port: 9000
+      targetPort: 9000
+
+---
+# ===================== TRIVY SERVER (PORT 4594) =====================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trivy
+  namespace: devops
+  labels:
+    app: trivy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trivy
+  template:
+    metadata:
+      labels:
+        app: trivy
+    spec:
+      nodeSelector:
+        node-type: devops
+      containers:
+        - name: trivy
+          image: aquasec/trivy:latest
+          args: ["server","--listen","0.0.0.0:4594"]
+          ports:
+            - containerPort: 4594
+          readinessProbe:
+            tcpSocket:
+              port: 4594
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trivy
+  namespace: devops
+  labels:
+    app: trivy
+spec:
+  type: ClusterIP
+  selector:
+    app: trivy
+  ports:
+    - name: http
+      port: 4594
+      targetPort: 4594
+
+---
+# ===================== LOCUST (MASTER + WORKER) =====================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locust-master
+  namespace: devops
+  labels:
+    app: locust
+    role: master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: locust
+      role: master
+  template:
+    metadata:
+      labels:
+        app: locust
+        role: master
+    spec:
+      nodeSelector:
+        node-type: devops
+      containers:
+        - name: master
+          image: locustio/locust:2.29.0
+          args: ["-f","/mnt/locust/locustfile.py","--master","--web-port","8089","--master-bind-port","5557"]
+          ports:
+            - containerPort: 8089
+            - containerPort: 5557
+          volumeMounts:
+            - name: locustfile
+              mountPath: /mnt/locust
+      volumes:
+        - name: locustfile
+          configMap:
+            name: locustfile
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locust-worker
+  namespace: devops
+  labels:
+    app: locust
+    role: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: locust
+      role: worker
+  template:
+    metadata:
+      labels:
+        app: locust
+        role: worker
+    spec:
+      nodeSelector:
+        node-type: devops
+      containers:
+        - name: worker
+          image: locustio/locust:2.29.0
+          args: ["-f","/mnt/locust/locustfile.py","--worker","--master-host","locust.devops.svc.cluster.local","--master-port","5557"]
+          volumeMounts:
+            - name: locustfile
+              mountPath: /mnt/locust
+      volumes:
+        - name: locustfile
+          configMap:
+            name: locustfile
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: locust
+  namespace: devops
+  labels:
+    app: locust
+spec:
+  type: ClusterIP
+  selector:
+    app: locust
+    role: master
+  ports:
+    - name: web
+      port: 8089
+      targetPort: 8089
+    - name: rpc
+      port: 5557
+      targetPort: 5557

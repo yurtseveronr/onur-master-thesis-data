@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: personalize
+  namespace: recommendation
+  labels:
+    app: personalize
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: personalize
+  template:
+    metadata:
+      labels:
+        app: personalize
+    spec:
+      serviceAccountName: recommendation-sa
+      nodeSelector:
+        node-type: recommendation
+      containers:
+        - name: personalize
+          image: 708778582346.dkr.ecr.us-east-1.amazonaws.com/personalize-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8001
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: personalize
+  namespace: recommendation
+spec:
+  type: ClusterIP
+  selector:
+    app: personalize
+  ports:
+    - name: http
+      port: 8001
+      targetPort: 8001
