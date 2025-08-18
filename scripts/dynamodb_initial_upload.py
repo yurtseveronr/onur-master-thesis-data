@@ -8,8 +8,8 @@ dynamodb = boto3.client('dynamodb',region_name="us-east-1")
 
 # Tablo ve CSV eşleştirmesi
 UPLOAD_MAPPING = {
-    "../initial_data/user_movies_favorites.csv": "UserMovies",
-    "../initial_data/user_series_favorites.csv": "UserSeries"
+    "initial_data/user_movies_favorites.csv": "UserMovies",
+    "initial_data/user_series_favorites.csv": "UserSeries"
 }
 
 def check_table_exists(table_name):

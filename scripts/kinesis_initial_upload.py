@@ -35,6 +35,7 @@ def send_record(client, row):
         "time": now_iso()
     }
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    print(data)
     try:
         client.put_record(
             StreamName=STREAM_NAME,
