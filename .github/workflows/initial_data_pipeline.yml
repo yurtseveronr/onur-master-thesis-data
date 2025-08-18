@@ -1,11 +1,9 @@
 name: Data Setup
 on:
   workflow_dispatch:
-
 permissions:
   id-token: write
   contents: read
-
 jobs:
   deploy-and-upload-all:
     runs-on: ubuntu-latest
@@ -15,12 +13,12 @@ jobs:
         with:
           fetch-depth: 0
           lfs: true
-
+          
       - name: Configure Git LFS and checkout files
         run: |
           git lfs install
           git lfs pull
-
+          
       - name: Verify LFS files are downloaded
         run: |
           echo "Checking LFS files status:"
@@ -28,75 +26,81 @@ jobs:
           echo ""
           echo "CSV file sizes:"
           find . -name "*.csv" -exec ls -lh {} \;
-
+          
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
           aws-region: us-east-1
-
+          
       - name: Deploy S3 CloudFormation Stack
         run: |
-          set -euo pipefail
           STACK_NAME="s3-bucket-stack"
           REGION="us-east-1"
           TEMPLATE_FILE="cloudformation_templates/s3.yml"
 
-          if aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$REGION" >/dev/null 2>&1; then
+          if aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION > /dev/null 2>&1; then
             echo "Stack $STACK_NAME already exists, skipping deploy."
           else
             echo "Deploying stack $STACK_NAME..."
             aws cloudformation deploy \
-              --template-file "$TEMPLATE_FILE" \
-              --stack-name "$STACK_NAME" \
-              --region "$REGION" \
+              --template-file $TEMPLATE_FILE \
+              --stack-name $STACK_NAME \
+              --region $REGION \
               --capabilities CAPABILITY_NAMED_IAM
           fi
 
+            
       - name: Retrieve Bucket Name
         id: get-bucket
         run: |
-          set -euo pipefail
+          # Try to get bucket name from CloudFormation
           BUCKET_NAME=$(aws cloudformation describe-stacks \
             --stack-name s3-bucket-stack \
             --region us-east-1 \
             --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue" \
             --output text 2>/dev/null || echo "None")
-
+          
+          # If CloudFormation fails or returns None, use fallback
           if [ "$BUCKET_NAME" = "None" ] || [ -z "$BUCKET_NAME" ]; then
             echo "CloudFormation bucket name not found, using fallback: onur-master-dataset"
             BUCKET_NAME="onur-master-dataset"
           fi
-
+          
           echo "Using bucket: $BUCKET_NAME"
-          echo "bucket=$BUCKET_NAME" >> "$GITHUB_OUTPUT"
-
+          echo "bucket=$BUCKET_NAME" >> $GITHUB_OUTPUT
+            
       - name: Upload all files to S3
         run: |
-          set -euo pipefail
           BUCKET=${{ steps.get-bucket.outputs.bucket }}
           echo "Using bucket: $BUCKET"
+          
           echo "Uploading all files to s3://$BUCKET/"
-
+          
+          # Find and upload all files (excluding git and system folders)
           find . -type f \
             ! -path "./.git/*" \
             ! -path "./.github/*" \
             ! -path "*/node_modules/*" \
-            ! -path "*/.DS_Store" \
+            ! -path "*/\.DS_Store" \
             ! -path "*/__pycache__/*" \
-            ! -path "*/.vscode/*" \
-            ! -path "*/.idea/*" \
+            ! -path "*/\.vscode/*" \
+            ! -path "*/\.idea/*" \
           | sed 's|^\./||' \
-          | while read -r file; do
+          | while read file; do
               if [ -f "$file" ]; then
                 file_size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "unknown")
                 file_ext="${file##*.}"
-
+                
                 echo "→ Uploading: $file (size: $file_size bytes, type: $file_ext)"
-
-                if [[ "$file_ext" == "csv" || "$file_ext" == "CSV" ]]; then
+                
+                if [[ "$file_ext" == "csv" ]] || [[ "$file_ext" == "CSV" ]]; then
+                  echo "CSV file detected - using LFS optimized upload"
+                  
                   aws s3 cp "$file" "s3://$BUCKET/$file" --storage-class STANDARD
+                # Use multipart upload for other large files
                 elif [ "$file_size" != "unknown" ] && [ "$file_size" -gt 104857600 ]; then
+                  echo "  📦 Large file detected - using multipart upload"
                   aws s3 cp "$file" "s3://$BUCKET/$file" --storage-class STANDARD
                 else
                   aws s3 cp "$file" "s3://$BUCKET/$file"
@@ -105,89 +109,77 @@ jobs:
                 echo "File not found: $file"
               fi
             done
-
+            
+      - name: Verify upload success
+        run: |
+          BUCKET=${{ steps.get-bucket.outputs.bucket }}
+          echo "Verifying uploaded files:"
+          echo ""
+          echo "CSV files:"
+          aws s3 ls "s3://$BUCKET/" --recursive --human-readable | grep -i "\.csv" || echo "No CSV files found"
+          echo ""
+          echo "All files:"
+          aws s3 ls "s3://$BUCKET/" --recursive --human-readable | head -20
+          echo ""
+          echo "Total file count:"
+          aws s3 ls "s3://$BUCKET/" --recursive | wc -l
 
       - name: Glue and DynamoDB setup
         run: |
-          set -euo pipefail
           STACK_NAME="data"
           REGION="us-east-1"
           TEMPLATE_FILE="cloudformation_templates/data.yml"
 
-          if aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$REGION" >/dev/null 2>&1; then
+          if aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION > /dev/null 2>&1; then
             echo "Stack $STACK_NAME already exists, skipping deploy."
           else
             echo "Deploying stack $STACK_NAME..."
             aws cloudformation deploy \
-              --template-file "$TEMPLATE_FILE" \
-              --stack-name "$STACK_NAME" \
-              --region "$REGION" \
+              --template-file $TEMPLATE_FILE \
+              --stack-name $STACK_NAME \
+              --region $REGION \
               --capabilities CAPABILITY_NAMED_IAM
           fi
 
-      - name: Run Glue Jobs (skip if previously succeeded)
+      - name: Run Glue Jobs
         shell: bash
         run: |
           set -euo pipefail
           REGION="us-east-1"
           JOBS=("movies_etl_job" "tv-series_etl_job")
-          declare -a RUN_IDS=()
-          any_started=0
 
-          for job in "${JOBS[@]}"; do
-            SUCC_COUNT=$(aws glue list-job-runs \
+          declare -a RUN_IDS
+
+          echo "Starting Glue jobs in parallel..."
+          for i in "${!JOBS[@]}"; do
+            RUN_IDS[$i]=$(aws glue start-job-run \
               --region "$REGION" \
-              --job-name "$job" \
-              --max-results 25 \
-              --query "length(JobRuns[?JobRunState=='SUCCEEDED'])" \
+              --job-name "${JOBS[$i]}" \
+              --query 'JobRunId' \
               --output text)
-
-            if [[ "$SUCC_COUNT" != "0" ]]; then
-              echo "Job '$job' already has a successful run ($SUCC_COUNT found). Skipping…"
-              RUN_IDS+=("")  # placeholder
-            else
-              RUN_ID=$(aws glue start-job-run --region "$REGION" --job-name "$job" --query 'JobRunId' --output text)
-              echo "Started '$job' (runId: $RUN_ID)"
-              RUN_IDS+=("$RUN_ID")
-              any_started=1
-            fi
+            echo "  - ${JOBS[$i]} started (runId: ${RUN_IDS[$i]})"
           done
 
-          if [[ "$any_started" -eq 0 ]]; then
-            echo "All Glue jobs have prior SUCCEEDED runs. Nothing to wait for."
-            exit 0
-          fi
-
-          echo "Waiting for started Glue jobs to finish…"
+          echo "Waiting until both jobs finish..."
           while true; do
-            all_done=1
-            for i in "${!JOBS[@]}"; do
-              job="${JOBS[$i]}"
-              runid="${RUN_IDS[$i]}"
-              [[ -z "$runid" ]] && continue
-              state=$(aws glue get-job-run --region "$REGION" --job-name "$job" --run-id "$runid" --query 'JobRun.JobRunState' --output text)
-              echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ') | $job ($runid): $state"
-              case "$state" in
-                SUCCEEDED|FAILED|ERROR|TIMEOUT|STOPPED) : ;;
-                *) all_done=0 ;;
-              esac
-            done
-            [[ "$all_done" -eq 1 ]] && break
+            STATUS0=$(aws glue get-job-run --region "$REGION" --job-name "${JOBS[0]}" --run-id "${RUN_IDS[0]}" --query 'JobRun.JobRunState' --output text)
+            STATUS1=$(aws glue get-job-run --region "$REGION" --job-name "${JOBS[1]}" --run-id "${RUN_IDS[1]}" --query 'JobRun.JobRunState' --output text)
+            echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ') | ${JOBS[0]}: $STATUS0 | ${JOBS[1]}: $STATUS1"
+
+            case "$STATUS0" in SUCCEEDED|FAILED|ERROR|TIMEOUT|STOPPED) DONE0=1;; *) DONE0=0;; esac
+            case "$STATUS1" in SUCCEEDED|FAILED|ERROR|TIMEOUT|STOPPED) DONE1=1;; *) DONE1=0;; esac
+
+            [[ $DONE0 -eq 1 && $DONE1 -eq 1 ]] && break
             sleep 15
           done
 
-          # Fail if any started job didn't succeed
-          for i in "${!JOBS[@]}"; do
-            job="${JOBS[$i]}"
-            runid="${RUN_IDS[$i]}"
-            [[ -z "$runid" ]] && continue
-            state=$(aws glue get-job-run --region "$REGION" --job-name "$job" --run-id "$runid" --query 'JobRun.JobRunState' --output text)
-            if [[ "$state" != "SUCCEEDED" ]]; then
-              echo "Job '$job' failed with state: $state"
-              exit 1
-            fi
-          done
-          echo "Glue jobs completed successfully."
+          if [[ "$STATUS0" == "SUCCEEDED" && "$STATUS1" == "SUCCEEDED" ]]; then
+            echo "Both Glue jobs completed successfully."
+            exit 0
+          else
+            echo "One or both jobs failed. (${JOBS[0]}=$STATUS0, ${JOBS[1]}=$STATUS1)"
+            exit 1
+          fi
 
       - name: Import initial data to DynamoDB
         run: |
@@ -196,57 +188,56 @@ jobs:
       - name: Wait 2 seconds
         run: sleep 2
 
-      - name: Upload Kinesis (CFN stack)
+      - name: Upload Kinesis
         run: |
-          set -euo pipefail
-          STACK_NAME="kinesis"
-          REGION="us-east-1"
-          TEMPLATE_FILE="cloudformation_templates/kinesis.yml"
+            STACK_NAME="kinesis"
+            REGION="us-east-1"
+            TEMPLATE_FILE="cloudformation_templates/kinesis.yml"
 
-          if aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$REGION" >/dev/null 2>&1; then
-            echo "Stack $STACK_NAME already exists, skipping deploy."
-          else
-            echo "Deploying stack $STACK_NAME..."
-            aws cloudformation deploy \
-              --template-file "$TEMPLATE_FILE" \
-              --stack-name "$STACK_NAME" \
-              --region "$REGION" \
-              --capabilities CAPABILITY_NAMED_IAM
-          fi
+            if aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION > /dev/null 2>&1; then
+              echo "Stack $STACK_NAME already exists, skipping deploy."
+            else
+              echo "Deploying stack $STACK_NAME..."
+              aws cloudformation deploy \
+                --template-file $TEMPLATE_FILE \
+                --stack-name $STACK_NAME \
+                --region $REGION \
+                --capabilities CAPABILITY_NAMED_IAM
+            fi
 
-      - name: Upload Kinesis data (skip if events/ not empty)
+      - name: Upload Kinesis data 
         run: |
-          set -euo pipefail
-          BUCKET=${{ steps.get-bucket.outputs.bucket }}
-          PREFIX="events/"
-
-          echo "Checking s3://$BUCKET/$PREFIX for existing data…"
-          if aws s3 ls "s3://$BUCKET/$PREFIX" --region us-east-1 | grep -q .; then
-            echo "Events folder has objects. Skipping Kinesis import."
-          else
-            echo "Events folder is empty. Running Kinesis import script…"
             python3 scripts/kinesis_initial_upload.py
-          fi
+
 
       - name: QuickSight Creation
         run: |
-          set -euo pipefail
-          STACK_NAME="quicksight"
-          REGION="us-east-1"
-          TEMPLATE_FILE="cloudformation_templates/quicksight.yml"
+            STACK_NAME="quicksight"
+            REGION="us-east-1"
+            TEMPLATE_FILE="cloudformation_templates/quicksight.yml"
 
-          if aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$REGION" >/dev/null 2>&1; then
-            echo "Stack $STACK_NAME already exists, skipping deploy."
-          else
-            echo "Deploying stack $STACK_NAME..."
-            aws cloudformation deploy \
-              --template-file "$TEMPLATE_FILE" \
-              --stack-name "$STACK_NAME" \
-              --region "$REGION" \
-              --capabilities CAPABILITY_NAMED_IAM
-          fi
+            if aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION > /dev/null 2>&1; then
+              echo "Stack $STACK_NAME already exists, skipping deploy."
+            else
+              echo "Deploying stack $STACK_NAME..."
+              aws cloudformation deploy \
+                --template-file $TEMPLATE_FILE \
+                --stack-name $STACK_NAME \
+                --region $REGION \
+                --capabilities CAPABILITY_NAMED_IAM
 
       - name: Create dashboards
         run: |
           chmod +x scripts/qs_create_dashboard.sh
           bash scripts/qs_create_dashboard.sh
+
+
+
+       
+          
+
+
+
+
+
+
