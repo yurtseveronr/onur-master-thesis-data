@@ -9,8 +9,8 @@ from botocore.exceptions import ClientError
 
 REGION = "us-east-1"
 STREAM_NAME = "onur-master-events-stream"
-MOVIES_CSV = "../initial_data/kinesis_movies_events.csv"
-SERIES_CSV = "../initial_data/kinesis_series_events.csv"
+MOVIES_CSV = "initial_data/kinesis_movies_events.csv"
+SERIES_CSV = "initial_data/kinesis_series_events.csv"
 
 REQUIRED_FIELDS = ["event_type", "user_id", "imdbID", "title"]
 DELAY_SEC = 3  
