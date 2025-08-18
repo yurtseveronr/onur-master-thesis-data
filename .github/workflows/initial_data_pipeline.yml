@@ -225,6 +225,7 @@ jobs:
                 --stack-name $STACK_NAME \
                 --region $REGION \
                 --capabilities CAPABILITY_NAMED_IAM
+            fi
 
       - name: Create dashboards
         run: |
