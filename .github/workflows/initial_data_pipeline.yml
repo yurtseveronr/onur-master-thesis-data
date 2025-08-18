@@ -106,20 +106,6 @@ jobs:
               fi
             done
 
-      - name: Verify upload success
-        run: |
-          set -euo pipefail
-          BUCKET=${{ steps.get-bucket.outputs.bucket }}
-          echo "Verifying uploaded files:"
-          echo ""
-          echo "CSV files:"
-          aws s3 ls "s3://$BUCKET/" --recursive --human-readable | grep -i "\.csv" || echo "No CSV files found"
-          echo ""
-          echo "All files (first 20):"
-          aws s3 ls "s3://$BUCKET/" --recursive --human-readable | head -20
-          echo ""
-          echo "Total file count:"
-          aws s3 ls "s3://$BUCKET/" --recursive | wc -l
 
       - name: Glue and DynamoDB setup
         run: |
