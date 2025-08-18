@@ -207,7 +207,7 @@ jobs:
 
       - name: Upload Kinesis data 
         run: |
-            python3 kinesis_initial_upload.py
+            python3 scripts/kinesis_initial_upload.py
 
 
       - name: QuickSight Creation
