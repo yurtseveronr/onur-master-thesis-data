@@ -13,7 +13,7 @@ MOVIES_CSV = "../initial_data/kinesis_movies_events.csv"
 SERIES_CSV = "../initial_data/kinesis_series_events.csv"
 
 REQUIRED_FIELDS = ["event_type", "user_id", "imdbID", "title"]
-DELAY_SEC = 3  # her record ve dosya arası bekleme
+DELAY_SEC = 3  
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
@@ -53,7 +53,7 @@ def process_file(client, path):
     for row in rows:
         if send_record(client, row):
             total += 1
-        time.sleep(DELAY_SEC)  # her record sonrası bekle
+        time.sleep(DELAY_SEC)  
     print(f"✅ {total}/{len(rows)} sent from {path}")
     return total
 
@@ -62,7 +62,7 @@ def main():
     total = 0
 
     total += process_file(client, MOVIES_CSV)
-    time.sleep(DELAY_SEC)  # dosyalar arası bekle
+    time.sleep(DELAY_SEC) 
     total += process_file(client, SERIES_CSV)
 
     print(f"\n🎉 DONE. Total events sent: {total}")
