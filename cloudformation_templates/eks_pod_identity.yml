@@ -4,9 +4,11 @@ Description: 'EKS Pod Identity ONLY: IAM ManagedPolicies + IAM Roles + PodIdenti
 Parameters:
   ClusterName:
     Type: String
+    Default: onur-master-eks
     Description: Existing EKS cluster name (e.g., onur-master-eks)
   AccountId:
     Type: String
+    Default: 708778582346
     Description: AWS Account ID (e.g., 708778582346)
   Region:
     Type: String
