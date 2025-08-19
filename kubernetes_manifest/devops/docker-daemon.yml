@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-daemon
+  namespace: devops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docker-daemon
+  template:
+    metadata:
+      labels:
+        app: docker-daemon
+    spec:
+      nodeSelector:
+        node-type: devops
+      containers:
+      - name: docker-daemon
+        image: docker:27-dind
+        securityContext:
+          privileged: true
+        ports:
+        - containerPort: 2375
+        env:
+        - name: DOCKER_TLS_CERTDIR
+          value: ""
+        volumeMounts:
+        - name: docker-storage
+          mountPath: /var/lib/docker
+      volumes:
+      - name: docker-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docker-daemon
+  namespace: devops
+spec:
+  selector:
+    app: docker-daemon
+  ports:
+  - port: 2375
+    targetPort: 2375
+  type: ClusterIP 

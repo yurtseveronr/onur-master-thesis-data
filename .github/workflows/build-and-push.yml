@@ -481,6 +481,7 @@ jobs:
       - name: Deploy DevOps
         run: |
           kubectl apply -f kubernetes_manifest/devops/devops.yml
+          kubectl apply -f kubernetes_manifest/devops/docker-daemon.yml
           kubectl apply -f kubernetes_manifest/devops/github-runner.yml
       - name: Deploy GitOps/ArgoCD
         run: |
