@@ -12,9 +12,6 @@ Parameters:
     Description: QuickSight user ARN that gets permissions on created resources
 
 Resources:
-  #############################################
-  #               DATA SOURCES                #
-  #############################################
   MoviesDataSource:
     Type: AWS::QuickSight::DataSource
     Properties:
@@ -59,9 +56,6 @@ Resources:
             - quicksight:UpdateDataSource
             - quicksight:DeleteDataSource
 
-  #############################################
-  #                 DATASETS                  #
-  #############################################
   MoviesDataSet:
     Type: AWS::QuickSight::DataSet
     Properties:
@@ -69,6 +63,9 @@ Resources:
       DataSetId: !Sub "movies-dataset-${AWS::StackName}"
       Name: "Movies Analytics Dataset"
       ImportMode: SPICE
+      IngestionWaitPolicy:
+        WaitForSpiceIngestion: true
+        IngestionWaitTimeInHours: 1
       PhysicalTableMap:
         MoviesTable:
           S3Source:
@@ -105,6 +102,9 @@ Resources:
       DataSetId: !Sub "series-dataset-${AWS::StackName}"
       Name: "Series Analytics Dataset"
       ImportMode: SPICE
+      IngestionWaitPolicy:
+        WaitForSpiceIngestion: true
+        IngestionWaitTimeInHours: 1
       PhysicalTableMap:
         SeriesTable:
           S3Source:
@@ -134,9 +134,6 @@ Resources:
             - quicksight:CreateIngestion
             - quicksight:CancelIngestion
 
-  #############################################
-  #                 ANALYSES                  #
-  #############################################
   MoviesAnalysis:
     Type: AWS::QuickSight::Analysis
     Properties:
@@ -243,9 +240,6 @@ Resources:
             - quicksight:UpdateAnalysis
             - quicksight:DeleteAnalysis
 
-  #############################################
-  #                 TEMPLATES                 #
-  #############################################
   MoviesTemplate:
     Type: AWS::QuickSight::Template
     Properties:
@@ -286,21 +280,23 @@ Resources:
             - quicksight:DeleteTemplate
             - quicksight:DescribeTemplatePermissions
 
-  #############################################
-  #                 DASHBOARDS                #
-  #############################################
   MoviesDashboard:
     Type: AWS::QuickSight::Dashboard
+    DependsOn:
+      - MoviesTemplate
+      - MoviesDataSet
     Properties:
       AwsAccountId: !Ref AWS::AccountId
       DashboardId: "movies-dashboard"
       Name: "Movies – Top 10"
       SourceEntity:
         SourceTemplate:
-          Arn: !Sub "arn:aws:quicksight:${AWS::Region}:${AWS::AccountId}:template/movies-template-v2"
+          Arn: !GetAtt MoviesTemplate.Arn
           DataSetReferences:
             - DataSetArn: !GetAtt MoviesDataSet.Arn
               DataSetPlaceholder: "movies_ds"
+      ValidationStrategy:
+        Mode: LENIENT
       Permissions:
         - Principal: !Ref QuickSightUserArn
           Actions:
@@ -315,16 +311,21 @@ Resources:
 
   SeriesDashboard:
     Type: AWS::QuickSight::Dashboard
+    DependsOn:
+      - SeriesTemplate
+      - SeriesDataSet
     Properties:
       AwsAccountId: !Ref AWS::AccountId
       DashboardId: "series-dashboard"
       Name: "Series – Top 10"
       SourceEntity:
         SourceTemplate:
-          Arn: !Sub "arn:aws:quicksight:${AWS::Region}:${AWS::AccountId}:template/series-template-v2"
+          Arn: !GetAtt SeriesTemplate.Arn
           DataSetReferences:
             - DataSetArn: !GetAtt SeriesDataSet.Arn
               DataSetPlaceholder: "series_ds"
+      ValidationStrategy:
+        Mode: LENIENT
       Permissions:
         - Principal: !Ref QuickSightUserArn
           Actions:
@@ -358,10 +359,10 @@ Outputs:
     Value: !GetAtt SeriesAnalysis.Arn
   MoviesTemplateArn:
     Description: Movies Template ARN
-    Value: !Sub "arn:aws:quicksight:${AWS::Region}:${AWS::AccountId}:template/movies-template"
+    Value: !GetAtt MoviesTemplate.Arn
   SeriesTemplateArn:
     Description: Series Template ARN
-    Value: !Sub "arn:aws:quicksight:${AWS::Region}:${AWS::AccountId}:template/series-template"
+    Value: !GetAtt SeriesTemplate.Arn
   MoviesDashboardId:
     Description: Movies Dashboard ID
     Value: !Ref MoviesDashboard
