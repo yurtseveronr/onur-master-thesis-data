@@ -1,0 +1,98 @@
+name: Machine Learning Initial Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      aws_region:
+        description: 'AWS Region'
+        required: true
+        default: 'us-east-1'
+        type: string
+
+env:
+  AWS_REGION: ${{ github.event.inputs.aws_region || 'us-east-1' }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  personalize-movies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install jq
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+
+      - name: Deploy Personalize Movies CloudFormation Stack
+        id: deploy_movies
+        run: |
+          set -e
+          STACK_NAME="personalize-movies"
+          if aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+            echo "Stack '$STACK_NAME' already exists. Skipping deploy and script."
+            echo "created=false" >> "$GITHUB_OUTPUT"
+          else
+            aws cloudformation deploy \
+              --template-file cloudformation_templates/personalize_movies.yml \
+              --stack-name "$STACK_NAME" \
+              --region ${{ env.AWS_REGION }} \
+              --capabilities CAPABILITY_NAMED_IAM
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Personalize Movies Post-Setup Script
+        if: steps.deploy_movies.outputs.created == 'true'
+        run: |
+          chmod +x scripts/personalize_movies.sh
+          bash scripts/personalize_movies.sh
+
+  personalize-series:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install jq
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+
+      - name: Deploy Personalize Series CloudFormation Stack
+        id: deploy_series
+        run: |
+          set -e
+          STACK_NAME="personalize-series"
+          if aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+            echo "Stack '$STACK_NAME' already exists. Skipping deploy and script."
+            echo "created=false" >> "$GITHUB_OUTPUT"
+          else
+            aws cloudformation deploy \
+              --template-file cloudformation_templates/personalize_series.yml \
+              --stack-name "$STACK_NAME" \
+              --region ${{ env.AWS_REGION }} \
+              --capabilities CAPABILITY_NAMED_IAM
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Personalize Series Post-Setup Script
+        if: steps.deploy_series.outputs.created == 'true'
+        run: |
+          chmod +x scripts/personalize_series.sh
+          bash scripts/personalize_series.sh 
