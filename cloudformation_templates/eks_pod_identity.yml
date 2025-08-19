@@ -271,6 +271,30 @@ Resources:
       ServiceAccount: !Ref StreamingServiceAccount
       RoleArn: !GetAtt StreamingRole.Arn
 
+  # ==================== LOAD BALANCER CONTROLLER ====================
+  LBCRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ClusterName}-lbc-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: pods.eks.amazonaws.com }
+            Action:
+              - sts:AssumeRole
+              - sts:TagSession
+      ManagedPolicyArns:
+        - !Sub 'arn:aws:iam::${AccountId}:policy/AWSLoadBalancerControllerIAMPolicy'
+
+  LBCPodIdentity:
+    Type: AWS::EKS::PodIdentityAssociation
+    Properties:
+      ClusterName: !Ref ClusterName
+      Namespace: kube-system
+      ServiceAccount: aws-load-balancer-controller
+      RoleArn: !GetAtt LBCRole.Arn
+
 Outputs:
   ServicesRoleArn:
     Value: !GetAtt ServicesRole.Arn

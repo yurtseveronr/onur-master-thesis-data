@@ -18,8 +18,54 @@ permissions:
   contents: read
 
 jobs:
+  network-and-ecr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Deploy S3/Network CloudFormation Stack
+        run: |
+          if aws cloudformation describe-stacks --stack-name network-stack --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+            echo "Stack 'network-stack' already exists. Skipping deploy."
+          else
+            aws cloudformation deploy \
+              --template-file cloudformation_templates/network-stack.yml \
+              --stack-name network-stack \
+              --region ${{ env.AWS_REGION }} \
+              --capabilities CAPABILITY_NAMED_IAM
+          fi
+      - name: Deploy ECR CloudFormation Stack
+        run: |
+          if aws cloudformation describe-stacks --stack-name ecr --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+            echo "Stack 'ecr' already exists. Skipping deploy."
+          else
+            aws cloudformation deploy \
+              --template-file cloudformation_templates/ecr.yml \
+              --stack-name ecr \
+              --region ${{ env.AWS_REGION }} \
+              --capabilities CAPABILITY_NAMED_IAM
+          fi
+      - name: Deploy Authentication CloudFormation Stack
+        run: |
+          if aws cloudformation describe-stacks --stack-name authentication --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+            echo "Stack 'authentication' already exists. Skipping deploy."
+          else
+            aws cloudformation deploy \
+              --template-file cloudformation_templates/authentication_service.yml \
+              --stack-name authentication \
+              --region ${{ env.AWS_REGION }} \
+              --capabilities CAPABILITY_NAMED_IAM \
+              --parameter-overrides AppName=auth-app AwsRegion=${{ env.AWS_REGION }}
+          fi
+
   build-authentication:
     runs-on: ubuntu-latest
+    needs: network-and-ecr
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,7 +95,6 @@ jobs:
           docker builder prune -f
           docker image prune -f
 
-
       - name: Build and push authentication-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -64,6 +109,7 @@ jobs:
 
   build-user:
     runs-on: ubuntu-latest
+    needs: network-and-ecr
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -93,6 +139,7 @@ jobs:
 
   build-movies:
     runs-on: ubuntu-latest
+    needs: network-and-ecr
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -122,6 +169,7 @@ jobs:
 
   build-series:
     runs-on: ubuntu-latest
+    needs: network-and-ecr
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -151,6 +199,7 @@ jobs:
 
   build-search:
     runs-on: ubuntu-latest
+    needs: network-and-ecr
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -178,6 +227,7 @@ jobs:
 
   build-frontend:
     runs-on: ubuntu-latest
+    needs: network-and-ecr
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -222,6 +272,7 @@ jobs:
 
   build-chatbot:
     runs-on: ubuntu-latest
+    needs: network-and-ecr
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -249,6 +300,7 @@ jobs:
 
   build-personalize:
     runs-on: ubuntu-latest
+    needs: network-and-ecr
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -276,6 +328,7 @@ jobs:
 
   build-producer:
     runs-on: ubuntu-latest
+    needs: network-and-ecr
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -303,6 +356,7 @@ jobs:
 
   build-consumer:
     runs-on: ubuntu-latest
+    needs: network-and-ecr
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -335,3 +389,98 @@ jobs:
           docker build --no-cache --pull --force-rm --progress=plain -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f services/kinesis-consumer/Dockerfile services/kinesis-consumer
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ consumer-service pushed successfully" 
+
+  deploy-eks-and-k8s:
+    runs-on: ubuntu-latest
+    needs:
+      - build-authentication
+      - build-user
+      - build-movies
+      - build-series
+      - build-search
+      - build-frontend
+      - build-chatbot
+      - build-personalize
+      - build-producer
+      - build-consumer
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Deploy EKS Cluster
+        run: |
+          if aws cloudformation describe-stacks --stack-name eks --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+            echo "Stack 'eks' already exists. Skipping deploy."
+          else
+            aws cloudformation deploy \
+              --template-file cloudformation_templates/eks.yml \
+              --stack-name eks \
+              --region ${{ env.AWS_REGION }} \
+              --capabilities CAPABILITY_NAMED_IAM
+          fi
+      - name: Deploy EKS Add-ons
+        run: |
+          if aws cloudformation describe-stacks --stack-name eks-add-ons --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+            echo "Stack 'eks-add-ons' already exists. Skipping deploy."
+          else
+            aws cloudformation deploy \
+              --template-file cloudformation_templates/eks-add-ons.yml \
+              --stack-name eks-add-ons \
+              --region ${{ env.AWS_REGION }} \
+              --capabilities CAPABILITY_NAMED_IAM
+          fi
+      - name: Install kubectl
+        run: |
+          curl -sSL -o kubectl https://dl.k8s.io/release/$(curl -sSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/kubectl
+          kubectl version --client
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name onur-master-eks
+      - name: Create Namespaces
+        run: |
+          kubectl apply -f kubernetes_manifest/namespaces.yml
+      - name: Create Service Accounts
+        run: |
+          kubectl apply -f kubernetes_manifest/service_accounts.yml
+      - name: Ensure AWS Load Balancer Controller IAM Policy
+        run: |
+          set -e
+          POLICY_NAME="AWSLoadBalancerControllerIAMPolicy"
+          POLICY_ARN=$(aws iam list-policies --scope Local --query "Policies[?PolicyName=='${POLICY_NAME}'].Arn" --output text)
+          if [ -z "$POLICY_ARN" ]; then
+            curl -sS -o iam_policy.json "https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.13.3/docs/install/iam_policy.json"
+            aws iam create-policy --policy-name "${POLICY_NAME}" --policy-document file://iam_policy.json
+          fi
+      - name: Create Ingress Controller
+        run: |
+          chmod +x scripts/install_load_balancer_controller.sh
+          bash scripts/install_load_balancer_controller.sh
+      - name: Create Pod Identity Associations
+        run: |
+          if aws cloudformation describe-stacks --stack-name eks_pod_identity --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+            echo "Stack 'eks_pod_identity' already exists. Skipping deploy."
+          else
+            aws cloudformation deploy \
+              --template-file cloudformation_templates/eks_pod_identity.yml \
+              --stack-name eks_pod_identity \
+              --region ${{ env.AWS_REGION }} \
+              --capabilities CAPABILITY_NAMED_IAM
+          fi
+      - name: Apply Ingress resources
+        run: |
+          kubectl apply -f kubernetes_manifest/ingress.yml
+      - name: Deploy Services to EKS
+        run: |
+          kubectl apply -f kubernetes_manifest/services
+      - name: Deploy DevOps
+        run: |
+          kubectl apply -f kubernetes_manifest/devops/devops.yml
+      - name: Deploy GitOps/ArgoCD
+        run: |
+          kubectl apply -k kubernetes_manifest/gitops/ 
