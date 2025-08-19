@@ -1,0 +1,94 @@
+name: GENAI Initial Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      aws_region:
+        description: 'AWS Region'
+        required: true
+        default: 'us-east-1'
+        type: string
+
+env:
+  AWS_REGION: ${{ github.event.inputs.aws_region || 'us-east-1' }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  genai-init:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies (jq)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+
+
+
+      - name: Deploy RAG CloudFormation Stack
+        run: |
+          set -e
+          STACK_NAME="genai-rag"
+          aws cloudformation deploy \
+            --template-file cloudformation_templates/RAG.yml \
+            --stack-name "$STACK_NAME" \
+            --region ${{ env.AWS_REGION }} \
+            --capabilities CAPABILITY_NAMED_IAM
+
+      - name: Run data source sync (Bedrock Knowledge Base)
+        run: |
+          set -e
+          STACK_NAME="genai-rag"
+          KB_ID=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region ${{ env.AWS_REGION }} \
+            --query "Stacks[0].Outputs[?OutputKey=='KnowledgeBaseId'].OutputValue" --output text)
+          DS_ID=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region ${{ env.AWS_REGION }} \
+            --query "Stacks[0].Outputs[?OutputKey=='DataSourceId'].OutputValue" --output text)
+          if [ -z "$KB_ID" ] || [ -z "$DS_ID" ] || [ "$KB_ID" = "None" ] || [ "$DS_ID" = "None" ]; then
+            echo "KnowledgeBaseId/DataSourceId not found in stack outputs" >&2
+            exit 1
+          fi
+
+          echo "Starting ingestion (sync) for KB=$KB_ID DS=$DS_ID"
+          start_ts=$(date +%s)
+          START_OUTPUT=$(aws bedrock-agent start-ingestion-job \
+            --knowledge-base-id "$KB_ID" \
+            --data-source-id "$DS_ID" \
+            --region ${{ env.AWS_REGION }})
+          JOB_ID=$(echo "$START_OUTPUT" | jq -r '.ingestionJob.ingestionJobId')
+          if [ -z "$JOB_ID" ] || [ "$JOB_ID" = "null" ]; then
+            echo "Failed to start ingestion job" >&2
+            echo "$START_OUTPUT"
+            exit 1
+          fi
+          echo "IngestionJobId: $JOB_ID"
+
+          STATUS="IN_PROGRESS"
+          until [ "$STATUS" = "COMPLETE" ] || [ "$STATUS" = "FAILED" ]; do
+            sleep 20
+            STATUS=$(aws bedrock-agent get-ingestion-job \
+              --knowledge-base-id "$KB_ID" \
+              --data-source-id "$DS_ID" \
+              --ingestion-job-id "$JOB_ID" \
+              --region ${{ env.AWS_REGION }} \
+              --query 'ingestionJob.status' --output text)
+            echo "Current status: $STATUS"
+          done
+
+          end_ts=$(date +%s)
+          duration=$((end_ts - start_ts))
+          echo "Ingestion job finished with status: $STATUS in ${duration}s"
+
+          if [ "$STATUS" != "COMPLETE" ]; then
+            exit 1
+          fi 
