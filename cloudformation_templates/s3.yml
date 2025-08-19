@@ -24,13 +24,24 @@ Resources:
               - 'kms:GenerateDataKey*'
               - 'kms:CreateGrant'
               - 'kms:DescribeKey'
+
+            Resource: '*'
+          - Effect: Allow
+            Principal:
+              AWS: arn:aws:iam::708778582346:role/service-role/aws-quicksight-service-role-v0
+            Action:
+              - 'kms:Decrypt'
+              - 'kms:GenerateDataKey'
+              - 'kms:GenerateDataKey*'
+              - 'kms:CreateGrant'
+              - 'kms:DescribeKey'
             Resource: '*'
 
   # KMS Key Alias for easier reference
   DatasetKMSKeyAlias:
     Type: AWS::KMS::Alias
     Properties:
-      AliasName: alias/personalize-dataset-key
+      AliasName: alias/onur-master-key
       TargetKeyId: !Ref DatasetKMSKey
 
   # S3 Bucket
@@ -49,14 +60,13 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
-  # S3 Bucket Policy for Personalize
+  
   DatasetBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref DatasetBucket
       PolicyDocument:
         Statement:
-          # Allow Personalize to read objects
           - Effect: Allow
             Principal:
               Service: personalize.amazonaws.com
@@ -66,7 +76,21 @@ Resources:
             Resource:
               - 'arn:aws:s3:::onur-master-dataset'
               - 'arn:aws:s3:::onur-master-dataset/*'
-          # Allow Personalize to write batch inference results
+          - Effect: Allow
+            Principal:
+              AWS: arn:aws:iam::708778582346:role/service-role/aws-quicksight-service-role-v0
+            Action:
+              - 's3:GetObject'
+            Resource: 'arn:aws:s3:::onur-master-dataset/*'
+
+          - Effect: Allow
+            Principal:
+              AWS: arn:aws:iam::708778582346:role/service-role/aws-quicksight-service-role-v0
+            Action:
+              - 's3:PutObject'
+              - 's3:PutObjectAcl'
+            Resource: 'arn:aws:s3:::onur-master-dataset/*'
+
           - Effect: Allow
             Principal:
               Service: personalize.amazonaws.com

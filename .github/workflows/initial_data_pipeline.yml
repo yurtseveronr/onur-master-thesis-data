@@ -227,10 +227,6 @@ jobs:
                 --capabilities CAPABILITY_NAMED_IAM
             fi
 
-      - name: Create dashboards
-        run: |
-          chmod +x scripts/qs_create_dashboard.sh
-          bash scripts/qs_create_dashboard.sh
 
 
 

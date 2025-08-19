@@ -1,161 +1,370 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: 'ONUR-MASTER: QuickSight Data Sources + Datasets + Dashboards'
+Description: "QuickSight: DataSources + DataSets + Analyses + Templates + Dashboards (Top Movies & Series) — no refresh schedules"
 
 Parameters:
   BucketName:
-    Description: Name of the existing S3 Bucket (where Kinesis data lands)
     Type: String
     Default: onur-master-dataset
-
+    Description: Existing S3 bucket that holds the manifests & event data
   QuickSightUserArn:
-    Description: QuickSight user ARN
     Type: String
     Default: "arn:aws:quicksight:us-east-1:708778582346:user/default/AWSReservedSSO_AdministratorAccess_d58e90fb67f5d77e/onur.yurtsever@commencis.com"
+    Description: QuickSight user ARN that gets permissions on created resources
 
 Resources:
-  # ===== QUICKSIGHT DATA SOURCES =====
+  #############################################
+  #               DATA SOURCES                #
+  #############################################
   MoviesDataSource:
     Type: AWS::QuickSight::DataSource
     Properties:
-      DataSourceId: !Sub 'movies-datasource-${AWS::StackName}'
-      Name: 'Movies Events Data Source'
       AwsAccountId: !Ref AWS::AccountId
+      DataSourceId: !Sub "movies-datasource-${AWS::StackName}"
+      Name: "Movies Events Data Source"
       Type: S3
       DataSourceParameters:
         S3Parameters:
           ManifestFileLocation:
             Bucket: !Ref BucketName
-            Key: 'movies_manifest.json'
+            Key: "movies_manifest.json"
       Permissions:
         - Principal: !Ref QuickSightUserArn
           Actions:
-            - 'quicksight:UpdateDataSourcePermissions'
-            - 'quicksight:DescribeDataSource'
-            - 'quicksight:DescribeDataSourcePermissions'
-            - 'quicksight:PassDataSource'
-            - 'quicksight:UpdateDataSource'
-            - 'quicksight:DeleteDataSource'
+            - quicksight:UpdateDataSourcePermissions
+            - quicksight:DescribeDataSource
+            - quicksight:DescribeDataSourcePermissions
+            - quicksight:PassDataSource
+            - quicksight:UpdateDataSource
+            - quicksight:DeleteDataSource
 
   SeriesDataSource:
     Type: AWS::QuickSight::DataSource
     Properties:
-      DataSourceId: !Sub 'series-datasource-${AWS::StackName}'
-      Name: 'Series Events Data Source'
       AwsAccountId: !Ref AWS::AccountId
+      DataSourceId: !Sub "series-datasource-${AWS::StackName}"
+      Name: "Series Events Data Source"
       Type: S3
       DataSourceParameters:
         S3Parameters:
           ManifestFileLocation:
             Bucket: !Ref BucketName
-            Key: 'series_manifest.json'
+            Key: "series_manifest.json"
       Permissions:
         - Principal: !Ref QuickSightUserArn
           Actions:
-            - 'quicksight:UpdateDataSourcePermissions'
-            - 'quicksight:DescribeDataSource'
-            - 'quicksight:DescribeDataSourcePermissions'
-            - 'quicksight:PassDataSource'
-            - 'quicksight:UpdateDataSource'
-            - 'quicksight:DeleteDataSource'
+            - quicksight:UpdateDataSourcePermissions
+            - quicksight:DescribeDataSource
+            - quicksight:DescribeDataSourcePermissions
+            - quicksight:PassDataSource
+            - quicksight:UpdateDataSource
+            - quicksight:DeleteDataSource
 
-  # ===== QUICKSIGHT DATASETS =====
+  #############################################
+  #                 DATASETS                  #
+  #############################################
   MoviesDataSet:
     Type: AWS::QuickSight::DataSet
     Properties:
-      DataSetId: !Sub 'movies-dataset-${AWS::StackName}'
-      Name: 'Movies Analytics Dataset'
       AwsAccountId: !Ref AWS::AccountId
-      ImportMode: 'SPICE'
+      DataSetId: !Sub "movies-dataset-${AWS::StackName}"
+      Name: "Movies Analytics Dataset"
+      ImportMode: SPICE
       PhysicalTableMap:
         MoviesTable:
           S3Source:
             DataSourceArn: !GetAtt MoviesDataSource.Arn
             InputColumns:
-              - Name: 'event_type'
-                Type: 'STRING'
-              - Name: 'user_id'
-                Type: 'STRING'
-              - Name: 'imdbID'
-                Type: 'STRING'
-              - Name: 'time'
-                Type: 'STRING'
+              - Name: "event_type"
+                Type: STRING
+              - Name: "user_id"
+                Type: STRING
+              - Name: "imdbID"
+                Type: STRING
+              - Name: "time"
+                Type: STRING
+              - Name: "title"
+                Type: STRING
       Permissions:
         - Principal: !Ref QuickSightUserArn
           Actions:
-            - 'quicksight:UpdateDataSetPermissions'
-            - 'quicksight:DescribeDataSet'
-            - 'quicksight:DescribeDataSetPermissions'
-            - 'quicksight:PassDataSet'
-            - 'quicksight:DescribeIngestion'
-            - 'quicksight:ListIngestions'
-            - 'quicksight:UpdateDataSet'
-            - 'quicksight:DeleteDataSet'
-            - 'quicksight:CreateIngestion'
-            - 'quicksight:CancelIngestion'
+            - quicksight:UpdateDataSetPermissions
+            - quicksight:DescribeDataSet
+            - quicksight:DescribeDataSetPermissions
+            - quicksight:PassDataSet
+            - quicksight:DescribeIngestion
+            - quicksight:ListIngestions
+            - quicksight:UpdateDataSet
+            - quicksight:DeleteDataSet
+            - quicksight:CreateIngestion
+            - quicksight:CancelIngestion
 
   SeriesDataSet:
     Type: AWS::QuickSight::DataSet
     Properties:
-      DataSetId: !Sub 'series-dataset-${AWS::StackName}'
-      Name: 'Series Analytics Dataset'
       AwsAccountId: !Ref AWS::AccountId
-      ImportMode: 'SPICE'
+      DataSetId: !Sub "series-dataset-${AWS::StackName}"
+      Name: "Series Analytics Dataset"
+      ImportMode: SPICE
       PhysicalTableMap:
         SeriesTable:
           S3Source:
             DataSourceArn: !GetAtt SeriesDataSource.Arn
             InputColumns:
-              - Name: 'event_type'
-                Type: 'STRING'
-              - Name: 'user_id'
-                Type: 'STRING'
-              - Name: 'imdbID'
-                Type: 'STRING'
-              - Name: 'time'
-                Type: 'STRING'
+              - Name: "event_type"
+                Type: STRING
+              - Name: "user_id"
+                Type: STRING
+              - Name: "imdbID"
+                Type: STRING
+              - Name: "time"
+                Type: STRING
+              - Name: "title"
+                Type: STRING
       Permissions:
         - Principal: !Ref QuickSightUserArn
           Actions:
-            - 'quicksight:UpdateDataSetPermissions'
-            - 'quicksight:DescribeDataSet'
-            - 'quicksight:DescribeDataSetPermissions'
-            - 'quicksight:PassDataSet'
-            - 'quicksight:DescribeIngestion'
-            - 'quicksight:ListIngestions'
-            - 'quicksight:UpdateDataSet'
-            - 'quicksight:DeleteDataSet'
-            - 'quicksight:CreateIngestion'
-            - 'quicksight:CancelIngestion'
+            - quicksight:UpdateDataSetPermissions
+            - quicksight:DescribeDataSet
+            - quicksight:DescribeDataSetPermissions
+            - quicksight:PassDataSet
+            - quicksight:DescribeIngestion
+            - quicksight:ListIngestions
+            - quicksight:UpdateDataSet
+            - quicksight:DeleteDataSet
+            - quicksight:CreateIngestion
+            - quicksight:CancelIngestion
+
+  #############################################
+  #                 ANALYSES                  #
+  #############################################
+  MoviesAnalysis:
+    Type: AWS::QuickSight::Analysis
+    Properties:
+      AwsAccountId: !Ref AWS::AccountId
+      AnalysisId: "movies-analysis-v2"
+      Name: "Movies Analysis"
+      Definition:
+        DataSetIdentifierDeclarations:
+          - Identifier: "movies_ds"
+            DataSetArn: !GetAtt MoviesDataSet.Arn
+        Sheets:
+          - Name: "Movies Top 10"
+            SheetId: "movies-sheet"
+            Visuals:
+              - BarChartVisual:
+                  VisualId: "bar_movies_top"
+                  Title:
+                    Visibility: VISIBLE
+                    FormatText: { PlainText: "Top Movies (Unique Viewers)" }
+                  ChartConfiguration:
+                    FieldWells:
+                      BarChartAggregatedFieldWells:
+                        Category:
+                          - CategoricalDimensionField:
+                              FieldId: "title_dim"
+                              Column:
+                                DataSetIdentifier: "movies_ds"
+                                ColumnName: "title"
+                        Values:
+                          - CategoricalMeasureField:
+                              FieldId: "uniq_users"
+                              AggregationFunction: DISTINCT_COUNT
+                              Column:
+                                DataSetIdentifier: "movies_ds"
+                                ColumnName: "user_id"
+                    SortConfiguration:
+                      CategorySort:
+                        - FieldSort:
+                            FieldId: "uniq_users"
+                            Direction: DESC
+                      CategoryItemsLimit:
+                        ItemsLimit: 10
+      Permissions:
+        - Principal: !Ref QuickSightUserArn
+          Actions:
+            - quicksight:RestoreAnalysis
+            - quicksight:UpdateAnalysisPermissions
+            - quicksight:DescribeAnalysis
+            - quicksight:DescribeAnalysisPermissions
+            - quicksight:QueryAnalysis
+            - quicksight:UpdateAnalysis
+            - quicksight:DeleteAnalysis
+
+  SeriesAnalysis:
+    Type: AWS::QuickSight::Analysis
+    Properties:
+      AwsAccountId: !Ref AWS::AccountId
+      AnalysisId: "series-analysis-v2"
+      Name: "Series Analysis"
+      Definition:
+        DataSetIdentifierDeclarations:
+          - Identifier: "series_ds"
+            DataSetArn: !GetAtt SeriesDataSet.Arn
+        Sheets:
+          - Name: "Series Top 10"
+            SheetId: "series-sheet"
+            Visuals:
+              - BarChartVisual:
+                  VisualId: "bar_series_top"
+                  Title:
+                    Visibility: VISIBLE
+                    FormatText: { PlainText: "Top Series (Unique Viewers)" }
+                  ChartConfiguration:
+                    FieldWells:
+                      BarChartAggregatedFieldWells:
+                        Category:
+                          - CategoricalDimensionField:
+                              FieldId: "title_dim"
+                              Column:
+                                DataSetIdentifier: "series_ds"
+                                ColumnName: "title"
+                        Values:
+                          - CategoricalMeasureField:
+                              FieldId: "uniq_users"
+                              AggregationFunction: DISTINCT_COUNT
+                              Column:
+                                DataSetIdentifier: "series_ds"
+                                ColumnName: "user_id"
+                    SortConfiguration:
+                      CategorySort:
+                        - FieldSort:
+                            FieldId: "uniq_users"
+                            Direction: DESC
+                      CategoryItemsLimit:
+                        ItemsLimit: 10
+      Permissions:
+        - Principal: !Ref QuickSightUserArn
+          Actions:
+            - quicksight:RestoreAnalysis
+            - quicksight:UpdateAnalysisPermissions
+            - quicksight:DescribeAnalysis
+            - quicksight:DescribeAnalysisPermissions
+            - quicksight:QueryAnalysis
+            - quicksight:UpdateAnalysis
+            - quicksight:DeleteAnalysis
+
+  #############################################
+  #                 TEMPLATES                 #
+  #############################################
+  MoviesTemplate:
+    Type: AWS::QuickSight::Template
+    Properties:
+      AwsAccountId: !Ref AWS::AccountId
+      TemplateId: "movies-template-v2"
+      Name: "Movies Template"
+      SourceEntity:
+        SourceAnalysis:
+          Arn: !GetAtt MoviesAnalysis.Arn
+          DataSetReferences:
+            - DataSetArn: !GetAtt MoviesDataSet.Arn
+              DataSetPlaceholder: "movies_ds"
+      Permissions:
+        - Principal: !Ref QuickSightUserArn
+          Actions:
+            - quicksight:DescribeTemplate
+            - quicksight:UpdateTemplate
+            - quicksight:DeleteTemplate
+            - quicksight:DescribeTemplatePermissions
+
+  SeriesTemplate:
+    Type: AWS::QuickSight::Template
+    Properties:
+      AwsAccountId: !Ref AWS::AccountId
+      TemplateId: "series-template-v2"
+      Name: "Series Template"
+      SourceEntity:
+        SourceAnalysis:
+          Arn: !GetAtt SeriesAnalysis.Arn
+          DataSetReferences:
+            - DataSetArn: !GetAtt SeriesDataSet.Arn
+              DataSetPlaceholder: "series_ds"
+      Permissions:
+        - Principal: !Ref QuickSightUserArn
+          Actions:
+            - quicksight:DescribeTemplate
+            - quicksight:UpdateTemplate
+            - quicksight:DeleteTemplate
+            - quicksight:DescribeTemplatePermissions
+
+  #############################################
+  #                 DASHBOARDS                #
+  #############################################
+  MoviesDashboard:
+    Type: AWS::QuickSight::Dashboard
+    Properties:
+      AwsAccountId: !Ref AWS::AccountId
+      DashboardId: "movies-dashboard"
+      Name: "Movies – Top 10"
+      SourceEntity:
+        SourceTemplate:
+          Arn: !Sub "arn:aws:quicksight:${AWS::Region}:${AWS::AccountId}:template/movies-template-v2"
+          DataSetReferences:
+            - DataSetArn: !GetAtt MoviesDataSet.Arn
+              DataSetPlaceholder: "movies_ds"
+      Permissions:
+        - Principal: !Ref QuickSightUserArn
+          Actions:
+            - quicksight:DescribeDashboard
+            - quicksight:ListDashboardVersions
+            - quicksight:QueryDashboard
+            - quicksight:UpdateDashboardPermissions
+            - quicksight:UpdateDashboard
+            - quicksight:DeleteDashboard
+            - quicksight:DescribeDashboardPermissions
+            - quicksight:UpdateDashboardPublishedVersion
+
+  SeriesDashboard:
+    Type: AWS::QuickSight::Dashboard
+    Properties:
+      AwsAccountId: !Ref AWS::AccountId
+      DashboardId: "series-dashboard"
+      Name: "Series – Top 10"
+      SourceEntity:
+        SourceTemplate:
+          Arn: !Sub "arn:aws:quicksight:${AWS::Region}:${AWS::AccountId}:template/series-template-v2"
+          DataSetReferences:
+            - DataSetArn: !GetAtt SeriesDataSet.Arn
+              DataSetPlaceholder: "series_ds"
+      Permissions:
+        - Principal: !Ref QuickSightUserArn
+          Actions:
+            - quicksight:DescribeDashboard
+            - quicksight:ListDashboardVersions
+            - quicksight:QueryDashboard
+            - quicksight:UpdateDashboardPermissions
+            - quicksight:UpdateDashboard
+            - quicksight:DeleteDashboard
+            - quicksight:DescribeDashboardPermissions
+            - quicksight:UpdateDashboardPublishedVersion
 
 Outputs:
   MoviesDataSourceArn:
+    Description: Movies Data Source ARN
     Value: !GetAtt MoviesDataSource.Arn
-    Description: 'Movies Data Source ARN'
-
   SeriesDataSourceArn:
+    Description: Series Data Source ARN
     Value: !GetAtt SeriesDataSource.Arn
-    Description: 'Series Data Source ARN'
-
   MoviesDataSetArn:
+    Description: Movies DataSet ARN
     Value: !GetAtt MoviesDataSet.Arn
-    Description: 'Movies DataSet ARN'
-
   SeriesDataSetArn:
+    Description: Series DataSet ARN
     Value: !GetAtt SeriesDataSet.Arn
-    Description: 'Series DataSet ARN'
-
-  Instructions:
-    Value: |
-      ✅ DATA SOURCES + DATASETS OLUŞTU!
-      
-      📋 ŞİMDİ MANUEL DASHBOARD OLUŞTUR:
-      1. QuickSight Console'a git
-      2. Analyses → New analysis
-      3. Movies Analytics Dataset seç
-      4. Bar chart ekle: imdbID (X) vs Count(imdbID) (Y)
-      5. "Publish dashboard" bas
-      6. Aynısını Series için tekrarla
-      
-      🎯 HEDEF:
-      📽️ En Çok Sevilen Filmler Dashboard
-      📺 En Çok Sevilen Diziler Dashboard
+  MoviesAnalysisArn:
+    Description: Movies Analysis ARN
+    Value: !GetAtt MoviesAnalysis.Arn
+  SeriesAnalysisArn:
+    Description: Series Analysis ARN
+    Value: !GetAtt SeriesAnalysis.Arn
+  MoviesTemplateArn:
+    Description: Movies Template ARN
+    Value: !Sub "arn:aws:quicksight:${AWS::Region}:${AWS::AccountId}:template/movies-template"
+  SeriesTemplateArn:
+    Description: Series Template ARN
+    Value: !Sub "arn:aws:quicksight:${AWS::Region}:${AWS::AccountId}:template/series-template"
+  MoviesDashboardId:
+    Description: Movies Dashboard ID
+    Value: !Ref MoviesDashboard
+  SeriesDashboardId:
+    Description: Series Dashboard ID
+    Value: !Ref SeriesDashboard
