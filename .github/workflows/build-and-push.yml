@@ -109,7 +109,7 @@ jobs:
 
   deploy-authentication:
     runs-on: ubuntu-latest
-    needs: network-and-ecr
+    needs: deploy-eks-and-k8s
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -472,6 +472,17 @@ jobs:
       - name: Create Service Accounts
         run: |
           kubectl apply -f kubernetes_manifest/service_accounts.yml
+      - name: Create Pod Identity Associations
+        run: |
+          if aws cloudformation describe-stacks --stack-name eks_pod_identity --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+            echo "Stack 'eks_pod_identity' already exists. Skipping deploy."
+          else
+            aws cloudformation deploy \
+              --template-file cloudformation_templates/eks_pod_identity.yml \
+              --stack-name eks_pod_identity \
+              --region ${{ env.AWS_REGION }} \
+              --capabilities CAPABILITY_NAMED_IAM
+          fi
       - name: Ensure AWS Load Balancer Controller IAM Policy
         run: |
           set -e
@@ -485,17 +496,6 @@ jobs:
         run: |
           chmod +x scripts/install_load_balancer_controller.sh
           bash scripts/install_load_balancer_controller.sh
-      - name: Create Pod Identity Associations
-        run: |
-          if aws cloudformation describe-stacks --stack-name eks_pod_identity --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
-            echo "Stack 'eks_pod_identity' already exists. Skipping deploy."
-          else
-            aws cloudformation deploy \
-              --template-file cloudformation_templates/eks_pod_identity.yml \
-              --stack-name eks_pod_identity \
-              --region ${{ env.AWS_REGION }} \
-              --capabilities CAPABILITY_NAMED_IAM
-          fi
       - name: Apply Ingress resources
         run: |
           kubectl apply -f kubernetes_manifest/ingress.yml

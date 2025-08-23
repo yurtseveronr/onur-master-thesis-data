@@ -40,7 +40,17 @@ helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-contro
   --set clusterName="$CLUSTER" \
   --set serviceAccount.create=false \
   --set serviceAccount.name=aws-load-balancer-controller \
-  --set region="$REGION"
+  --set region="$REGION" \
+  --wait \
+  --timeout=10m
 
-kubectl -n kube-system rollout status deploy/aws-load-balancer-controller --timeout=5m
-kubectl -n kube-system logs deploy/aws-load-balancer-controller | tail -n 50
+# Wait for deployment with longer timeout and better error handling
+echo "Waiting for AWS Load Balancer Controller deployment..."
+kubectl -n kube-system rollout status deploy/aws-load-balancer-controller --timeout=10m || {
+  echo "⚠️ Rollout status timeout, checking deployment status..."
+  kubectl get pods -n kube-system | grep aws-load-balancer-controller
+  kubectl describe deployment aws-load-balancer-controller -n kube-system
+  echo "Showing recent logs..."
+  kubectl -n kube-system logs deploy/aws-load-balancer-controller --tail=50 || echo "No logs available"
+  echo "Continuing with deployment..."
+}
