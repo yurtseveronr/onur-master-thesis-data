@@ -531,14 +531,15 @@ jobs:
           helm repo add actions-runner-controller https://actions-runner-controller.github.io/actions-runner-controller
           helm repo update
           
-          # Install ARC Controller
+          # Install ARC Controller with GitHub token
           helm upgrade --install \
-            actions-runner-controller \
-            actions-runner-controller/actions-runner-controller \
             --namespace actions-runner-system \
             --create-namespace \
+            --set=authSecret.create=true \
+            --set=authSecret.github_token="${{ secrets.RUNNER_API_KEY }}" \
             --wait \
-            --timeout 5m
+            actions-runner-controller \
+            actions-runner-controller/actions-runner-controller
           
           # Deploy Runner Scale Set
           kubectl apply -f kubernetes_manifest/devops/runner-scale-set.yml

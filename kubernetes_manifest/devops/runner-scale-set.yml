@@ -1,16 +1,13 @@
-apiVersion: actions.github.com/v1alpha1
-kind: RunnerScaleSet
+apiVersion: actions.summerwind.dev/v1alpha1
+kind: RunnerDeployment
 metadata:
   name: k8s-devops-runners
   namespace: devops
 spec:
-  githubConfigUrl: https://github.com/yurtseveronr/onur-master-thesis-data
-  githubConfigSecret: github-token
-  maxReplicas: 5
-  minReplicas: 1
-  runnerScaleSetName: k8s-devops-runners
+  replicas: 1
   template:
     spec:
+      repository: yurtseveronr/onur-master-thesis-data
       nodeSelector:
         node-type: devops
       containers:
