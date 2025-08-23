@@ -85,18 +85,6 @@ Resources:
         AuthenticationMode: API_AND_CONFIG_MAP
         BootstrapClusterCreatorAdminPermissions: true
 
-  # Access Entry for SSO Administrator
-  EKSAccessEntry:
-    Type: AWS::EKS::AccessEntry
-    Properties:
-      ClusterName: !Ref EKSCluster
-      PrincipalArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AdministratorAccess_d58e90fb67f5d77e'
-      Type: STANDARD
-      AccessPolicies:
-        - PolicyArn: arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy
-          AccessScope:
-            Type: cluster
-
   # NodeGroups
   ServicesNodeGroup:
     Type: AWS::EKS::Nodegroup
@@ -210,5 +198,3 @@ Outputs:
     Value: !GetAtt EKSCluster.Arn
   NodeRoleArn:
     Value: !GetAtt NodeRole.Arn
-  AccessEntryArn:
-    Value: !GetAtt EKSAccessEntry.AccessEntryArn
