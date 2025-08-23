@@ -40,8 +40,23 @@ kubectl create serviceaccount -n kube-system aws-load-balancer-controller --dry-
 helm repo add eks https://aws.github.io/eks-charts
 helm repo update
 
-# install or upgrade aws-load-balancer-controller
-helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+# Clean up existing helm release if exists
+echo "Cleaning up existing helm release..."
+kubectl delete deployment aws-load-balancer-controller -n kube-system --ignore-not-found=true || true
+kubectl delete pods -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller --ignore-not-found=true || true
+helm uninstall aws-load-balancer-controller -n kube-system || true
+
+# Force delete helm release if it still exists
+echo "Force deleting helm release..."
+helm delete aws-load-balancer-controller -n kube-system --no-hooks || true
+kubectl delete secret -n kube-system sh.helm.release.v1.aws-load-balancer-controller.v1 --ignore-not-found=true || true
+kubectl delete secret -n kube-system sh.helm.release.v1.aws-load-balancer-controller.v2 --ignore-not-found=true || true
+kubectl delete secret -n kube-system sh.helm.release.v1.aws-load-balancer-controller.v3 --ignore-not-found=true || true
+
+sleep 10
+
+# install aws-load-balancer-controller
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
   -n kube-system \
   --set clusterName="$CLUSTER" \
   --set serviceAccount.create=false \

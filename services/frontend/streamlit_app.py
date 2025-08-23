@@ -297,7 +297,7 @@ class APIClient:
             if response.status_code in [200, 201]:
                 return {'success': True, 'data': response.json()}
             else:
-                error_msg = response.json().get('message', 'Unknown error') if response.content else f'HTTP {response.status_code}'
+                error_msg = response.json().get('error', 'Unknown error') if response.content else f'HTTP {response.status_code}'
                 return {'success': False, 'message': error_msg}
                 
         except requests.exceptions.RequestException as e:
@@ -309,31 +309,29 @@ class APIClient:
     def register_user(username: str, email: str, password: str, full_name: str) -> Dict[str, Any]:
         """User registration"""
         data = {
-            'username': username,
             'email': email,
-            'password': password,
-            'full_name': full_name
+            'password': password
         }
-        return APIClient.make_request('POST', f"{API_URLS['auth']}/register", data)
+        return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/signup", data)
 
     @staticmethod
     def login_user(username: str, password: str) -> Dict[str, Any]:
         """User login"""
         data = {
-            'username': username,
+            'email': username,  # Frontend username olarak gönderiyor ama backend email bekliyor
             'password': password
         }
-        return APIClient.make_request('POST', f"{API_URLS['auth']}/login", data)
+        return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/login", data)
 
     @staticmethod
     def verify_token() -> Dict[str, Any]:
         """Token verification"""
-        return APIClient.make_request('GET', f"{API_URLS['auth']}/verify")
+        return APIClient.make_request('GET', f"{API_URLS['auth']}/auth/verify")
 
     @staticmethod
     def logout_user() -> Dict[str, Any]:
         """User logout"""
-        return APIClient.make_request('POST', f"{API_URLS['auth']}/logout")
+        return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/logout")
 
     @staticmethod
     def get_movies() -> Dict[str, Any]:
@@ -396,6 +394,11 @@ def show_login_page():
     # Tabs for login and registration
     tab1, tab2 = st.tabs(["🔑 Sign In", "📝 Sign Up"])
     
+    # Check if we should show login tab after successful registration
+    if st.session_state.get('show_login_tab', False):
+        tab1, tab2 = st.tabs(["🔑 Sign In", "📝 Sign Up"], index=0)
+        st.session_state.show_login_tab = False
+    
     with tab1:
         st.markdown('<div class="auth-container">', unsafe_allow_html=True)
         st.subheader("Sign In")
@@ -452,6 +455,9 @@ def show_login_page():
                         if result['success']:
                             st.success("✅ Account created successfully! You can now sign in.")
                             st.balloons()
+                            # Switch to login tab after successful registration
+                            st.session_state.show_login_tab = True
+                            st.rerun()
                         else:
                             st.error(f"❌ Registration error: {result['message']}")
                 else:

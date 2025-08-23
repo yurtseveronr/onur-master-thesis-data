@@ -117,6 +117,36 @@ def signup():
         logger.error(f"Signup error: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
+# Root endpoints for frontend compatibility
+@app.route('/register', methods=['POST'])
+@validate_request(['username', 'email', 'password', 'full_name'])
+def register():
+    try:
+        data = request.get_json()
+        email = data['email']
+        password = data['password']
+
+        logger.info(f"Register attempt: {email}")
+        
+        response = cognito.sign_up(
+            ClientId=CLIENT_ID,
+            Username=email,
+            Password=password,
+            UserAttributes=[{'Name': 'email', 'Value': email}]
+        )
+
+        logger.info(f"Register successful: {email}")
+        return jsonify({
+            'message': 'Registration successful! Please check your email for verification code.',
+            'userSub': response['UserSub']
+        }), 200
+
+    except ClientError as e:
+        return handle_cognito_error(e)
+    except Exception as e:
+        logger.error(f"Register error: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
+
 @app.route('/auth/login', methods=['POST'])
 @validate_request(['email', 'password'])
 def login():
@@ -140,6 +170,39 @@ def login():
         return jsonify({
             'message': 'Welcome! Login successful',
             'tokens': response['AuthenticationResult']
+        }), 200
+
+    except ClientError as e:
+        return handle_cognito_error(e)
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
+
+# Root login endpoint for frontend compatibility
+@app.route('/login', methods=['POST'])
+@validate_request(['username', 'password'])
+def login_root():
+    try:
+        data = request.get_json()
+        username = data['username']  # Frontend username olarak gönderiyor
+        password = data['password']
+
+        logger.info(f"Login attempt: {username}")
+
+        response = cognito.initiate_auth(
+            ClientId=CLIENT_ID,
+            AuthFlow='USER_PASSWORD_AUTH',
+            AuthParameters={
+                'USERNAME': username,
+                'PASSWORD': password
+            }
+        )
+
+        logger.info(f"Login successful: {username}")
+        return jsonify({
+            'message': 'Welcome! Login successful',
+            'token': response['AuthenticationResult']['AccessToken'],
+            'user': {'username': username}
         }), 200
 
     except ClientError as e:
