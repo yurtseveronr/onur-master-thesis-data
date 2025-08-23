@@ -85,6 +85,18 @@ Resources:
         AuthenticationMode: CONFIG_MAP
         BootstrapClusterCreatorAdminPermissions: true
 
+  # Access Entry for SSO Administrator
+  EKSAccessEntry:
+    Type: AWS::EKS::AccessEntry
+    Properties:
+      ClusterName: !Ref EKSCluster
+      PrincipalArn: !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AdministratorAccess_d58e90fb67f5d77e'
+      Type: STANDARD
+      AccessPolicies:
+        - PolicyArn: arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy
+          AccessScope:
+            Type: cluster
+
   # NodeGroups
   ServicesNodeGroup:
     Type: AWS::EKS::Nodegroup
@@ -162,9 +174,25 @@ Resources:
       InstanceTypes: [t3.medium]
       ScalingConfig:
         MinSize: 1
-        MaxSize: 3
+        MaxSize: 2
         DesiredSize: 1
       Labels: { node-type: streaming }
+
+  MonitoringNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodegroupName: monitoring-nodegroup
+      NodeRole: !GetAtt NodeRole.Arn
+      Subnets:
+        - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet1' }
+        - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet2' }
+      InstanceTypes: [t3.medium]
+      ScalingConfig:
+        MinSize: 1
+        MaxSize: 2
+        DesiredSize: 1
+      Labels: { node-type: monitoring }
 
   # Add-on (CloudWatch)
   ContainerInsightsAddon:
@@ -182,3 +210,5 @@ Outputs:
     Value: !GetAtt EKSCluster.Arn
   NodeRoleArn:
     Value: !GetAtt NodeRole.Arn
+  AccessEntryArn:
+    Value: !GetAtt EKSAccessEntry.AccessEntryArn
