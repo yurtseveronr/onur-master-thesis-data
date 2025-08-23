@@ -107,6 +107,30 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ authentication-service pushed successfully"
 
+  deploy-authentication:
+    runs-on: ubuntu-latest
+    needs: network-and-ecr
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Install kubectl
+        run: |
+          curl -sSL -o kubectl https://dl.k8s.io/release/$(curl -sSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/kubectl
+          kubectl version --client
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name onur-master-eks
+      - name: Deploy Authentication Service
+        run: |
+          kubectl apply -f kubernetes_manifest/services/authentication.yml
+
   build-user:
     runs-on: ubuntu-latest
     needs: network-and-ecr
@@ -478,11 +502,50 @@ jobs:
       - name: Deploy Services to EKS
         run: |
           kubectl apply -f kubernetes_manifest/services
+      - name: Create Required Secrets
+        run: |
+          # Create namespace for secrets if not exists
+          kubectl create namespace devops --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Create secret for GitHub runner using RUNNER_API_KEY
+          kubectl create secret generic github-token \
+            --from-literal=token=${{ secrets.RUNNER_API_KEY }} \
+            --namespace=devops \
+            --dry-run=client -o yaml | kubectl apply -f -
       - name: Deploy DevOps
         run: |
-          kubectl apply -f kubernetes_manifest/devops/devops.yml
+          # First deploy docker-daemon
           kubectl apply -f kubernetes_manifest/devops/docker-daemon.yml
+          
+          # Wait for docker-daemon to be ready
+          kubectl wait --for=condition=available --timeout=120s deployment/docker-daemon -n devops
+          
+          # Then deploy other DevOps tools
+          kubectl apply -f kubernetes_manifest/devops/devops.yml
+          
+          # Finally deploy GitHub runner
           kubectl apply -f kubernetes_manifest/devops/github-runner.yml
       - name: Deploy GitOps/ArgoCD
         run: |
-          kubectl apply -k kubernetes_manifest/gitops/ 
+          kubectl apply -k kubernetes_manifest/gitops/
+      
+      - name: Wait for ArgoCD to be ready
+        run: |
+          echo "Waiting for ArgoCD to be ready..."
+          kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n gitops
+          kubectl wait --for=condition=available --timeout=300s deployment/argocd-application-controller -n gitops
+          kubectl wait --for=condition=available --timeout=300s deployment/argocd-repo-server -n gitops
+          echo "✅ ArgoCD is ready!"
+      
+      - name: Deploy Initial ArgoCD Application
+        run: |
+          echo "Deploying initial ArgoCD application..."
+          
+          # Apply the ArgoCD application from file
+          kubectl apply -f kubernetes_manifest/gitops/application.yml
+          
+          echo "✅ Initial ArgoCD application deployed!"
+          
+          # Show application status
+          echo "ArgoCD application status:"
+          kubectl get application -n gitops 
