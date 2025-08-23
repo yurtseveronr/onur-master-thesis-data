@@ -19,6 +19,12 @@ if [[ -z "$POLICY_ARN" ]]; then
 fi
 echo "Using policy: $POLICY_ARN"
 
+# Get VPC ID from CloudFormation
+echo "Getting VPC ID from CloudFormation..."
+VPC_ID=$(aws cloudformation describe-stacks --stack-name network-stack --region "$REGION" \
+  --query 'Stacks[0].Outputs[?OutputKey==`VPC`].OutputValue' --output text)
+echo "VPC ID: $VPC_ID"
+
 # install helm if not available
 if ! command -v helm >/dev/null 2>&1; then
   curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
@@ -41,6 +47,7 @@ helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-contro
   --set serviceAccount.create=false \
   --set serviceAccount.name=aws-load-balancer-controller \
   --set region="$REGION" \
+  --set vpcId="$VPC_ID" \
   --wait \
   --timeout=10m
 
