@@ -82,7 +82,7 @@ Resources:
       KubernetesNetworkConfig:
         IpFamily: ipv4
       AccessConfig:
-        AuthenticationMode: CONFIG_MAP
+        AuthenticationMode: API_AND_CONFIG_MAP
         BootstrapClusterCreatorAdminPermissions: true
 
   # Access Entry for SSO Administrator

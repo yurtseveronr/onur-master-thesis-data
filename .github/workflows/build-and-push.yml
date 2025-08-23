@@ -437,26 +437,22 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - name: Deploy EKS Cluster
         run: |
-          if aws cloudformation describe-stacks --stack-name eks --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
-            echo "Stack 'eks' already exists. Skipping deploy."
-          else
-            aws cloudformation deploy \
-              --template-file cloudformation_templates/eks.yml \
-              --stack-name eks \
-              --region ${{ env.AWS_REGION }} \
-              --capabilities CAPABILITY_NAMED_IAM
-          fi
+          echo "Deploying EKS Cluster with updated authentication mode..."
+          aws cloudformation deploy \
+            --template-file cloudformation_templates/eks.yml \
+            --stack-name eks \
+            --region ${{ env.AWS_REGION }} \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --force-upload
       - name: Deploy EKS Add-ons
         run: |
-          if aws cloudformation describe-stacks --stack-name eks-add-ons --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
-            echo "Stack 'eks-add-ons' already exists. Skipping deploy."
-          else
-            aws cloudformation deploy \
-              --template-file cloudformation_templates/eks-add-ons.yml \
-              --stack-name eks-add-ons \
-              --region ${{ env.AWS_REGION }} \
-              --capabilities CAPABILITY_NAMED_IAM
-          fi
+          echo "Deploying EKS Add-ons..."
+          aws cloudformation deploy \
+            --template-file cloudformation_templates/eks-add-ons.yml \
+            --stack-name eks-add-ons \
+            --region ${{ env.AWS_REGION }} \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --force-upload
       - name: Install kubectl
         run: |
           curl -sSL -o kubectl https://dl.k8s.io/release/$(curl -sSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
