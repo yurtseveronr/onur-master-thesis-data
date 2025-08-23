@@ -527,8 +527,21 @@ jobs:
           # Then deploy other DevOps tools
           kubectl apply -f kubernetes_manifest/devops/devops.yml
           
-          # Finally deploy GitHub runner
-          kubectl apply -f kubernetes_manifest/devops/github-runner.yml
+          # Install Actions Runner Controller
+          helm repo add actions-runner-controller https://actions-runner-controller.github.io/actions-runner-controller
+          helm repo update
+          
+          # Install ARC Controller
+          helm upgrade --install \
+            actions-runner-controller \
+            actions-runner-controller/actions-runner-controller \
+            --namespace actions-runner-system \
+            --create-namespace \
+            --wait \
+            --timeout 5m
+          
+          # Deploy Runner Scale Set
+          kubectl apply -f kubernetes_manifest/devops/runner-scale-set.yml
       - name: Deploy GitOps/ArgoCD
         run: |
           kubectl apply -k kubernetes_manifest/gitops/

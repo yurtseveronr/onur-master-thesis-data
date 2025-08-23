@@ -1,0 +1,42 @@
+apiVersion: actions.github.com/v1alpha1
+kind: RunnerScaleSet
+metadata:
+  name: k8s-devops-runners
+  namespace: devops
+spec:
+  githubConfigUrl: https://github.com/yurtseveronr/onur-master-thesis-data
+  githubConfigSecret: github-token
+  maxReplicas: 5
+  minReplicas: 1
+  runnerScaleSetName: k8s-devops-runners
+  template:
+    spec:
+      nodeSelector:
+        node-type: devops
+      containers:
+        - name: runner
+          image: ghcr.io/actions/actions-runner:latest
+          env:
+            - name: DOCKER_HOST
+              value: "tcp://docker-daemon:2375"
+            - name: RUNNER_ALLOW_RUNASROOT
+              value: "1"
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "1000m"
+          volumeMounts:
+            - name: work
+              mountPath: /home/runner/_work
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+      volumes:
+        - name: work
+          emptyDir: {}
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket 
