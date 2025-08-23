@@ -28,12 +28,6 @@ spec:
           volumeMounts:
             - name: work
               mountPath: /home/runner/_work
-            - name: docker-sock
-              mountPath: /var/run/docker.sock
       volumes:
         - name: work
-          emptyDir: {}
-        - name: docker-sock
-          hostPath:
-            path: /var/run/docker.sock
-            type: Socket 
+          emptyDir: {} 
