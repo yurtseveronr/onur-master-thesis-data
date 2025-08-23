@@ -470,12 +470,12 @@ jobs:
           kubectl apply -f kubernetes_manifest/service_accounts.yml
       - name: Create Pod Identity Associations
         run: |
-          if aws cloudformation describe-stacks --stack-name eks_pod_identity --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
-            echo "Stack 'eks_pod_identity' already exists. Skipping deploy."
+          if aws cloudformation describe-stacks --stack-name eks-pod-identity --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+            echo "Stack 'eks-pod-identity' already exists. Skipping deploy."
           else
             aws cloudformation deploy \
               --template-file cloudformation_templates/eks_pod_identity.yml \
-              --stack-name eks_pod_identity \
+              --stack-name eks-pod-identity \
               --region ${{ env.AWS_REGION }} \
               --capabilities CAPABILITY_NAMED_IAM
           fi
