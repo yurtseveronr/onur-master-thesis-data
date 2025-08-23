@@ -417,6 +417,7 @@ jobs:
 
   deploy-eks-and-k8s:
     runs-on: ubuntu-latest
+    environment: PROD
     needs:
       - build-authentication
       - build-user
