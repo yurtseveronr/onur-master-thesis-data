@@ -34,6 +34,8 @@ spec:
               tar xzf ./actions-runner-linux-x64-2.328.0.tar.gz
               ./bin/installdependencies.sh
               export RUNNER_ALLOW_RUNASROOT="1"
+              echo "Checking RUNNER_REG_TOKEN..."
+              echo "Token length: ${#RUNNER_REG_TOKEN}"
               if [ -z "${RUNNER_REG_TOKEN:-}" ]; then echo "RUNNER_REG_TOKEN is empty"; exit 1; fi
               ./config.sh \
                 --url https://github.com/yurtseveronr/onur-master-thesis-data \

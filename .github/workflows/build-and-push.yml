@@ -504,10 +504,16 @@ jobs:
           kubectl create namespace devops --dry-run=client -o yaml | kubectl apply -f -
           
           # Create secret for GitHub runner using RUNNER_API_KEY
+          echo "Creating GitHub token secret..."
+          echo "Secret value length: ${#RUNNER_API_KEY}"
           kubectl create secret generic github-token \
             --from-literal=token=${{ secrets.RUNNER_API_KEY }} \
             --namespace=devops \
             --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Verify secret was created
+          echo "Verifying secret creation..."
+          kubectl get secret github-token -n devops -o yaml
       - name: Deploy DevOps
         run: |
           # First deploy docker-daemon
@@ -527,11 +533,12 @@ jobs:
       
       - name: Wait for ArgoCD to be ready
         run: |
-          echo "Waiting for ArgoCD to be ready..."
-          kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n gitops
-          kubectl wait --for=condition=ready --timeout=300s statefulset/argocd-application-controller -n gitops
-          kubectl wait --for=condition=available --timeout=300s deployment/argocd-repo-server -n gitops
-          echo "✅ ArgoCD is ready!"
+          echo "Waiting for all ArgoCD pods to be ready..."
+          
+          # Wait for all pods in gitops namespace to be running
+          kubectl wait --for=condition=ready --timeout=600s pods --all -n gitops
+          
+          echo "✅ All ArgoCD pods are ready!"
       
       - name: Deploy Initial ArgoCD Application
         run: |
