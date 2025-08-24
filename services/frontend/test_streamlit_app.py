@@ -8,7 +8,7 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import the streamlit app functions
-from streamlit_app import APIClient, show_login_page, show_dashboard, show_movies_page, show_series_page
+from streamlit_app import APIClient, show_login_page, show_dashboard, show_movies, show_series, is_logged_in
 
 class TestAPIClient:
     """Test cases for APIClient class"""
@@ -145,8 +145,8 @@ class TestAPIClient:
         assert result["data"][0]["title"] == "Test Series 1"
     
     @patch('requests.get')
-    def test_search_content_success(self, mock_get):
-        """Test successful content search"""
+    def test_search_movies_success(self, mock_get):
+        """Test successful movies search"""
         # Mock successful response
         mock_response = Mock()
         mock_response.json.return_value = {
@@ -159,11 +159,117 @@ class TestAPIClient:
         mock_get.return_value = mock_response
         
         client = APIClient()
-        result = client.search_content("test query", "movies")
+        result = client.search_movies("test query")
         
         assert result["success"] is True
         assert len(result["data"]) == 1
         assert result["data"][0]["title"] == "Search Result"
+    
+    @patch('requests.get')
+    def test_search_series_success(self, mock_get):
+        """Test successful series search"""
+        # Mock successful response
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "success": True,
+            "data": [
+                {"id": 1, "title": "Search Result", "type": "series"}
+            ]
+        }
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+        
+        client = APIClient()
+        result = client.search_series("test query")
+        
+        assert result["success"] is True
+        assert len(result["data"]) == 1
+        assert result["data"][0]["title"] == "Search Result"
+    
+    @patch('requests.get')
+    def test_get_recommendations_success(self, mock_get):
+        """Test successful recommendations retrieval"""
+        # Mock successful response
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "success": True,
+            "data": [
+                {"id": 1, "title": "Recommended Movie 1", "type": "movie"},
+                {"id": 2, "title": "Recommended Series 1", "type": "series"}
+            ]
+        }
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+        
+        client = APIClient()
+        result = client.get_recommendations()
+        
+        assert result["success"] is True
+        assert len(result["data"]) == 2
+        assert result["data"][0]["title"] == "Recommended Movie 1"
+        assert result["data"][1]["title"] == "Recommended Series 1"
+    
+    @patch('requests.post')
+    def test_chat_with_bot_success(self, mock_post):
+        """Test successful chatbot interaction"""
+        # Mock successful response
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "success": True,
+            "data": {
+                "response": "Hello! How can I help you today?",
+                "confidence": 0.95
+            }
+        }
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+        
+        client = APIClient()
+        result = client.chat_with_bot("Hello")
+        
+        assert result["success"] is True
+        assert result["data"]["response"] == "Hello! How can I help you today?"
+        assert result["data"]["confidence"] == 0.95
+    
+    @patch('requests.get')
+    def test_verify_token_success(self, mock_get):
+        """Test successful token verification"""
+        # Mock successful response
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "success": True,
+            "data": {
+                "valid": True,
+                "user": {"username": "testuser", "email": "test@example.com"}
+            }
+        }
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+        
+        client = APIClient()
+        result = client.verify_token()
+        
+        assert result["success"] is True
+        assert result["data"]["valid"] is True
+        assert result["data"]["user"]["username"] == "testuser"
+    
+    def test_is_logged_in_true(self):
+        """Test is_logged_in when user is logged in"""
+        # Mock session state
+        with patch('streamlit.session_state') as mock_session:
+            mock_session.get.return_value = "test_token"
+            
+            result = is_logged_in()
+            assert result is True
+    
+    def test_is_logged_in_false(self):
+        """Test is_logged_in when user is not logged in"""
+        # Mock session state
+        with patch('streamlit.session_state') as mock_session:
+            mock_session.get.return_value = None
+            
+            result = is_logged_in()
+            assert result is False
 
 class TestStreamlitFunctions:
     """Test cases for Streamlit UI functions"""
@@ -200,14 +306,14 @@ class TestStreamlitFunctions:
             assert "streamlit" in str(e).lower() or "session" in str(e).lower()
     
     @patch('streamlit.session_state')
-    def test_show_movies_page_initial_state(self, mock_session_state):
+    def test_show_movies_initial_state(self, mock_session_state):
         """Test movies page initial state"""
         # Mock session state
         mock_session_state.get.return_value = "testuser"
         
         # This is a basic test to ensure the function doesn't crash
         try:
-            # We can't actually call show_movies_page() in a test environment
+            # We can't actually call show_movies() in a test environment
             # because it uses Streamlit components that require a running app
             assert True  # Placeholder assertion
         except Exception as e:
@@ -215,14 +321,14 @@ class TestStreamlitFunctions:
             assert "streamlit" in str(e).lower() or "session" in str(e).lower()
     
     @patch('streamlit.session_state')
-    def test_show_series_page_initial_state(self, mock_session_state):
+    def test_show_series_initial_state(self, mock_session_state):
         """Test series page initial state"""
         # Mock session state
         mock_session_state.get.return_value = "testuser"
         
         # This is a basic test to ensure the function doesn't crash
         try:
-            # We can't actually call show_series_page() in a test environment
+            # We can't actually call show_series() in a test environment
             # because it uses Streamlit components that require a running app
             assert True  # Placeholder assertion
         except Exception as e:
