@@ -7,14 +7,93 @@ on:
     branches: [ master, main ]
 
 env:
-  AWS_REGION: 'us-east-1'
-  AWS_ACCOUNT_ID: '708778582346'
+  AWS_REGION: us-east-1
+  AWS_ACCOUNT_ID: 708778582346
 
 permissions:
   id-token: write
   contents: read
 
 jobs:
+  frontend:
+    runs-on: [self-hosted]
+    if: contains(github.event.head_commit.modified, 'services/frontend/') || contains(github.event.pull_request.files.*.path, 'services/frontend/')
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Setup Environment
+      run: |
+        apt-get update && apt-get install -y python3 python3-pip wget unzip curl docker.io openjdk-21-jdk
+        ln -sf /usr/bin/python3 /usr/bin/python
+        ln -sf /usr/bin/pip3 /usr/bin/pip
+        export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+        service docker start || true
+        chmod 666 /var/run/docker.sock || true
+        
+        # Install tools
+        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee -a /etc/apt/sources.list.d/trivy.list
+        apt-get update && apt-get install -y trivy
+        
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+    
+    - name: Unit Tests
+      run: |
+        cd services/frontend
+        pip install -r requirements.txt pytest pytest-cov
+        python -m pytest test_streamlit_app.py -v
+
+    - name: Code Coverage Report
+      run: |
+        cd services/frontend
+        python -m pytest test_streamlit_app.py --cov=streamlit_app --cov-report=xml --cov-fail-under=50 -v
+    
+    - name: Static Code Analysis
+      run: |
+        cd services/frontend
+        export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+        TOKEN=$(curl -u admin:admin -X POST "http://sonarqube:9000/api/user_tokens/generate" -d "name=frontend-token-$(date +%s)" | python3 -c "import sys, json; print(json.load(sys.stdin)['token'])" 2>/dev/null || echo "admin")
+        wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-linux-x64.zip
+        unzip -q sonar-scanner-cli-6.2.1.4610-linux-x64.zip
+        JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./sonar-scanner-6.2.1.4610-linux-x64/bin/sonar-scanner -Dsonar.projectKey=frontend -Dsonar.projectName="Frontend Service" -Dsonar.sources=. -Dsonar.exclusions="**/__pycache__/**" -Dsonar.host.url=http://sonarqube:9000 -Dsonar.token="$TOKEN" -Dsonar.python.coverage.reportPaths=coverage.xml
+    
+    - name: Build Docker Image
+      run: |
+        cd services/frontend
+        docker build -t frontend:latest .
+    
+    - name: Security Scan
+      run: |
+        cd services/frontend
+        trivy image --server http://trivy:4594 --severity CRITICAL --exit-code 0 frontend:latest || echo "⚠️ CRITICAL vulnerabilities found"
+    
+    - name: Load Test
+      run: |
+        curl -X POST http://locust:8089/swarm -d "user_count=10&spawn_rate=2&host=http://frontend:8501" || true
+        sleep 30
+        curl -X GET http://locust:8089/stop || true
+    
+    - name: Push to ECR
+      run: |
+        cd services/frontend
+        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 708778582346.dkr.ecr.us-east-1.amazonaws.com
+        docker tag frontend:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/frontend:latest
+        docker push 708778582346.dkr.ecr.us-east-1.amazonaws.com/frontend:latest
+    
+    - name: Deploy to Kubernetes
+      run: |
+        aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
+        kubectl set image deployment/frontend frontend=708778582346.dkr.ecr.us-east-1.amazonaws.com/frontend:latest -n frontend
+        kubectl rollout status deployment/frontend -n frontend --timeout=300s
+
   authentication-service:
     runs-on: [self-hosted]
     if: contains(github.event.head_commit.modified, 'services/authentication-service/') || contains(github.event.pull_request.files.*.path, 'services/authentication-service/')
@@ -49,13 +128,12 @@ jobs:
       run: |
         cd services/authentication-service
         pip install -r requirements.txt pytest pytest-cov
-        python -m pytest tests/ --cov=app --cov-report=xml --cov-fail-under=50 -v
-    
+        python -m pytest tests/ -v
+
     - name: Code Coverage Report
       run: |
         cd services/authentication-service
-        echo "Code coverage completed!"
-        echo "Coverage report generated: coverage.xml"
+        python -m pytest tests/ --cov=app --cov-report=xml --cov-fail-under=50 -v
     
     - name: Static Code Analysis
       run: |
@@ -129,13 +207,12 @@ jobs:
       run: |
         cd services/user-service
         pip install -r requirements.txt pytest pytest-cov
-        python -m pytest tests/ --cov=app --cov-report=xml --cov-fail-under=50 -v
-    
+        python -m pytest tests/ -v
+
     - name: Code Coverage Report
       run: |
         cd services/user-service
-        echo "Code coverage completed!"
-        echo "Coverage report generated: coverage.xml"
+        python -m pytest tests/ --cov=app --cov-report=xml --cov-fail-under=50 -v
     
     - name: Static Code Analysis
       run: |
@@ -208,10 +285,12 @@ jobs:
         cd services/movie-service/movie-service
         go test -v -coverprofile=coverage.out ./...
         go tool cover -func=coverage.out
-    
+
     - name: Code Coverage Report
       run: |
         cd services/movie-service/movie-service
+        go test -v -coverprofile=coverage.out ./...
+        go tool cover -func=coverage.out
         echo "Code coverage completed!"
         echo "Coverage report generated: coverage.out"
     
@@ -286,10 +365,12 @@ jobs:
         cd services/series-service/series-service
         go test -v -coverprofile=coverage.out ./...
         go tool cover -func=coverage.out
-    
+
     - name: Code Coverage Report
       run: |
         cd services/series-service/series-service
+        go test -v -coverprofile=coverage.out ./...
+        go tool cover -func=coverage.out
         echo "Code coverage completed!"
         echo "Coverage report generated: coverage.out"
     
@@ -364,7 +445,7 @@ jobs:
         cd services/search-service
         npm install
         npm test -- --coverage
-    
+
     - name: Code Coverage Report
       run: |
         cd services/search-service
@@ -409,86 +490,6 @@ jobs:
         kubectl set image deployment/search-service search-service=708778582346.dkr.ecr.us-east-1.amazonaws.com/search-service:latest -n search
         kubectl rollout status deployment/search-service -n search --timeout=300s
 
-  frontend:
-    runs-on: [self-hosted]
-    # if: contains(github.event.head_commit.modified, 'services/frontend/') || contains(github.event.pull_request.files.*.path, 'services/frontend/')
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
-        aws-region: ${{ env.AWS_REGION }}
-    
-    - name: Setup Environment
-      run: |
-        apt-get update && apt-get install -y python3 python3-pip wget unzip curl docker.io openjdk-21-jdk
-        ln -sf /usr/bin/python3 /usr/bin/python
-        ln -sf /usr/bin/pip3 /usr/bin/pip
-        export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
-        service docker start || true
-        chmod 666 /var/run/docker.sock || true
-        
-        # Install tools
-        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
-        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee -a /etc/apt/sources.list.d/trivy.list
-        apt-get update && apt-get install -y trivy
-        
-        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-        chmod +x kubectl && sudo mv kubectl /usr/local/bin/
-    
-    - name: Unit Tests
-      run: |
-        cd services/frontend
-        pip install -r requirements.txt pytest pytest-cov
-        python -m pytest --cov=streamlit_app --cov-report=xml --cov-fail-under=50 -v
-    
-    - name: Code Coverage Report
-      run: |
-        cd services/frontend
-        echo "Code coverage completed!"
-        echo "Coverage report generated: coverage.xml"
-    
-    - name: Static Code Analysis
-      run: |
-        cd services/frontend
-        export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
-        TOKEN=$(curl -u admin:admin -X POST "http://sonarqube:9000/api/user_tokens/generate" -d "name=frontend-token-$(date +%s)" | python3 -c "import sys, json; print(json.load(sys.stdin)['token'])" 2>/dev/null || echo "admin")
-        wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610-linux-x64.zip
-        unzip -q sonar-scanner-cli-6.2.1.4610-linux-x64.zip
-        JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./sonar-scanner-6.2.1.4610-linux-x64/bin/sonar-scanner -Dsonar.projectKey=frontend -Dsonar.projectName="Frontend Service" -Dsonar.sources=. -Dsonar.exclusions="**/__pycache__/**" -Dsonar.host.url=http://sonarqube:9000 -Dsonar.token="$TOKEN" -Dsonar.python.coverage.reportPaths=coverage.xml
-    
-    - name: Build Docker Image
-      run: |
-        cd services/frontend
-        docker build -t frontend:latest .
-    
-    - name: Security Scan
-      run: |
-        cd services/frontend
-        trivy image --server http://trivy:4594 --severity CRITICAL --exit-code 0 frontend:latest || echo "⚠️ CRITICAL vulnerabilities found"
-    
-    - name: Load Test
-      run: |
-        curl -X POST http://locust:8089/swarm -d "user_count=10&spawn_rate=2&host=http://frontend:8501" || true
-        sleep 30
-        curl -X GET http://locust:8089/stop || true
-    
-    - name: Push to ECR
-      run: |
-        cd services/frontend
-        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 708778582346.dkr.ecr.us-east-1.amazonaws.com
-        docker tag frontend:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/frontend:latest
-        docker push 708778582346.dkr.ecr.us-east-1.amazonaws.com/frontend:latest
-    
-    - name: Deploy to Kubernetes
-      run: |
-        aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
-        kubectl set image deployment/frontend frontend=708778582346.dkr.ecr.us-east-1.amazonaws.com/frontend:latest -n frontend
-        kubectl rollout status deployment/frontend -n frontend --timeout=300s
-
   bedrock-backend:
     runs-on: [self-hosted]
     if: contains(github.event.head_commit.modified, 'services/bedrock_backend/') || contains(github.event.pull_request.files.*.path, 'services/bedrock_backend/')
@@ -523,13 +524,12 @@ jobs:
       run: |
         cd services/bedrock_backend
         pip install -r requirements.txt pytest pytest-cov
-        python -m pytest test_app.py --cov=app --cov-report=xml --cov-fail-under=50 -v
-    
+        python -m pytest test_app.py -v
+
     - name: Code Coverage Report
       run: |
         cd services/bedrock_backend
-        echo "Code coverage completed!"
-        echo "Coverage report generated: coverage.xml"
+        python -m pytest test_app.py --cov=app --cov-report=xml --cov-fail-under=50 -v
     
     - name: Static Code Analysis
       run: |
@@ -603,13 +603,12 @@ jobs:
       run: |
         cd services/machine_learning_service
         pip install -r requirements.txt pytest pytest-cov
-        python -m pytest tests/ --cov=app --cov-report=xml --cov-fail-under=50 -v
-    
+        python -m pytest tests/ -v
+
     - name: Code Coverage Report
       run: |
         cd services/machine_learning_service
-        echo "Code coverage completed!"
-        echo "Coverage report generated: coverage.xml"
+        python -m pytest tests/ --cov=app --cov-report=xml --cov-fail-under=50 -v
     
     - name: Static Code Analysis
       run: |
@@ -682,7 +681,7 @@ jobs:
         cd services/kinesis-producer
         npm install
         npm test
-    
+
     - name: Code Coverage Report
       run: |
         cd services/kinesis-producer
@@ -759,7 +758,7 @@ jobs:
         cd services/kinesis-consumer
         npm install
         npm test
-    
+
     - name: Code Coverage Report
       run: |
         cd services/kinesis-consumer
