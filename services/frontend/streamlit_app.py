@@ -445,7 +445,6 @@ def show_login_page():
             if register_button:
                 if all([full_name, reg_username, email, reg_password, confirm_password]):
                     if reg_password != confirm_password:
-                        print("Passwords don't match!")
                         st.error("❌ Passwords don't match!")
                     elif len(reg_password) < 6:
                         st.error("❌ Password must be at least 6 characters!")
