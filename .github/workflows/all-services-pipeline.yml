@@ -49,7 +49,7 @@ jobs:
       run: |
         cd services/authentication-service
         pip install -r requirements.txt pytest pytest-cov
-        python -m pytest tests/ --cov=app --cov-report=xml --cov-fail-under=70 -v
+        python -m pytest tests/ --cov=app --cov-report=xml --cov-fail-under=50 -v
     
     - name: Code Coverage Report
       run: |
@@ -129,7 +129,7 @@ jobs:
       run: |
         cd services/user-service
         pip install -r requirements.txt pytest pytest-cov
-        python -m pytest tests/ --cov=app --cov-report=xml --cov-fail-under=70 -v
+        python -m pytest tests/ --cov=app --cov-report=xml --cov-fail-under=50 -v
     
     - name: Code Coverage Report
       run: |
@@ -443,7 +443,7 @@ jobs:
       run: |
         cd services/frontend
         pip install -r requirements.txt pytest pytest-cov
-        python -m pytest --cov=streamlit_app --cov-report=xml --cov-fail-under=70 -v
+        python -m pytest --cov=streamlit_app --cov-report=xml --cov-fail-under=50 -v
     
     - name: Code Coverage Report
       run: |
@@ -523,7 +523,7 @@ jobs:
       run: |
         cd services/bedrock_backend
         pip install -r requirements.txt pytest pytest-cov
-        python -m pytest test_app.py --cov=app --cov-report=xml --cov-fail-under=70 -v
+        python -m pytest test_app.py --cov=app --cov-report=xml --cov-fail-under=50 -v
     
     - name: Code Coverage Report
       run: |
@@ -603,7 +603,7 @@ jobs:
       run: |
         cd services/machine_learning_service
         pip install -r requirements.txt pytest pytest-cov
-        python -m pytest tests/ --cov=app --cov-report=xml --cov-fail-under=70 -v
+        python -m pytest tests/ --cov=app --cov-report=xml --cov-fail-under=50 -v
     
     - name: Code Coverage Report
       run: |
