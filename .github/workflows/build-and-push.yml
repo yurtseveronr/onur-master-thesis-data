@@ -8,6 +8,10 @@ on:
         required: true
         default: 'us-east-1'
         type: string
+      runner_token:
+        description: 'GitHub Runner Registration Token'
+        required: true
+        type: string
 
 env:
   AWS_REGION: ${{ github.event.inputs.aws_region || 'us-east-1' }}
@@ -505,11 +509,11 @@ jobs:
           # Create namespace for secrets if not exists
           kubectl create namespace devops --dry-run=client -o yaml | kubectl apply -f -
           
-          # Create secret for GitHub runner using RUNNER_API_KEY
+          # Create secret for GitHub runner using input token
           echo "Creating GitHub token secret..."
-          echo "Secret value length: ${#RUNNER_API_KEY}"
+          echo "Secret value length: ${#RUNNER_TOKEN}"
           kubectl create secret generic github-token \
-            --from-literal=token=${{ secrets.RUNNER_API_KEY }} \
+            --from-literal=token=${{ github.event.inputs.runner_token }} \
             --namespace=devops \
             --dry-run=client -o yaml | kubectl apply -f -
           
@@ -527,22 +531,8 @@ jobs:
           # Then deploy other DevOps tools
           kubectl apply -f kubernetes_manifest/devops/devops.yml
           
-          # Install Actions Runner Controller
-          helm repo add actions-runner-controller https://actions-runner-controller.github.io/actions-runner-controller
-          helm repo update
-          
-          # Install ARC Controller with GitHub token
-          helm upgrade --install \
-            --namespace actions-runner-system \
-            --create-namespace \
-            --set=authSecret.create=true \
-            --set=authSecret.github_token="${{ secrets.RUNNER_API_KEY }}" \
-            --wait \
-            actions-runner-controller \
-            actions-runner-controller/actions-runner-controller
-          
-          # Deploy Runner Scale Set
-          kubectl apply -f kubernetes_manifest/devops/runner-scale-set.yml
+          # Deploy GitHub Runner
+          kubectl apply -f kubernetes_manifest/devops/github-runner.yml
       - name: Deploy GitOps/ArgoCD
         run: |
           kubectl apply -k kubernetes_manifest/gitops/
