@@ -392,12 +392,12 @@ def show_login_page():
     st.markdown('<div class="main-header"><h1>🎬 Streaming Platform</h1><p>Welcome to the World of Movies and TV Shows!</p></div>', unsafe_allow_html=True)
     
     # Tabs for login and registration
-    tab1, tab2 = st.tabs(["🔑 Sign In", "📝 Sign Up"])
-    
     # Check if we should show login tab after successful registration
     if st.session_state.get('show_login_tab', False):
-        tab1, tab2 = st.tabs(["🔑 Sign In", "📝 Sign Up"], index=0)
+        tab1, tab2 = st.tabs(["🔑 Sign In", "📝 Sign Up"])
         st.session_state.show_login_tab = False
+    else:
+        tab1, tab2 = st.tabs(["🔑 Sign In", "📝 Sign Up"])
     
     with tab1:
         st.markdown('<div class="auth-container">', unsafe_allow_html=True)
