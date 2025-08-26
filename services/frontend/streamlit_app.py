@@ -377,7 +377,7 @@ def logout():
     if 'token' in st.session_state:
         APIClient.logout_user()
     
-    
+    # Clear session state
     for key in ['token', 'user_data', 'username', 'current_page']:
         if key in st.session_state:
             del st.session_state[key]
