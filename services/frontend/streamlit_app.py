@@ -455,7 +455,7 @@ def show_login_page():
                         if result['success']:
                             st.success("✅ Account created successfully! You can now sign in.")
                             st.balloons()
-                            
+                            # Switch to login tab after successful registration
                             st.session_state.show_login_tab = True
                             st.rerun()
                         else:
