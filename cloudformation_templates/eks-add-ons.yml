@@ -108,7 +108,7 @@ Resources:
     Properties:
       ClusterName: !Ref ClusterName
       AddonName: amazon-cloudwatch-observability
-      AddonVersion: v1.0.0-eksbuild.1
+      AddonVersion: v4.3.1-eksbuild.1
       ServiceAccountRoleArn: !GetAtt MonitoringRole.Arn
       ResolveConflicts: OVERWRITE
 
