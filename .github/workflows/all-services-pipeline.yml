@@ -3,30 +3,8 @@ name: All Services CI/CD Pipeline
 on:
   push:
     branches: [ master, main ]
-    paths:
-      - 'services/frontend/**'
-      - 'services/authentication-service/**'
-      - 'services/user-service/**'
-      - 'services/movie-service/**'
-      - 'services/series-service/**'
-      - 'services/search-service/**'
-      - 'services/bedrock_backend/**'
-      - 'services/machine_learning_service/**'
-      - 'services/kinesis-producer/**'
-      - 'services/kinesis-consumer/**'
   pull_request:
     branches: [ master, main ]
-    paths:
-      - 'services/frontend/**'
-      - 'services/authentication-service/**'
-      - 'services/user-service/**'
-      - 'services/movie-service/**'
-      - 'services/series-service/**'
-      - 'services/search-service/**'
-      - 'services/bedrock_backend/**'
-      - 'services/machine_learning_service/**'
-      - 'services/kinesis-producer/**'
-      - 'services/kinesis-consumer/**'
 
 env:
   AWS_REGION: us-east-1
@@ -39,7 +17,12 @@ permissions:
 jobs:
   frontend:
     runs-on: [self-hosted]
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') &&
+      (contains(github.event.head_commit.modified, 'services/frontend/') || 
+       contains(github.event.pull_request.files.*.path, 'services/frontend/') ||
+       contains(github.event.commits.*.modified, 'services/frontend/') ||
+       contains(github.event.commits.*.added, 'services/frontend/'))
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -118,7 +101,12 @@ jobs:
 
   authentication-service:
     runs-on: [self-hosted]
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') &&
+      (contains(github.event.head_commit.modified, 'services/authentication-service/') || 
+       contains(github.event.pull_request.files.*.path, 'services/authentication-service/') ||
+       contains(github.event.commits.*.modified, 'services/authentication-service/') ||
+       contains(github.event.commits.*.added, 'services/authentication-service/'))
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -197,7 +185,12 @@ jobs:
 
   user-service:
     runs-on: [self-hosted]
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') &&
+      (contains(github.event.head_commit.modified, 'services/user-service/') || 
+       contains(github.event.pull_request.files.*.path, 'services/user-service/') ||
+       contains(github.event.commits.*.modified, 'services/user-service/') ||
+       contains(github.event.commits.*.added, 'services/user-service/'))
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -276,7 +269,12 @@ jobs:
 
   movie-service:
     runs-on: [self-hosted]
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') &&
+      (contains(github.event.head_commit.modified, 'services/movie-service/') || 
+       contains(github.event.pull_request.files.*.path, 'services/movie-service/') ||
+       contains(github.event.commits.*.modified, 'services/movie-service/') ||
+       contains(github.event.commits.*.added, 'services/movie-service/'))
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -356,7 +354,12 @@ jobs:
 
   series-service:
     runs-on: [self-hosted]
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') &&
+      (contains(github.event.head_commit.modified, 'services/series-service/') || 
+       contains(github.event.pull_request.files.*.path, 'services/series-service/') ||
+       contains(github.event.commits.*.modified, 'services/series-service/') ||
+       contains(github.event.commits.*.added, 'services/series-service/'))
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -436,7 +439,12 @@ jobs:
 
   search-service:
     runs-on: [self-hosted]
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') &&
+      (contains(github.event.head_commit.modified, 'services/search-service/') || 
+       contains(github.event.pull_request.files.*.path, 'services/search-service/') ||
+       contains(github.event.commits.*.modified, 'services/search-service/') ||
+       contains(github.event.commits.*.added, 'services/search-service/'))
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -514,7 +522,12 @@ jobs:
 
   bedrock-backend:
     runs-on: [self-hosted]
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') &&
+      (contains(github.event.head_commit.modified, 'services/bedrock_backend/') || 
+       contains(github.event.pull_request.files.*.path, 'services/bedrock_backend/') ||
+       contains(github.event.commits.*.modified, 'services/bedrock_backend/') ||
+       contains(github.event.commits.*.added, 'services/bedrock_backend/'))
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -593,7 +606,12 @@ jobs:
 
   machine-learning-service:
     runs-on: [self-hosted]
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') &&
+      (contains(github.event.head_commit.modified, 'services/machine_learning_service/') || 
+       contains(github.event.pull_request.files.*.path, 'services/machine_learning_service/') ||
+       contains(github.event.commits.*.modified, 'services/machine_learning_service/') ||
+       contains(github.event.commits.*.added, 'services/machine_learning_service/'))
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -672,7 +690,12 @@ jobs:
 
   kinesis-producer:
     runs-on: [self-hosted]
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') &&
+      (contains(github.event.head_commit.modified, 'services/kinesis-producer/') || 
+       contains(github.event.pull_request.files.*.path, 'services/kinesis-producer/') ||
+       contains(github.event.commits.*.modified, 'services/kinesis-producer/') ||
+       contains(github.event.commits.*.added, 'services/kinesis-producer/'))
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -749,7 +772,12 @@ jobs:
 
   kinesis-consumer:
     runs-on: [self-hosted]
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') &&
+      (contains(github.event.head_commit.modified, 'services/kinesis-consumer/') || 
+       contains(github.event.pull_request.files.*.path, 'services/kinesis-consumer/') ||
+       contains(github.event.commits.*.modified, 'services/kinesis-consumer/') ||
+       contains(github.event.commits.*.added, 'services/kinesis-consumer/'))
     steps:
     - name: Checkout
       uses: actions/checkout@v4
