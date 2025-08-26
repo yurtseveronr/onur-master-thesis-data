@@ -80,7 +80,9 @@ jobs:
 
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
         unzip awscliv2.zip
-        sudo ./aws/install
+        sudo ./aws/install  --update
+        export PATH="/usr/local/aws-cli/v2/current/bin:$PATH"
+
         aws --version
     
     - name: Unit Tests
@@ -150,7 +152,7 @@ jobs:
       run: |
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
         unzip awscliv2.zip
-        sudo ./aws/install --update
+        sudo ./aws/install  --update--update
         export PATH="/usr/local/aws-cli/v2/current/bin:$PATH"
         aws --version
     
@@ -173,7 +175,9 @@ jobs:
 
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
         unzip awscliv2.zip
-        sudo ./aws/install
+        sudo ./aws/install --update
+        export PATH="/usr/local/aws-cli/v2/current/bin:$PATH"
+
         aws --version
     
     - name: Unit Tests
@@ -257,8 +261,11 @@ jobs:
 
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
         unzip awscliv2.zip
-        sudo ./aws/install
+        sudo ./aws/install --update
+        export PATH="/usr/local/aws-cli/v2/current/bin:$PATH"
+
         aws --version
+
     
     - name: Unit Tests
       run: |
@@ -339,7 +346,8 @@ jobs:
 
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
         unzip awscliv2.zip
-        sudo ./aws/install
+        sudo ./aws/install --update
+        export PATH="/usr/local/aws-cli/v2/current/bin:$PATH"
         aws --version
     
     - name: Unit Tests
@@ -424,7 +432,8 @@ jobs:
 
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
         unzip awscliv2.zip
-        sudo ./aws/install
+        sudo ./aws/install --update
+        export PATH="/usr/local/aws-cli/v2/current/bin:$PATH"
         aws --version
     
     - name: Unit Tests
@@ -509,7 +518,8 @@ jobs:
 
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
         unzip awscliv2.zip
-        sudo ./aws/install
+        sudo ./aws/install --update
+        export PATH="/usr/local/aws-cli/v2/current/bin:$PATH"
         aws --version
     
     - name: Unit Tests
@@ -594,7 +604,8 @@ jobs:
 
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
         unzip awscliv2.zip
-        sudo ./aws/install
+        sudo ./aws/install --update
+        export PATH="/usr/local/aws-cli/v2/current/bin:$PATH"
         aws --version
     
     - name: Unit Tests
@@ -678,7 +689,8 @@ jobs:
 
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
         unzip awscliv2.zip
-        sudo ./aws/install
+        sudo ./aws/install --update
+        export PATH="/usr/local/aws-cli/v2/current/bin:$PATH"
         aws --version
     
     - name: Unit Tests
@@ -760,7 +772,8 @@ jobs:
 
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
         unzip awscliv2.zip
-        sudo ./aws/install
+        sudo ./aws/install --update
+        export PATH="/usr/local/aws-cli/v2/current/bin:$PATH" 
         aws --version
     
     - name: Unit Tests
@@ -842,7 +855,8 @@ jobs:
 
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
         unzip awscliv2.zip
-        sudo ./aws/install
+        sudo ./aws/install --update
+        export PATH="/usr/local/aws-cli/v2/current/bin:$PATH" 
         aws --version
     
     - name: Unit Tests
