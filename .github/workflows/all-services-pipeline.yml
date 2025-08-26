@@ -131,7 +131,7 @@ jobs:
     - name: Deploy to Kubernetes
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
-        kubectl set image deployment/frontend frontend=708778582346.dkr.ecr.us-east-1.amazonaws.com/frontend:latest -n frontend
+        kubectl set image deployment/frontend frontend=708778582346.dkr.ecr.us-east-1.amazonaws.com/frontend-service:latest -n frontend
         kubectl rollout status deployment/frontend -n frontend --timeout=300s
 
   authentication-service:
