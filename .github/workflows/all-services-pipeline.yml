@@ -17,7 +17,9 @@ permissions:
 jobs:
   frontend:
     runs-on: [self-hosted]
-    if: always()
+    if: |
+      github.event_name == 'push' && 
+      contains(toJSON(github.event.commits.*.modified), 'services/frontend/')
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -97,11 +99,8 @@ jobs:
   authentication-service:
     runs-on: [self-hosted]
     if: |
-      (github.event_name == 'push' || github.event_name == 'pull_request') &&
-      (contains(github.event.head_commit.modified, 'services/authentication-service/') || 
-       contains(github.event.pull_request.files.*.path, 'services/authentication-service/') ||
-       contains(github.event.commits.*.modified, 'services/authentication-service/') ||
-       contains(github.event.commits.*.added, 'services/authentication-service/'))
+      github.event_name == 'push' && 
+      contains(toJSON(github.event.commits.*.modified), 'services/authentication-service/')
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -181,11 +180,8 @@ jobs:
   user-service:
     runs-on: [self-hosted]
     if: |
-      (github.event_name == 'push' || github.event_name == 'pull_request') &&
-      (contains(github.event.head_commit.modified, 'services/user-service/') || 
-       contains(github.event.pull_request.files.*.path, 'services/user-service/') ||
-       contains(github.event.commits.*.modified, 'services/user-service/') ||
-       contains(github.event.commits.*.added, 'services/user-service/'))
+      github.event_name == 'push' && 
+      contains(toJSON(github.event.commits.*.modified), 'services/user-service/')
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -265,11 +261,8 @@ jobs:
   movie-service:
     runs-on: [self-hosted]
     if: |
-      (github.event_name == 'push' || github.event_name == 'pull_request') &&
-      (contains(github.event.head_commit.modified, 'services/movie-service/') || 
-       contains(github.event.pull_request.files.*.path, 'services/movie-service/') ||
-       contains(github.event.commits.*.modified, 'services/movie-service/') ||
-       contains(github.event.commits.*.added, 'services/movie-service/'))
+      github.event_name == 'push' && 
+      contains(toJSON(github.event.commits.*.modified), 'services/movie-service/')
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -350,11 +343,8 @@ jobs:
   series-service:
     runs-on: [self-hosted]
     if: |
-      (github.event_name == 'push' || github.event_name == 'pull_request') &&
-      (contains(github.event.head_commit.modified, 'services/series-service/') || 
-       contains(github.event.pull_request.files.*.path, 'services/series-service/') ||
-       contains(github.event.commits.*.modified, 'services/series-service/') ||
-       contains(github.event.commits.*.added, 'services/series-service/'))
+      github.event_name == 'push' && 
+      contains(toJSON(github.event.commits.*.modified), 'services/series-service/')
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -435,11 +425,8 @@ jobs:
   search-service:
     runs-on: [self-hosted]
     if: |
-      (github.event_name == 'push' || github.event_name == 'pull_request') &&
-      (contains(github.event.head_commit.modified, 'services/search-service/') || 
-       contains(github.event.pull_request.files.*.path, 'services/search-service/') ||
-       contains(github.event.commits.*.modified, 'services/search-service/') ||
-       contains(github.event.commits.*.added, 'services/search-service/'))
+      github.event_name == 'push' && 
+      contains(toJSON(github.event.commits.*.modified), 'services/search-service/')
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -518,11 +505,8 @@ jobs:
   bedrock-backend:
     runs-on: [self-hosted]
     if: |
-      (github.event_name == 'push' || github.event_name == 'pull_request') &&
-      (contains(github.event.head_commit.modified, 'services/bedrock_backend/') || 
-       contains(github.event.pull_request.files.*.path, 'services/bedrock_backend/') ||
-       contains(github.event.commits.*.modified, 'services/bedrock_backend/') ||
-       contains(github.event.commits.*.added, 'services/bedrock_backend/'))
+      github.event_name == 'push' && 
+      contains(toJSON(github.event.commits.*.modified), 'services/bedrock_backend/')
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -602,11 +586,8 @@ jobs:
   machine-learning-service:
     runs-on: [self-hosted]
     if: |
-      (github.event_name == 'push' || github.event_name == 'pull_request') &&
-      (contains(github.event.head_commit.modified, 'services/machine_learning_service/') || 
-       contains(github.event.pull_request.files.*.path, 'services/machine_learning_service/') ||
-       contains(github.event.commits.*.modified, 'services/machine_learning_service/') ||
-       contains(github.event.commits.*.added, 'services/machine_learning_service/'))
+      github.event_name == 'push' && 
+      contains(toJSON(github.event.commits.*.modified), 'services/machine_learning_service/')
     steps:
     - name: Checkout
       uses: actions/checkout@v4
