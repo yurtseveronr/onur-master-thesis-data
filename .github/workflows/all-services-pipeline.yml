@@ -17,10 +17,7 @@ permissions:
 jobs:
   frontend:
     runs-on: [self-hosted]
-    if: |
-      (github.event_name == 'push' || github.event_name == 'pull_request') &&
-      (contains(github.event.head_commit.modified, 'services/frontend/') || 
-       contains(github.event.pull_request.files.*.path, 'services/frontend/'))
+    if: always()
     steps:
     - name: Checkout
       uses: actions/checkout@v4
