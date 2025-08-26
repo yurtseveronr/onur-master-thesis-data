@@ -132,7 +132,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/frontend frontend=708778582346.dkr.ecr.us-east-1.amazonaws.com/frontend-service:latest -n frontend
-        kubectl rollout status deployment/frontend -n frontend --timeout=300s
+        kubectl rollout status deployment/frontend -n services --timeout=300s
 
   authentication-service:
     needs: changes
@@ -227,7 +227,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/authentication-service authentication-service=708778582346.dkr.ecr.us-east-1.amazonaws.com/authentication-service:latest -n authentication
-        kubectl rollout status deployment/authentication-service -n authentication --timeout=300s
+        kubectl rollout status deployment/authentication-service -n services --timeout=300s
 
   user-service:
     runs-on: [self-hosted]
@@ -314,7 +314,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/user-service user-service=708778582346.dkr.ecr.us-east-1.amazonaws.com/user-service:latest -n user
-        kubectl rollout status deployment/user-service -n user --timeout=300s
+        kubectl rollout status deployment/user-service -n services --timeout=300s
 
   movie-service:
     runs-on: [self-hosted]
@@ -400,7 +400,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/movie-service movie-service=708778582346.dkr.ecr.us-east-1.amazonaws.com/movie-service:latest -n movies
-        kubectl rollout status deployment/movie-service -n movies --timeout=300s
+        kubectl rollout status deployment/movie-service -n services --timeout=300s
 
   series-service:
     runs-on: [self-hosted]
@@ -486,7 +486,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/series-service series-service=708778582346.dkr.ecr.us-east-1.amazonaws.com/series-service:latest -n series
-        kubectl rollout status deployment/series-service -n series --timeout=300s
+        kubectl rollout status deployment/series-service -n services --timeout=300s
 
   search-service:
     runs-on: [self-hosted]
@@ -570,7 +570,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/search-service search-service=708778582346.dkr.ecr.us-east-1.amazonaws.com/search-service:latest -n search
-        kubectl rollout status deployment/search-service -n search --timeout=300s
+        kubectl rollout status deployment/search-service -n services --timeout=300s
 
   bedrock-backend:
     runs-on: [self-hosted]
@@ -655,7 +655,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/bedrock-backend bedrock-backend=708778582346.dkr.ecr.us-east-1.amazonaws.com/bedrock-backend:latest -n bedrock
-        kubectl rollout status deployment/bedrock-backend -n bedrock --timeout=300s
+        kubectl rollout status deployment/bedrock-backend -n services --timeout=300s
 
   machine-learning-service:
     runs-on: [self-hosted]
@@ -740,7 +740,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/machine-learning-service machine-learning-service=708778582346.dkr.ecr.us-east-1.amazonaws.com/machine-learning-service:latest -n ml
-        kubectl rollout status deployment/machine-learning-service -n ml --timeout=300s
+        kubectl rollout status deployment/machine-learning-service -n services --timeout=300s
 
   kinesis-producer:
     runs-on: [self-hosted]
@@ -823,7 +823,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/kinesis-producer kinesis-producer=708778582346.dkr.ecr.us-east-1.amazonaws.com/kinesis-producer:latest -n kinesis
-        kubectl rollout status deployment/kinesis-producer -n kinesis --timeout=300s
+        kubectl rollout status deployment/kinesis-producer -n services --timeout=300s
 
   kinesis-consumer:
     runs-on: [self-hosted]
@@ -906,4 +906,4 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/kinesis-consumer kinesis-consumer=708778582346.dkr.ecr.us-east-1.amazonaws.com/kinesis-consumer:latest -n kinesis
-        kubectl rollout status deployment/kinesis-consumer -n kinesis --timeout=300s 
+        kubectl rollout status deployment/kinesis-consumer -n services --timeout=300s 
