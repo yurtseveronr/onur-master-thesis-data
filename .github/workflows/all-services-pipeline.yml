@@ -125,7 +125,7 @@ jobs:
       run: |
         cd services/frontend
         aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 708778582346.dkr.ecr.us-east-1.amazonaws.com
-        docker tag frontend:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/frontend:latest
+        docker tag frontend:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/frontend-service:latest
         docker push 708778582346.dkr.ecr.us-east-1.amazonaws.com/frontend-service:latest
     
     - name: Deploy to Kubernetes
