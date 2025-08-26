@@ -139,7 +139,7 @@ jobs:
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
-        aws-region: ${{ env.AWS_REGION }}
+        aws-region: us-east-1
     
     - name: Setup Environment
       run: |
