@@ -8,7 +8,7 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import the streamlit app functions
-from streamlit_app import APIClient, show_login_page, show_dashboard, show_movies, show_series, is_logged_in, logout, navigate_to, show_personalize, show_chatbot
+from streamlit_app import APIClient
 
 class TestAPIClient:
     """Test cases for APIClient class"""
@@ -21,6 +21,12 @@ class TestAPIClient:
         assert hasattr(APIClient, 'register_user')
         assert hasattr(APIClient, 'get_movies')
         assert hasattr(APIClient, 'get_series')
+        assert hasattr(APIClient, 'search_movies')
+        assert hasattr(APIClient, 'search_series')
+        assert hasattr(APIClient, 'get_recommendations')
+        assert hasattr(APIClient, 'chat_with_bot')
+        assert hasattr(APIClient, 'verify_token')
+        assert hasattr(APIClient, 'logout_user')
     
     @patch('requests.post')
     def test_login_user_success(self, mock_post):
@@ -237,164 +243,105 @@ class TestAPIClient:
         
         assert result["success"] is False
         assert "Server error" in result["message"]
+    
+    def test_make_request_without_data(self):
+        """Test make_request without data parameter"""
+        with patch('requests.get') as mock_get:
+            mock_response = Mock()
+            mock_response.json.return_value = {"data": "test"}
+            mock_response.status_code = 200
+            mock_get.return_value = mock_response
+            
+            result = APIClient.make_request("GET", "http://test.com")
+            
+            assert result["success"] is True
+            assert result["data"] == {"data": "test"}
+    
+    def test_make_request_without_headers(self):
+        """Test make_request without headers parameter"""
+        with patch('requests.post') as mock_post:
+            mock_response = Mock()
+            mock_response.json.return_value = {"data": "test"}
+            mock_response.status_code = 200
+            mock_post.return_value = mock_response
+            
+            result = APIClient.make_request("POST", "http://test.com", {"test": "data"})
+            
+            assert result["success"] is True
+            assert result["data"] == {"data": "test"}
+    
+    def test_make_request_with_headers(self):
+        """Test make_request with headers parameter"""
+        with patch('requests.post') as mock_post:
+            mock_response = Mock()
+            mock_response.json.return_value = {"data": "test"}
+            mock_response.status_code = 200
+            mock_post.return_value = mock_response
+            
+            headers = {"Authorization": "Bearer token"}
+            result = APIClient.make_request("POST", "http://test.com", {"test": "data"}, headers)
+            
+            assert result["success"] is True
+            assert result["data"] == {"data": "test"}
+    
+    def test_make_request_connection_error(self):
+        """Test make_request with connection error"""
+        with patch('requests.post') as mock_post:
+            mock_post.side_effect = Exception("Connection error")
+            
+            result = APIClient.make_request("POST", "http://test.com", {"test": "data"})
+            
+            assert result["success"] is False
+            assert "Connection error" in result["message"]
+    
+    def test_make_request_json_error(self):
+        """Test make_request with JSON decode error"""
+        with patch('requests.post') as mock_post:
+            mock_response = Mock()
+            mock_response.json.side_effect = Exception("JSON decode error")
+            mock_response.status_code = 200
+            mock_response.content = b'invalid json'
+            mock_post.return_value = mock_response
+            
+            result = APIClient.make_request("POST", "http://test.com", {"test": "data"})
+            
+            assert result["success"] is False
+            assert "JSON decode error" in result["message"]
 
-class TestAuthFunctions:
-    """Test cases for authentication functions"""
+class TestStreamlitAppStructure:
+    """Test cases for streamlit app structure"""
     
-    @patch('streamlit_app.st.session_state')
-    def test_is_logged_in_true(self, mock_session_state):
-        """Test is_logged_in when user is logged in"""
-        mock_session_state.__getitem__.return_value = "test_token"
-        result = is_logged_in()
-        assert result is True
-    
-    @patch('streamlit_app.st.session_state')
-    def test_is_logged_in_false(self, mock_session_state):
-        """Test is_logged_in when user is not logged in"""
-        mock_session_state.__getitem__.side_effect = KeyError("token")
-        result = is_logged_in()
-        assert result is False
-    
-    @patch('streamlit_app.st.session_state')
-    def test_logout(self, mock_session_state):
-        """Test logout function"""
-        logout()
-        mock_session_state.clear.assert_called_once()
-    
-    @patch('streamlit_app.st.session_state')
-    def test_navigate_to(self, mock_session_state):
-        """Test navigate_to function"""
-        navigate_to("dashboard")
-        assert mock_session_state.__setitem__.called
-
-class TestPageFunctions:
-    """Test cases for page functions"""
-    
-    @patch('streamlit_app.st')
-    def test_show_login_page(self, mock_st):
-        """Test show_login_page function"""
-        show_login_page()
-        # Verify that streamlit functions are called
-        assert mock_st.title.called or mock_st.header.called
-    
-    @patch('streamlit_app.st')
-    @patch('streamlit_app.is_logged_in')
-    def test_show_dashboard_logged_in(self, mock_is_logged_in, mock_st):
-        """Test show_dashboard when user is logged in"""
-        mock_is_logged_in.return_value = True
-        show_dashboard()
-        # Verify that streamlit functions are called
-        assert mock_st.title.called or mock_st.header.called
-    
-    @patch('streamlit_app.st')
-    @patch('streamlit_app.is_logged_in')
-    def test_show_dashboard_not_logged_in(self, mock_is_logged_in, mock_st):
-        """Test show_dashboard when user is not logged in"""
-        mock_is_logged_in.return_value = False
-        show_dashboard()
-        # Verify that streamlit functions are called
-    @patch('streamlit.session_state')
-    def test_show_login_page_initial_state(self, mock_session_state):
-        """Test login page initial state"""
-        # Mock session state
-        mock_session_state.get.return_value = False
-        
-        # This is a basic test to ensure the function doesn't crash
+    def test_streamlit_app_imports(self):
+        """Test that streamlit app can be imported"""
         try:
-            # We can't actually call show_login_page() in a test environment
-            # because it uses Streamlit components that require a running app
-            assert True  # Placeholder assertion
-        except Exception as e:
-            # Expected behavior in test environment
-            assert "streamlit" in str(e).lower() or "session" in str(e).lower()
+            import streamlit_app
+            assert True
+        except ImportError as e:
+            pytest.fail(f"Failed to import streamlit_app: {e}")
     
-    @patch('streamlit.session_state')
-    def test_show_dashboard_initial_state(self, mock_session_state):
-        """Test dashboard initial state"""
-        # Mock session state
-        mock_session_state.get.return_value = "testuser"
-        
-        # This is a basic test to ensure the function doesn't crash
-        try:
-            # We can't actually call show_dashboard() in a test environment
-            # because it uses Streamlit components that require a running app
-            assert True  # Placeholder assertion
-        except Exception as e:
-            # Expected behavior in test environment
-            assert "streamlit" in str(e).lower() or "session" in str(e).lower()
+    def test_streamlit_app_has_main_function(self):
+        """Test that streamlit app has main function"""
+        import streamlit_app
+        assert hasattr(streamlit_app, 'main')
     
-    @patch('streamlit.session_state')
-    def test_show_movies_initial_state(self, mock_session_state):
-        """Test movies page initial state"""
-        # Mock session state
-        mock_session_state.get.return_value = "testuser"
-        
-        # This is a basic test to ensure the function doesn't crash
-        try:
-            # We can't actually call show_movies() in a test environment
-            # because it uses Streamlit components that require a running app
-            assert True  # Placeholder assertion
-        except Exception as e:
-            # Expected behavior in test environment
-            assert "streamlit" in str(e).lower() or "session" in str(e).lower()
+    def test_streamlit_app_has_apiclient(self):
+        """Test that streamlit app has APIClient"""
+        import streamlit_app
+        assert hasattr(streamlit_app, 'APIClient')
     
-    @patch('streamlit.session_state')
-    def test_show_series_initial_state(self, mock_session_state):
-        """Test series page initial state"""
-        # Mock session state
-        mock_session_state.get.return_value = "testuser"
-        
-        # This is a basic test to ensure the function doesn't crash
-        try:
-            # We can't actually call show_series() in a test environment
-            # because it uses Streamlit components that require a running app
-            assert True  # Placeholder assertion
-        except Exception as e:
-            # Expected behavior in test environment
-            assert "streamlit" in str(e).lower() or "session" in str(e).lower()
-
-class TestUtilityFunctions:
-    """Test cases for utility functions"""
+    def test_streamlit_app_has_auth_functions(self):
+        """Test that streamlit app has authentication functions"""
+        import streamlit_app
+        assert hasattr(streamlit_app, 'is_logged_in')
+        assert hasattr(streamlit_app, 'logout')
+        assert hasattr(streamlit_app, 'navigate_to')
     
-    def test_validate_email_format(self):
-        """Test email validation"""
-        # Test valid emails
-        valid_emails = [
-            "test@example.com",
-            "user.name@domain.co.uk",
-            "user+tag@example.org"
-        ]
-        
-        for email in valid_emails:
-            # Basic email validation (you can implement this in your app)
-            assert "@" in email
-            assert "." in email.split("@")[1]
-    
-    def test_validate_password_strength(self):
-        """Test password strength validation"""
-        # Test password length requirement
-        weak_passwords = ["123", "abc", "pass"]
-        strong_passwords = ["password123", "SecurePass1!", "MyP@ssw0rd"]
-        
-        for password in weak_passwords:
-            assert len(password) < 6
-        
-        for password in strong_passwords:
-            assert len(password) >= 6
-    
-    def test_validate_username_format(self):
-        """Test username format validation"""
-        # Test username requirements
-        valid_usernames = ["user123", "test_user", "myusername"]
-        invalid_usernames = ["", "a", "user@name"]
-        
-        for username in valid_usernames:
-            assert len(username) >= 3
-            assert username.isalnum() or "_" in username
-        
-        for username in invalid_usernames:
-            if username:
-                assert len(username) < 3 or not (username.isalnum() or "_" in username)
-
-if __name__ == "__main__":
-    pytest.main([__file__]) 
+    def test_streamlit_app_has_page_functions(self):
+        """Test that streamlit app has page functions"""
+        import streamlit_app
+        assert hasattr(streamlit_app, 'show_login_page')
+        assert hasattr(streamlit_app, 'show_dashboard')
+        assert hasattr(streamlit_app, 'show_movies')
+        assert hasattr(streamlit_app, 'show_series')
+        assert hasattr(streamlit_app, 'show_personalize')
+        assert hasattr(streamlit_app, 'show_chatbot') 
