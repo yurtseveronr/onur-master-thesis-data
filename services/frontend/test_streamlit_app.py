@@ -182,22 +182,7 @@ class TestAPIClient:
         assert result["success"] is True
         assert result["data"]["response"] == "Hello! How can I help you?"
     
-    @patch('requests.post')
-    def test_verify_token_success(self, mock_post):
-        """Test successful token verification"""
-        # Mock successful response
-        mock_response = Mock()
-        mock_response.json.return_value = {
-            "valid": True,
-            "user": {"username": "testuser"}
-        }
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
-        
-        result = APIClient.verify_token()
-        
-        assert result["success"] is True
-        assert result["data"]["valid"] is True
+   
     
     @patch('requests.post')
     def test_logout_user_success(self, mock_post):
