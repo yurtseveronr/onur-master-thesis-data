@@ -100,7 +100,7 @@ jobs:
 
   authentication-service:
     runs-on: [self-hosted]
-    if: contains(github.event.head_commit.modified, 'services/authentication-service/')
+    if: contains(join(github.event.head_commit.modified, ' '), 'services/authentication-service/')
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -179,7 +179,7 @@ jobs:
 
   user-service:
     runs-on: [self-hosted]
-    if: contains(github.event.head_commit.modified, 'services/user-service/')
+    if: contains(join(github.event.head_commit.modified, ' '), 'services/user-service/')
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -258,7 +258,7 @@ jobs:
 
   movie-service:
     runs-on: [self-hosted]
-    if: contains(github.event.head_commit.modified, 'services/movie-service/')
+    if: contains(join(github.event.head_commit.modified, ' '), 'services/movie-service/')
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -338,7 +338,7 @@ jobs:
 
   series-service:
     runs-on: [self-hosted]
-    if: contains(github.event.head_commit.modified, 'services/series-service/')
+    if: contains(join(github.event.head_commit.modified, ' '), 'services/series-service/')
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -496,7 +496,7 @@ jobs:
 
   bedrock-backend:
     runs-on: [self-hosted]
-    if: contains(github.event.head_commit.modified, 'services/bedrock_backend/')
+    if: contains(join(github.event.head_commit.modified, ' '), 'services/bedrock_backend/')
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -575,7 +575,7 @@ jobs:
 
   machine-learning-service:
     runs-on: [self-hosted]
-    if: contains(github.event.head_commit.modified, 'services/machine_learning_service/')
+    if: contains(join(github.event.head_commit.modified, ' '), 'services/machine_learning_service/') 
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -654,7 +654,7 @@ jobs:
 
   kinesis-producer:
     runs-on: [self-hosted]
-    if: contains(github.event.head_commit.modified, 'services/kinesis-producer/')
+    if: contains(join(github.event.head_commit.modified, ' '), 'services/kinesis-producer/')     
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -731,7 +731,7 @@ jobs:
 
   kinesis-consumer:
     runs-on: [self-hosted]
-    if: contains(github.event.head_commit.modified, 'services/kinesis-consumer/')
+    if: contains(join(github.event.head_commit.modified, ' '), 'services/kinesis-consumer/')     
     steps:
     - name: Checkout
       uses: actions/checkout@v4
