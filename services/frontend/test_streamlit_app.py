@@ -187,7 +187,7 @@ class TestAPIClient:
     @patch('requests.post')
     def test_logout_user_success(self, mock_post):
         """Test successful user logout"""
-        
+        # Mock successful response
         mock_response = Mock()
         mock_response.json.return_value = {
             "message": "Logged out successfully"
