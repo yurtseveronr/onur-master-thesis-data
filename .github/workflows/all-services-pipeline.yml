@@ -6,18 +6,49 @@ on:
   pull_request:
     branches: [ master, main ]
 
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: read
+
 env:
   AWS_REGION: us-east-1
   AWS_ACCOUNT_ID: 708778582346
 
-permissions:
-  id-token: write
-  contents: read
-
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      authentication-service: ${{ steps.filter.outputs.authentication-service }}
+      user-service: ${{ steps.filter.outputs.user-service }}
+      movie-service: ${{ steps.filter.outputs.movie-service }}
+      series-service: ${{ steps.filter.outputs.series-service }}
+      search-service: ${{ steps.filter.outputs.search-service }}
+      bedrock-backend: ${{ steps.filter.outputs.bedrock-backend }}
+      machine-learning-service: ${{ steps.filter.outputs.machine-learning-service }}
+      kinesis-producer: ${{ steps.filter.outputs.kinesis-producer }}
+      kinesis-consumer: ${{ steps.filter.outputs.kinesis-consumer }}
+    steps:
+    - uses: dorny/paths-filter@v3
+      id: filter
+      with:
+        filters: |
+          frontend: services/frontend/**
+          authentication-service: services/authentication-service/**
+          user-service: services/user-service/**
+          movie-service: services/movie-service/**
+          series-service: services/series-service/**
+          search-service: services/search-service/**
+          bedrock-backend: services/bedrock_backend/**
+          machine-learning-service: services/machine_learning_service/**
+          kinesis-producer: services/kinesis-producer/**
+          kinesis-consumer: services/kinesis-consumer/**
+
   frontend:
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: [self-hosted]
-    if: contains(github.event.head_commit.modified, 'services/frontend/')
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -95,8 +126,9 @@ jobs:
         kubectl rollout status deployment/frontend -n frontend --timeout=300s
 
   authentication-service:
+    needs: changes
+    if: ${{ needs.changes.outputs.authentication-service == 'true' }}
     runs-on: [self-hosted]
-    if: contains(github.event.head_commit.modified, 'services/authentication-service/')
     steps:
     - name: Checkout
       uses: actions/checkout@v4
