@@ -112,29 +112,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "✅ authentication-service pushed successfully"
 
-  deploy-authentication:
-    runs-on: ubuntu-latest
-    needs: deploy-eks-and-k8s
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Configure AWS Credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
-          aws-region: ${{ env.AWS_REGION }}
-      - name: Install kubectl
-        run: |
-          curl -sSL -o kubectl https://dl.k8s.io/release/$(curl -sSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/kubectl
-          kubectl version --client
-      - name: Update kubeconfig for EKS
-        run: |
-          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name onur-master-eks
-      - name: Deploy Authentication Service
-        run: |
-          kubectl apply -f kubernetes_manifest/services/authentication.yml
+  
 
   build-user:
     runs-on: ubuntu-latest
