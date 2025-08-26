@@ -46,6 +46,50 @@ Resources:
                   - xray:GetSamplingTargets
                 Resource: '*'
 
+  # Monitoring Service Account için IAM Role
+  MonitoringRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ClusterName}-monitoring-sa-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: pods.eks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+              - sts:TagSession
+            Condition:
+              StringEquals:
+                'aws:SourceAccount': !Ref 'AWS::AccountId'
+              ArnLike:
+                'aws:SourceArn': !Sub 'arn:aws:eks:${AWS::Region}:${AWS::AccountId}:cluster/${ClusterName}'
+      Policies:
+        - PolicyName: MonitoringPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                  - cloudwatch:GetMetricData
+                  - cloudwatch:GetMetricStatistics
+                  - cloudwatch:ListMetrics
+                  - logs:PutLogEvents
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:DescribeLogStreams
+                  - logs:DescribeLogGroups
+                  - logs:FilterLogEvents
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                  - xray:GetSamplingRules
+                  - xray:GetSamplingTargets
+                  - xray:BatchGetTraces
+                  - xray:GetTraceSummaries
+                Resource: '*'
+
   # AWS Distro for OpenTelemetry Add-on
   ADOTAddon:
     Type: AWS::EKS::Addon
@@ -55,6 +99,17 @@ Resources:
       AddonName: adot
       AddonVersion: v0.117.0-eksbuild.1
       ServiceAccountRoleArn: !GetAtt ADOTRole.Arn
+      ResolveConflicts: OVERWRITE
+
+  # Amazon CloudWatch Observability Add-on
+  CloudWatchObservabilityAddon:
+    Type: AWS::EKS::Addon
+    DependsOn: MonitoringRole
+    Properties:
+      ClusterName: !Ref ClusterName
+      AddonName: amazon-cloudwatch-observability
+      AddonVersion: v1.0.0-eksbuild.1
+      ServiceAccountRoleArn: !GetAtt MonitoringRole.Arn
       ResolveConflicts: OVERWRITE
 
   # Amazon EKS Pod Identity Agent Add-on
@@ -108,6 +163,12 @@ Outputs:
     Value: !GetAtt ADOTRole.Arn
     Export:
       Name: !Sub ${AWS::StackName}-ADOTRole
+
+  MonitoringRoleArn:
+    Description: ARN of the Monitoring Service Account Role
+    Value: !GetAtt MonitoringRole.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-MonitoringRole
 
   AddonsStatus:
     Description: EKS Add-ons have been installed
