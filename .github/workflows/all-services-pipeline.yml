@@ -17,7 +17,7 @@ env:
 
 jobs:
   changes:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted]
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
       authentication-service: ${{ steps.filter.outputs.authentication-service }}
@@ -30,6 +30,8 @@ jobs:
       kinesis-producer: ${{ steps.filter.outputs.kinesis-producer }}
       kinesis-consumer: ${{ steps.filter.outputs.kinesis-consumer }}
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
     - uses: dorny/paths-filter@v3
       id: filter
       with:
