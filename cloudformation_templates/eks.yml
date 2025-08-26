@@ -96,6 +96,7 @@ Resources:
         - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet1' }
         - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet2' }
       InstanceTypes: [t3.xlarge]
+      DiskSize: 100
       ScalingConfig:
         MinSize: 1
         MaxSize: 3
@@ -112,6 +113,7 @@ Resources:
         - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet1' }
         - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet2' }
       InstanceTypes: [t3.xlarge]
+      DiskSize: 100
       ScalingConfig:
         MinSize: 1
         MaxSize: 3
@@ -128,6 +130,7 @@ Resources:
         - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet1' }
         - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet2' }
       InstanceTypes: [t3.medium]
+      DiskSize: 100
       ScalingConfig:
         MinSize: 1
         MaxSize: 3
@@ -144,6 +147,7 @@ Resources:
         - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet1' }
         - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet2' }
       InstanceTypes: [t3.medium]
+      DiskSize: 100
       ScalingConfig:
         MinSize: 1
         MaxSize: 3
@@ -160,6 +164,7 @@ Resources:
         - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet1' }
         - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet2' }
       InstanceTypes: [t3.medium]
+      DiskSize: 100
       ScalingConfig:
         MinSize: 1
         MaxSize: 2
@@ -176,18 +181,14 @@ Resources:
         - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet1' }
         - !ImportValue { Fn::Sub: '${NetworkStackName}-PrivateSubnet2' }
       InstanceTypes: [t3.medium]
+      DiskSize: 100
       ScalingConfig:
         MinSize: 1
         MaxSize: 2
         DesiredSize: 1
       Labels: { node-type: monitoring }
 
-  # Add-on (CloudWatch)
-  ContainerInsightsAddon:
-    Type: AWS::EKS::Addon
-    Properties:
-      ClusterName: !Ref EKSCluster
-      AddonName: amazon-cloudwatch-observability
+
 
 Outputs:
   ClusterName:
