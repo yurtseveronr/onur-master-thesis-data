@@ -79,8 +79,8 @@ jobs:
         chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-        unzip awscliv2.zip
-        sudo ./aws/install  --update
+        unzip -o awscliv2.zip
+        sudo ./aws/install --update
         export PATH="/usr/local/aws-cli/v2/current/bin:$PATH"
 
         aws --version
