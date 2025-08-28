@@ -89,7 +89,7 @@ jobs:
       run: |
         cd services/frontend
         pip install -r requirements.txt pytest pytest-cov
-        python -m pytest test_streamlit_app.py -v
+        python -m pytest test_frontend.py -v
 
     - name: Code Coverage Report
       run: |
