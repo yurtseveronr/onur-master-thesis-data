@@ -452,13 +452,12 @@ def show_login_page():
                             result = APIClient.register_user(reg_username, email, reg_password, full_name)
                         
                         if result['success']:
-                            st.success("✅ Account created successfully! You can now sign in.")
+                            st.success("✅ Account created successfully! Please check your email for verification code.")
                             st.balloons()
                             
-                            # Prevent double submission
-                            st.session_state.show_login_tab = True
-                            st.session_state.registration_success = True
-                            # Don't call st.rerun() here - let the form reset naturally
+                            # Show confirmation form
+                            st.session_state.show_confirmation = True
+                            st.session_state.registration_email = email
                         else:
                             st.error(f"❌ Registration error: {result['message']}")
                 else:

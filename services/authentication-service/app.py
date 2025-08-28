@@ -168,6 +168,34 @@ def register():
         logger.error(f"Register error: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
+@app.route('/auth/confirm', methods=['POST'])
+@validate_request(['email', 'code'])
+def confirm_signup():
+    try:
+        data = request.get_json()
+        email = data['email']
+        code = data['code']
+
+        logger.info(f"Confirmation attempt: {email}")
+        
+        response = cognito.confirm_sign_up(
+            ClientId=CLIENT_ID,
+            Username=email,
+            ConfirmationCode=code
+        )
+
+        logger.info(f"Confirmation successful: {email}")
+        return jsonify({
+            'success': True,
+            'message': 'Email confirmed successfully! You can now login.'
+        }), 200
+
+    except ClientError as e:
+        return handle_cognito_error(e)
+    except Exception as e:
+        logger.error(f"Confirmation error: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
+
 @app.route('/auth/login', methods=['POST'])
 @validate_request(['email', 'password'])
 def login():
