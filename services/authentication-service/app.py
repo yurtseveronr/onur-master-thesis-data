@@ -548,7 +548,8 @@ if __name__ == '__main__':
     logger.info(f"Debug: {DEBUG}")
     logger.info(f"Port: {PORT}")
     logger.info(f"Region: {REGION}")
-    logger.info("Last Updated: 2025-01-27 15:45:00 UTC")
+    logger.info(f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+
     logger.info("Version: 2.0 - Auto-confirm enabled")
     logger.info("="*50)
     

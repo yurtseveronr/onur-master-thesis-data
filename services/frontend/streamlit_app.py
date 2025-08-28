@@ -314,4 +314,7 @@ def main():
         show_login_page()
 
 if __name__ == "__main__":
+    st.sidebar.markdown("---")
+    st.sidebar.markdown(f"**Last Updated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    st.sidebar.markdown("**Version:** 2.0 - Auto-verified flow")
     main()
