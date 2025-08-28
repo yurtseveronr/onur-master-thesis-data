@@ -104,11 +104,19 @@ def signup():
                 UserPoolId=USER_POOL_ID,
                 Username=email
             )
-            # User exists, return success message
-            logger.info(f"User already exists: {email}")
+            # User exists, auto-confirm and return success
+            try:
+                cognito.admin_confirm_sign_up(
+                    UserPoolId=USER_POOL_ID,
+                    Username=email
+                )
+                logger.info(f"Existing user auto-confirmed: {email}")
+            except Exception as e:
+                logger.warning(f"Auto-confirm failed: {str(e)}")
+            
             return jsonify({
                 'success': True,
-                'message': 'Registration successful! Please check your email for verification code.',
+                'message': 'Registration successful! You can now login.',
                 'userSub': 'existing_user'
             }), 200
         except ClientError as e:
