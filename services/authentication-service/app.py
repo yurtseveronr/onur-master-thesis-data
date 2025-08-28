@@ -120,6 +120,7 @@ def signup():
         
         # Kullanici zaten varsa detayli kontrol yap
         if error_code == 'UsernameExistsException':
+            logger.info(f"User exists, checking status for: {email}")
             try:
                 # User status kontrol et
                 user_info = cognito.admin_get_user(
@@ -128,16 +129,19 @@ def signup():
                 )
                 
                 user_status = user_info['UserStatus']
-                logger.warning(f"User exists with status: {user_status} for email: {email}")
+                logger.info(f"User exists with status: {user_status} for email: {email}")
                 
                 if user_status == 'UNCONFIRMED':
+                    logger.info(f"Returning UNCONFIRMED response for: {email}")
                     return jsonify({
                         'success': False,
                         'error': 'Email already registered but not verified. Please check your inbox for verification code.',
                         'error_code': 'USER_UNCONFIRMED',
-                        'requires_confirmation': True
-                    }), 400
+                        'requires_confirmation': True,
+                        'email': email
+                    }), 200  # 200 status code for UI to handle properly
                 else:
+                    logger.info(f"User is confirmed, redirecting to login for: {email}")
                     return jsonify({
                         'success': False,
                         'error': 'This email is already registered and verified. Please login instead.',
@@ -145,8 +149,15 @@ def signup():
                     }), 409
                     
             except ClientError as get_user_error:
-                logger.error(f"Error getting user info: {get_user_error}")
-                return handle_cognito_error(e)  # Original error
+                logger.error(f"admin_get_user failed: {get_user_error.response}")
+                # Fallback - assume user exists and needs verification
+                return jsonify({
+                    'success': False,
+                    'error': 'Email already registered. Please check your inbox for verification code or try to login.',
+                    'error_code': 'USER_UNCONFIRMED',
+                    'requires_confirmation': True,
+                    'email': email
+                }), 200
         
         return handle_cognito_error(e)
     except Exception as e:
