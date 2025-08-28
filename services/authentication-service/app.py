@@ -1,386 +1,532 @@
-import pytest
-import json
-from unittest.mock import patch, MagicMock
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import boto3
+import logging
+from datetime import datetime
 from botocore.exceptions import ClientError
-import sys
-import os
+from functools import wraps
+import json
+import traceback
+from config import USER_POOL_ID, CLIENT_ID, REGION, DEBUG, PORT
 
-# Add the project root directory to Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
-from app import app
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-@pytest.fixture
-def client():
-    app.config['TESTING'] = True
-    with app.test_client() as client:
-        yield client
+# Initialize Cognito client
+cognito = boto3.client('cognito-idp', region_name=REGION)
 
-@pytest.fixture
-def mock_cognito():
-    with patch('app.cognito') as mock:
-        yield mock
+def handle_cognito_error(e: ClientError) -> tuple:
+    """Handle specific Cognito errors and return appropriate responses"""
+    error_code = e.response['Error']['Code']
+    error_message = e.response['Error']['Message']
+    
+    logger.error(f"Cognito Error: {error_code} - {error_message}")
+    
+    error_mapping = {
+        'UsernameExistsException': ('Email is already registered. If unverified, check your inbox for verification code.', 409),
+        'UserNotConfirmedException': ('Please verify your email first', 400),
+        'UserNotFoundException': ('Email is not registered', 404),
+        'NotAuthorizedException': ('Incorrect username or password', 401),
+        'CodeMismatchException': ('Invalid verification code', 400),
+        'TooManyRequestsException': ('Too many attempts, please try again later', 429),
+        'ExpiredCodeException': ('Verification code has expired', 400),
+        'LimitExceededException': ('Attempt limit exceeded, please try again later', 429)
+    }
 
-def create_cognito_error(error_code, message):
-    """Helper function to create Cognito errors"""
-    error = ClientError(
-        error_response={
-            'Error': {
-                'Code': error_code,
-                'Message': message
+    message, status_code = error_mapping.get(error_code, ('An unexpected error occurred', 500))
+    
+    return jsonify({
+        'error': message,
+        'error_code': error_code
+    }), status_code
+
+def validate_request(required_fields=[]):
+    """Decorator for request validation"""
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            try:
+                data = request.get_json()
+                
+                if not data:
+                    logger.error("No JSON data in request")
+                    return jsonify({'error': 'Request must include JSON data'}), 400
+
+                # Check required fields
+                missing_fields = [field for field in required_fields if not data.get(field)]
+                if missing_fields:
+                    logger.error(f"Missing fields: {missing_fields}")
+                    return jsonify({
+                        'error': 'Missing required fields',
+                        'missing_fields': missing_fields
+                    }), 400
+
+                # Basic email validation
+                if 'email' in required_fields:
+                    email = data.get('email', '').strip().lower()
+                    if '@' not in email or '.' not in email:
+                        logger.error(f"Invalid email: {email}")
+                        return jsonify({'error': 'Invalid email format'}), 400
+                    data['email'] = email  # Normalize email
+
+                # Basic password validation
+                if 'password' in required_fields:
+                    password = data.get('password', '')
+                    if len(password) < 8:
+                        logger.error("Password too short")
+                        return jsonify({'error': 'Password must be at least 8 characters'}), 400
+
+                return f(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"Request validation error: {str(e)}")
+                return jsonify({'error': 'Invalid request format'}), 400
+        return wrapper
+    return decorator
+
+@app.route('/auth/signup', methods=['POST'])
+@validate_request(['email', 'password'])
+def signup():
+    """
+    SIGNUP ENDPOINT - Possible Responses:
+    
+    1. SUCCESS (New User Created):
+    {
+        "success": true,
+        "message": "Registration successful! Please check your email for verification code.",
+        "userSub": "user-sub-123",
+        "requires_confirmation": true
+    } - HTTP 200
+    
+    2. USER EXISTS - UNCONFIRMED:
+    {
+        "success": false,
+        "error": "Email already registered but not verified. Please check your inbox for verification code.",
+        "error_code": "USER_UNCONFIRMED",
+        "requires_confirmation": true,
+        "email": "user@example.com"
+    } - HTTP 200
+    
+    3. USER EXISTS - CONFIRMED:
+    {
+        "success": false,
+        "error": "This email is already registered and verified. Please login instead.",
+        "error_code": "USER_EXISTS_VERIFIED"
+    } - HTTP 409
+    
+    4. OTHER COGNITO ERRORS:
+    {
+        "error": "Error message",
+        "error_code": "CognitoErrorCode"
+    } - HTTP 4xx/5xx
+    """
+    try:
+        data = request.get_json()
+        email = data['email']
+        password = data['password']
+
+        logger.info(f"SIGNUP REQUEST: {email}")
+        
+        # Try to create user in Cognito
+        response = cognito.sign_up(
+            ClientId=CLIENT_ID,
+            Username=email,
+            Password=password,
+            UserAttributes=[{'Name': 'email', 'Value': email}]
+        )
+
+        logger.info(f"SIGNUP SUCCESS: User created for {email}, UserSub: {response['UserSub']}")
+        return jsonify({
+            'success': True,
+            'message': 'Registration successful! Please check your email for verification code.',
+            'userSub': response['UserSub'],
+            'requires_confirmation': True
+        }), 200
+
+    except ClientError as e:
+        error_code = e.response['Error']['Code']
+        logger.error(f"SIGNUP COGNITO ERROR: {error_code} for {email}")
+        
+        if error_code == 'UsernameExistsException':
+            logger.info(f"USER EXISTS: Checking status for {email}")
+            try:
+                user_info = cognito.admin_get_user(
+                    UserPoolId=USER_POOL_ID,
+                    Username=email
+                )
+                
+                user_status = user_info['UserStatus']
+                logger.info(f"USER STATUS CHECK: {user_status} for {email}")
+                
+                if user_status == 'UNCONFIRMED':
+                    logger.info(f"RESPONSE: USER_UNCONFIRMED for {email}")
+                    return jsonify({
+                        'success': False,
+                        'error': 'Email already registered but not verified. Please check your inbox for verification code.',
+                        'error_code': 'USER_UNCONFIRMED',
+                        'requires_confirmation': True,
+                        'email': email
+                    }), 200
+                else:
+                    logger.info(f"RESPONSE: USER_EXISTS_VERIFIED for {email}")
+                    return jsonify({
+                        'success': False,
+                        'error': 'This email is already registered and verified. Please login instead.',
+                        'error_code': 'USER_EXISTS_VERIFIED',
+                        'email': email
+                    }), 409
+                    
+            except ClientError as get_user_error:
+                logger.error(f"ADMIN_GET_USER FAILED: {get_user_error.response}")
+                logger.info(f"FALLBACK RESPONSE: USER_UNCONFIRMED for {email}")
+                return jsonify({
+                    'success': False,
+                    'error': 'Email already registered. Please check your inbox for verification code or try to login.',
+                    'error_code': 'USER_UNCONFIRMED',
+                    'requires_confirmation': True,
+                    'email': email
+                }), 200
+        
+        # Other Cognito errors
+        logger.info(f"OTHER COGNITO ERROR: Delegating to handle_cognito_error")
+        return handle_cognito_error(e)
+        
+    except Exception as e:
+        logger.error(f"SIGNUP EXCEPTION: {str(e)} for {email}")
+        return jsonify({
+            'success': False,
+            'error': 'An unexpected error occurred'
+        }), 500
+
+@app.route('/auth/confirm', methods=['POST'])
+@validate_request(['email', 'code'])
+def confirm_signup():
+    """
+    CONFIRM ENDPOINT - Possible Responses:
+    
+    1. SUCCESS:
+    {
+        "success": true,
+        "message": "Email verified successfully! You can now login."
+    } - HTTP 200
+    
+    2. INVALID CODE:
+    {
+        "error": "Invalid verification code",
+        "error_code": "CodeMismatchException"
+    } - HTTP 400
+    
+    3. EXPIRED CODE:
+    {
+        "error": "Verification code has expired",
+        "error_code": "ExpiredCodeException"
+    } - HTTP 400
+    """
+    try:
+        data = request.get_json()
+        email = data['email']
+        code = data['code'].strip()
+
+        logger.info(f"CONFIRM REQUEST: {email} with code: {code}")
+        
+        response = cognito.confirm_sign_up(
+            ClientId=CLIENT_ID,
+            Username=email,
+            ConfirmationCode=code
+        )
+
+        logger.info(f"CONFIRM SUCCESS: Email verified for {email}")
+        return jsonify({
+            'success': True,
+            'message': 'Email verified successfully! You can now login.'
+        }), 200
+
+    except ClientError as e:
+        logger.error(f"CONFIRM COGNITO ERROR: {e.response['Error']['Code']} for {email}")
+        return handle_cognito_error(e)
+    except Exception as e:
+        logger.error(f"CONFIRM EXCEPTION: {str(e)} for {email}")
+        return jsonify({
+            'success': False,
+            'error': 'An unexpected error occurred'
+        }), 500
+
+@app.route('/auth/resend', methods=['POST'])
+@validate_request(['email'])
+def resend_confirmation():
+    try:
+        data = request.get_json()
+        email = data['email']
+
+        logger.info(f"Resend confirmation attempt: {email}")
+        
+        response = cognito.resend_confirmation_code(
+            ClientId=CLIENT_ID,
+            Username=email
+        )
+
+        logger.info(f"Resend confirmation successful: {email}")
+        return jsonify({
+            'success': True,
+            'message': 'Verification code sent again. Please check your email.'
+        }), 200
+
+    except ClientError as e:
+        return handle_cognito_error(e)
+    except Exception as e:
+        logger.error(f"Resend confirmation error: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
+
+@app.route('/auth/login', methods=['POST'])
+@validate_request(['email', 'password'])
+def login():
+    """
+    LOGIN ENDPOINT - Possible Responses:
+    
+    1. SUCCESS:
+    {
+        "success": true,
+        "message": "Login successful!",
+        "token": "access-token-123",
+        "user": {
+            "email": "user@example.com",
+            "username": "user",
+            "full_name": "user"
+        }
+    } - HTTP 200
+    
+    2. USER NOT CONFIRMED:
+    {
+        "error": "Please verify your email first",
+        "error_code": "UserNotConfirmedException"
+    } - HTTP 400
+    
+    3. WRONG PASSWORD:
+    {
+        "error": "Incorrect username or password",
+        "error_code": "NotAuthorizedException"
+    } - HTTP 401
+    
+    4. USER NOT FOUND:
+    {
+        "error": "Email is not registered",
+        "error_code": "UserNotFoundException"
+    } - HTTP 404
+    """
+    try:
+        data = request.get_json()
+        email = data['email']
+        password = data['password']
+
+        logger.info(f"LOGIN REQUEST: {email}")
+
+        response = cognito.initiate_auth(
+            ClientId=CLIENT_ID,
+            AuthFlow='USER_PASSWORD_AUTH',
+            AuthParameters={
+                'USERNAME': email,
+                'PASSWORD': password
             }
-        },
-        operation_name='TestOperation'
-    )
-    return error
-
-class TestSignup:
-    def test_signup_success(self, client, mock_cognito):
-        mock_cognito.sign_up.return_value = {
-            'UserSub': 'test-user-sub-123'
-        }
-        
-        response = client.post('/auth/signup', 
-            json={'email': 'test@example.com', 'password': 'password123'})
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] == True
-        assert 'Registration successful' in data['message']
-        assert data['userSub'] == 'test-user-sub-123'
-        assert data['requires_confirmation'] == True
-
-    def test_signup_missing_fields(self, client, mock_cognito):
-        response = client.post('/auth/signup', json={'email': 'test@example.com'})
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert 'Missing required fields' in data['error']
-
-    def test_signup_invalid_email(self, client, mock_cognito):
-        response = client.post('/auth/signup', 
-            json={'email': 'invalid-email', 'password': 'password123'})
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert 'Invalid email format' in data['error']
-
-    def test_signup_short_password(self, client, mock_cognito):
-        response = client.post('/auth/signup', 
-            json={'email': 'test@example.com', 'password': '123'})
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert 'Password must be at least 8 characters' in data['error']
-
-    def test_signup_existing_user_unconfirmed(self, client, mock_cognito):
-        # First, sign_up raises UsernameExistsException
-        mock_cognito.sign_up.side_effect = create_cognito_error(
-            'UsernameExistsException', 
-            'User already exists'
         )
-        
-        # Then admin_get_user returns unconfirmed user
-        mock_cognito.admin_get_user.return_value = {
-            'UserStatus': 'UNCONFIRMED'
-        }
-        
-        response = client.post('/auth/signup', 
-            json={'email': 'existing@example.com', 'password': 'password123'})
-        
-        assert response.status_code == 200  # Changed from 400 to 200
-        data = response.get_json()
-        assert data['success'] == False
-        assert 'not verified' in data['error']
-        assert data['error_code'] == 'USER_UNCONFIRMED'
-        assert data['requires_confirmation'] == True
-        assert data['email'] == 'existing@example.com'  # Added email check
 
-    def test_signup_existing_user_confirmed(self, client, mock_cognito):
-        # First, sign_up raises UsernameExistsException
-        mock_cognito.sign_up.side_effect = create_cognito_error(
-            'UsernameExistsException', 
-            'User already exists'
-        )
-        
-        # Then admin_get_user returns confirmed user
-        mock_cognito.admin_get_user.return_value = {
-            'UserStatus': 'CONFIRMED'
-        }
-        
-        response = client.post('/auth/signup', 
-            json={'email': 'existing@example.com', 'password': 'password123'})
-        
-        assert response.status_code == 409
-        data = response.get_json()
-        assert data['success'] == False
-        assert 'already registered and verified' in data['error']
-        assert data['error_code'] == 'USER_EXISTS_VERIFIED'
-
-class TestConfirmSignup:
-    def test_confirm_success(self, client, mock_cognito):
-        mock_cognito.confirm_sign_up.return_value = {}
-        
-        response = client.post('/auth/confirm',
-            json={'email': 'test@example.com', 'code': '123456'})
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] == True
-        assert 'verified successfully' in data['message']
-
-    def test_confirm_invalid_code(self, client, mock_cognito):
-        mock_cognito.confirm_sign_up.side_effect = create_cognito_error(
-            'CodeMismatchException',
-            'Invalid verification code provided'
-        )
-        
-        response = client.post('/auth/confirm',
-            json={'email': 'test@example.com', 'code': '999999'})
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert 'Invalid verification code' in data['error']
-
-    def test_confirm_expired_code(self, client, mock_cognito):
-        mock_cognito.confirm_sign_up.side_effect = create_cognito_error(
-            'ExpiredCodeException',
-            'Invalid code provided, code has expired'
-        )
-        
-        response = client.post('/auth/confirm',
-            json={'email': 'test@example.com', 'code': '123456'})
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert 'Verification code has expired' in data['error']
-
-class TestResendConfirmation:
-    def test_resend_success(self, client, mock_cognito):
-        mock_cognito.resend_confirmation_code.return_value = {}
-        
-        response = client.post('/auth/resend',
-            json={'email': 'test@example.com'})
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] == True
-        assert 'sent again' in data['message']
-
-    def test_resend_user_not_found(self, client, mock_cognito):
-        mock_cognito.resend_confirmation_code.side_effect = create_cognito_error(
-            'UserNotFoundException',
-            'User does not exist'
-        )
-        
-        response = client.post('/auth/resend',
-            json={'email': 'notfound@example.com'})
-        
-        assert response.status_code == 404
-        data = response.get_json()
-        assert 'Email is not registered' in data['error']
-
-class TestLogin:
-    def test_login_success(self, client, mock_cognito):
-        mock_cognito.initiate_auth.return_value = {
-            'AuthenticationResult': {
-                'AccessToken': 'test-access-token-123'
+        logger.info(f"LOGIN SUCCESS: {email}")
+        return jsonify({
+            'success': True,
+            'message': 'Login successful!',
+            'token': response['AuthenticationResult']['AccessToken'],
+            'user': {
+                'email': email,
+                'username': email.split('@')[0],
+                'full_name': email.split('@')[0]
             }
-        }
-        
-        response = client.post('/auth/login',
-            json={'email': 'test@example.com', 'password': 'password123'})
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] == True
-        assert 'Login successful' in data['message']
-        assert data['token'] == 'test-access-token-123'
-        assert 'user' in data
-        assert data['user']['email'] == 'test@example.com'
+        }), 200
 
-    def test_login_wrong_password(self, client, mock_cognito):
-        mock_cognito.initiate_auth.side_effect = create_cognito_error(
-            'NotAuthorizedException',
-            'Incorrect username or password.'
+    except ClientError as e:
+        logger.error(f"LOGIN COGNITO ERROR: {e.response['Error']['Code']} for {email}")
+        return handle_cognito_error(e)
+    except Exception as e:
+        logger.error(f"LOGIN EXCEPTION: {str(e)} for {email}")
+        return jsonify({
+            'success': False,
+            'error': 'An unexpected error occurred'
+        }), 500
+
+@app.route('/auth/logout', methods=['POST'])
+@validate_request(['accessToken'])
+def logout():
+    try:
+        data = request.get_json()
+        access_token = data['accessToken']
+
+        logger.info("Logout attempt")
+        
+        response = cognito.global_sign_out(
+            AccessToken=access_token
         )
-        
-        response = client.post('/auth/login',
-            json={'email': 'test@example.com', 'password': 'wrongpassword'})
-        
-        assert response.status_code == 401
-        data = response.get_json()
-        assert 'Incorrect username or password' in data['error']
 
-    def test_login_unconfirmed_user(self, client, mock_cognito):
-        mock_cognito.initiate_auth.side_effect = create_cognito_error(
-            'UserNotConfirmedException',
-            'User is not confirmed.'
+        logger.info("Logout successful")
+        return jsonify({
+            'success': True,
+            'message': 'Successfully logged out'
+        }), 200
+
+    except ClientError as e:
+        return handle_cognito_error(e)
+    except Exception as e:
+        logger.error(f"Logout error: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred during logout'}), 500
+
+@app.route('/auth/verify', methods=['POST'])
+@validate_request(['email', 'code'])
+def verify():
+    try:
+        data = request.get_json()
+        email = data['email']
+        verification_code = data['code'].strip()
+
+        logger.info(f"Verify attempt: {email}")
+        
+        response = cognito.confirm_sign_up(
+            ClientId=CLIENT_ID,
+            Username=email,
+            ConfirmationCode=verification_code
         )
-        
-        response = client.post('/auth/login',
-            json={'email': 'test@example.com', 'password': 'password123'})
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert 'Please verify your email first' in data['error']
 
-    def test_login_user_not_found(self, client, mock_cognito):
-        mock_cognito.initiate_auth.side_effect = create_cognito_error(
-            'UserNotFoundException',
-            'User does not exist.'
+        logger.info(f"Verification successful: {email}")
+        return jsonify({
+            'success': True,
+            'message': 'Email verified successfully. You can now login.',
+            'verified': True
+        }), 200
+
+    except ClientError as e:
+        return handle_cognito_error(e)
+    except Exception as e:
+        logger.error(f"Verification error: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred during verification'}), 500
+
+# Legacy endpoints for backward compatibility
+@app.route('/register', methods=['POST'])
+@validate_request(['username', 'email', 'password', 'full_name'])
+def register():
+    try:
+        data = request.get_json()
+        email = data['email']
+        password = data['password']
+
+        logger.info(f"Legacy register attempt: {email}")
+        
+        response = cognito.sign_up(
+            ClientId=CLIENT_ID,
+            Username=email,
+            Password=password,
+            UserAttributes=[{'Name': 'email', 'Value': email}]
         )
-        
-        response = client.post('/auth/login',
-            json={'email': 'notfound@example.com', 'password': 'password123'})
-        
-        assert response.status_code == 404
-        data = response.get_json()
-        assert 'Email is not registered' in data['error']
 
-class TestLogout:
-    def test_logout_success(self, client, mock_cognito):
-        mock_cognito.global_sign_out.return_value = {}
-        
-        response = client.post('/auth/logout',
-            json={'accessToken': 'test-access-token'})
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] == True
-        assert 'Successfully logged out' in data['message']
+        logger.info(f"Legacy register successful: {email}")
+        return jsonify({
+            'message': 'Registration successful! Please check your email for verification code.',
+            'userSub': response['UserSub']
+        }), 200
 
-    def test_logout_invalid_token(self, client, mock_cognito):
-        mock_cognito.global_sign_out.side_effect = create_cognito_error(
-            'NotAuthorizedException',
-            'Access Token has been revoked'
-        )
-        
-        response = client.post('/auth/logout',
-            json={'accessToken': 'invalid-token'})
-        
-        assert response.status_code == 401
-        data = response.get_json()
-        assert 'Incorrect username or password' in data['error']
+    except ClientError as e:
+        return handle_cognito_error(e)
+    except Exception as e:
+        logger.error(f"Legacy register error: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
 
-class TestHealthCheck:
-    def test_health_check_success(self, client, mock_cognito):
-        mock_cognito.describe_user_pool.return_value = {
-            'UserPool': {
-                'Id': 'test-pool-id'
+@app.route('/login', methods=['POST'])
+@validate_request(['username', 'password'])
+def login_root():
+    try:
+        data = request.get_json()
+        username = data['username']  
+        password = data['password']
+
+        logger.info(f"Legacy login attempt: {username}")
+
+        response = cognito.initiate_auth(
+            ClientId=CLIENT_ID,
+            AuthFlow='USER_PASSWORD_AUTH',
+            AuthParameters={
+                'USERNAME': username,
+                'PASSWORD': password
             }
-        }
-        
-        response = client.get('/health')
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['status'] == 'healthy'
-        assert data['service'] == 'authentication'
-        assert 'timestamp' in data
-
-    def test_health_check_failure(self, client, mock_cognito):
-        mock_cognito.describe_user_pool.side_effect = Exception('Cognito connection failed')
-        
-        response = client.get('/health')
-        
-        assert response.status_code == 500
-        data = response.get_json()
-        assert data['status'] == 'unhealthy'
-        assert 'error' in data
-
-class TestWelcome:
-    def test_welcome(self, client):
-        response = client.get('/welcome')
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['status'] == 200
-        assert data['message'] == 'Authentication Service is running'
-        assert data['service'] == 'authentication'
-
-class TestLegacyEndpoints:
-    def test_legacy_register(self, client, mock_cognito):
-        mock_cognito.sign_up.return_value = {
-            'UserSub': 'test-user-sub-123'
-        }
-        
-        response = client.post('/register', json={
-            'username': 'testuser',
-            'email': 'test@example.com',
-            'password': 'password123',
-            'full_name': 'Test User'
-        })
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert 'Registration successful' in data['message']
-        assert data['userSub'] == 'test-user-sub-123'
-
-    def test_legacy_login(self, client, mock_cognito):
-        mock_cognito.initiate_auth.return_value = {
-            'AuthenticationResult': {
-                'AccessToken': 'test-access-token-123'
-            }
-        }
-        
-        response = client.post('/login', json={
-            'username': 'test@example.com',
-            'password': 'password123'
-        })
-        
-        assert response.status_code == 200
-        data = response.get_json()
-        assert 'Welcome! Login successful' in data['message']
-        assert data['token'] == 'test-access-token-123'
-
-class TestErrorHandling:
-    def test_invalid_json(self, client):
-        response = client.post('/auth/signup', data='invalid json')
-        
-        assert response.status_code == 400
-        data = response.get_json()
-        assert 'Invalid request format' in data['error']
-
-    def test_too_many_requests(self, client, mock_cognito):
-        mock_cognito.sign_up.side_effect = create_cognito_error(
-            'TooManyRequestsException',
-            'Too Many Requests'
         )
-        
-        response = client.post('/auth/signup',
-            json={'email': 'test@example.com', 'password': 'password123'})
-        
-        assert response.status_code == 429
-        data = response.get_json()
-        assert 'Too many attempts' in data['error']
 
-    def test_limit_exceeded(self, client, mock_cognito):
-        mock_cognito.sign_up.side_effect = create_cognito_error(
-            'LimitExceededException',
-            'Attempt limit exceeded'
-        )
-        
-        response = client.post('/auth/signup',
-            json={'email': 'test@example.com', 'password': 'password123'})
-        
-        assert response.status_code == 429
-        data = response.get_json()
-        assert 'Attempt limit exceeded' in data['error']
+        logger.info(f"Legacy login successful: {username}")
+        return jsonify({
+            'message': 'Welcome! Login successful',
+            'token': response['AuthenticationResult']['AccessToken'],
+            'user': {'username': username}
+        }), 200
 
-    def test_404_endpoint(self, client):
-        response = client.get('/nonexistent')
-        
-        assert response.status_code == 404
-        data = response.get_json()
-        assert 'Endpoint not found' in data['error']
+    except ClientError as e:
+        return handle_cognito_error(e)
+    except Exception as e:
+        logger.error(f"Legacy login error: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
 
-    def test_405_method_not_allowed(self, client):
-        response = client.delete('/auth/signup')
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    try:
+        # Test Cognito connection
+        cognito.describe_user_pool(UserPoolId=USER_POOL_ID)
+        logger.info("Health check: OK")
         
-        assert response.status_code == 405
-        data = response.get_json()
-        assert 'Method not allowed' in data['error']
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'service': 'authentication'
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e)
+        }), 500
+
+@app.route('/welcome', methods=['GET'])
+def welcome():
+    """Welcome endpoint"""
+    logger.info("Welcome endpoint accessed")
+    return jsonify({
+        'status': 200,
+        'message': 'Authentication Service is running',
+        'service': 'authentication'
+    }), 200
+
+@app.before_request
+def before_request():
+    """Log all incoming requests"""
+    logger.info(f"{request.method} {request.path} from {request.remote_addr}")
+
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({'error': 'Endpoint not found'}), 404
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    return jsonify({'error': 'Method not allowed'}), 405
+
+@app.errorhandler(500)
+def internal_error(error):
+    logger.error(f"Internal server error: {str(error)}")
+    return jsonify({'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+    logger.info("="*50)
+    logger.info("Starting Flask Authentication Service")
+    logger.info(f"Debug: {DEBUG}")
+    logger.info(f"Port: {PORT}")
+    logger.info(f"Region: {REGION}")
+    logger.info("="*50)
+    
+    app.run(host='0.0.0.0', debug=DEBUG, port=PORT)
