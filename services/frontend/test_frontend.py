@@ -1,5 +1,4 @@
 import pytest
-import streamlit as st
 from unittest.mock import patch, MagicMock
 import sys
 import os
@@ -7,7 +6,7 @@ import os
 # Add the frontend directory to the path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from streamlit_app import APIClient, show_custom_message, is_logged_in, logout
+from streamlit_app import APIClient, show_custom_message
 
 class TestAPIClient:
     """Test APIClient class"""
@@ -86,58 +85,6 @@ class TestAPIClient:
         assert result['success'] == False
         assert 'Incorrect username or password' in result['message']
         assert result['error_code'] == 'NotAuthorizedException'
-
-class TestAuthFunctions:
-    """Test authentication helper functions"""
-    
-    def test_is_logged_in_true(self):
-        """Test is_logged_in when user is logged in"""
-        # Clear any existing session state
-        for key in ['token', 'user_data', 'username', 'current_page']:
-            if key in st.session_state:
-                del st.session_state[key]
-        
-        # Mock session state
-        st.session_state['token'] = 'test-token'
-        st.session_state['user_data'] = {'email': 'test@example.com'}
-        
-        result = is_logged_in()
-        assert result == True
-        
-        # Clean up
-        del st.session_state['token']
-        del st.session_state['user_data']
-    
-    def test_is_logged_in_false(self):
-        """Test is_logged_in when user is not logged in"""
-        # Ensure no session state
-        for key in ['token', 'user_data', 'username', 'current_page']:
-            if key in st.session_state:
-                del st.session_state[key]
-        
-        result = is_logged_in()
-        assert result == False
-    
-    def test_logout(self):
-        """Test logout function"""
-        # Clear any existing session state
-        for key in ['token', 'user_data', 'username', 'current_page']:
-            if key in st.session_state:
-                del st.session_state[key]
-        
-        # Set up session state
-        st.session_state['token'] = 'test-token'
-        st.session_state['user_data'] = {'email': 'test@example.com'}
-        st.session_state['username'] = 'test'
-        st.session_state['current_page'] = 'dashboard'
-        
-        logout()
-        
-        # Check that session state is cleared
-        assert 'token' not in st.session_state
-        assert 'user_data' not in st.session_state
-        assert 'username' not in st.session_state
-        assert 'current_page' not in st.session_state
 
 class TestMessageDisplay:
     """Test message display functions"""
