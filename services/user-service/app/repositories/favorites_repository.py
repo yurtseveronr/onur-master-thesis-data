@@ -25,7 +25,17 @@ class FavoritesRepository:
             KeyConditionExpression="email = :email",
             ExpressionAttributeValues={":email": {"S": email}}
         )
-        return [{"Title": m["Title"]["S"], "imdbID": m["imdbID"]["S"]} for m in response.get("Items", [])]
+        items = response.get("Items", [])
+        result = []
+        for m in items:
+            try:
+                result.append({
+                    "Title": m.get("Title", {}).get("S", "Unknown"),
+                    "imdbID": m.get("imdbID", {}).get("S", "Unknown")
+                })
+            except Exception as e:
+                print(f"Error processing item: {m}, Error: {e}")
+        return result
 
     @staticmethod
     def get_favorite_series(email: str):

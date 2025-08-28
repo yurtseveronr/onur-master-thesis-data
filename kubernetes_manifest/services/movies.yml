@@ -33,7 +33,7 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    app: user
+    app: movies
   ports:
     - name: http
       port: 8081
