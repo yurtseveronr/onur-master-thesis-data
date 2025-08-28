@@ -20,7 +20,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize Cognito client
 cognito = boto3.client('cognito-idp', region_name=REGION)
 
 def handle_cognito_error(e: ClientError) -> tuple:
