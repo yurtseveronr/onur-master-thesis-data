@@ -94,7 +94,8 @@ Resources:
             Resource:
               - !Sub 'arn:aws:dynamodb:${Region}:${AccountId}:table/movies'
               - !Sub 'arn:aws:dynamodb:${Region}:${AccountId}:table/TVSeries'
-              - !Sub 'arn:aws:dynamodb:${Region}:${AccountId}:table/users'
+              - !Sub 'arn:aws:dynamodb:${Region}:${AccountId}:table/UserMovies'
+              - !Sub 'arn:aws:dynamodb:${Region}:${AccountId}:table/UserSeries'
           - Sid: SecretsManagerAccess
             Effect: Allow
             Action: secretsmanager:GetSecretValue
@@ -111,6 +112,13 @@ Resources:
               - cognito-idp:AdminCreateUser
               - cognito-idp:AdminSetUserPassword
               - cognito-idp:AdminConfirmSignUp
+              - cognito-idp:DescribeUserPool
+              - cognito-idp:DescribeUserPoolClient
+              - cognito-idp:AdminCreateUser
+              - cognito-idp:AdminSetUserPassword
+              - cognito-idp:AdminConfirmSignUp
+              - cognito-idp:AdminCreateUser
+              - cognito-idp:AdminSetUserPassword  
             Resource: !Sub 'arn:aws:cognito-idp:${Region}:${AccountId}:userpool/*'
 
   ServicesRole:
