@@ -4,7 +4,6 @@ import json
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-# Page configuration
 st.set_page_config(
     page_title="Streaming Platform",
     page_icon="🎬",
