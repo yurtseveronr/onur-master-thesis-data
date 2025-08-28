@@ -76,22 +76,26 @@ class TestSignup:
     def test_signup_existing_user_unconfirmed(self, client, mock_cognito):
         # sign_up raises UsernameExistsException
         mock_cognito.sign_up.side_effect = create_cognito_error(
-            'UsernameExistsException',
+            'UsernameExistsException', 
             'User already exists'
         )
-
+        
         # admin_get_user returns unconfirmed user
         mock_cognito.admin_get_user.return_value = {
             'UserStatus': 'UNCONFIRMED'
         }
-
-        response = client.post('/auth/signup',
+        
+        # admin_confirm_sign_up succeeds
+        mock_cognito.admin_confirm_sign_up.return_value = {}
+        
+        response = client.post('/auth/signup', 
             json={'email': 'existing@example.com', 'password': 'password123'})
-
+        
         assert response.status_code == 200
         data = response.get_json()
-        assert 'not verified' in data['error']
-        assert data['error_code'] == 'USER_UNCONFIRMED'
+        assert data['success'] == True
+        assert 'Registration successful' in data['message']
+        assert data['userSub'] == 'existing_user'
 
     def test_signup_existing_user_confirmed(self, client, mock_cognito):
         # sign_up raises UsernameExistsException
