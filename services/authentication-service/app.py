@@ -131,20 +131,29 @@ def signup():
 
         logger.info(f"SIGNUP REQUEST: {email}")
         
-        # Try to create user in Cognito
+        # Create new user
         response = cognito.sign_up(
             ClientId=CLIENT_ID,
             Username=email,
             Password=password,
             UserAttributes=[{'Name': 'email', 'Value': email}]
         )
-        logger.info(f"Sign Up Response: {response}")
-        logger.info(f"SIGNUP SUCCESS: User created for {email}, UserSub: {response['UserSub']}")
+
+        # Auto-confirm the user since email is auto-verified
+        try:
+            cognito.admin_confirm_sign_up(
+                UserPoolId=USER_POOL_ID,
+                Username=email
+            )
+            logger.info(f"User auto-confirmed: {email}")
+        except Exception as e:
+            logger.warning(f"Auto-confirm failed: {str(e)}")
+
+        logger.info(f"Signup successful: {email}")
         return jsonify({
             'success': True,
-            'message': 'Registration successful! Please check your email for verification code.',
-            'userSub': response['UserSub'],
-            'requires_confirmation': True
+            'message': 'Registration successful! You can now login.',
+            'userSub': response['UserSub']
         }), 200
 
     except ClientError as e:
