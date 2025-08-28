@@ -80,13 +80,18 @@ class TestSignup:
             'User already exists'
         )
         
+        # admin_get_user returns unconfirmed user
+        mock_cognito.admin_get_user.return_value = {
+            'UserStatus': 'UNCONFIRMED'
+        }
+        
         response = client.post('/auth/signup', 
             json={'email': 'existing@example.com', 'password': 'password123'})
         
-        assert response.status_code == 409
+        assert response.status_code == 200
         data = response.get_json()
-        assert 'Email is already registered' in data['error']
-        assert data['error_code'] == 'UsernameExistsException'
+        assert 'not verified' in data['error']
+        assert data['error_code'] == 'USER_UNCONFIRMED'
 
     def test_signup_existing_user_confirmed(self, client, mock_cognito):
         # sign_up raises UsernameExistsException
@@ -95,13 +100,18 @@ class TestSignup:
             'User already exists'
         )
         
+        # admin_get_user returns confirmed user
+        mock_cognito.admin_get_user.return_value = {
+            'UserStatus': 'CONFIRMED'
+        }
+        
         response = client.post('/auth/signup', 
             json={'email': 'existing@example.com', 'password': 'password123'})
         
         assert response.status_code == 409
         data = response.get_json()
-        assert 'Email is already registered' in data['error']
-        assert data['error_code'] == 'UsernameExistsException'
+        assert 'already registered and verified' in data['error']
+        assert data['error_code'] == 'USER_EXISTS_VERIFIED'
 
 class TestConfirmSignup:
     def test_confirm_success(self, client, mock_cognito):
