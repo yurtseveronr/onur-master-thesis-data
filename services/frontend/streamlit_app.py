@@ -11,7 +11,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-
 st.markdown("""
 <style>
     .main-header {
@@ -34,14 +33,27 @@ st.markdown("""
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
     
-    /* Form container fix */
+    .verification-container {
+        background: rgba(72, 187, 120, 0.1);
+        border: 2px solid rgba(72, 187, 120, 0.3);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+    }
+    
+    .verification-code-input {
+        font-family: monospace;
+        font-size: 1.2rem;
+        letter-spacing: 0.2rem;
+        text-align: center;
+    }
+    
     .stForm {
         background: transparent !important;
         border: none !important;
         padding: 0 !important;
     }
     
-    /* Input fields styling */
     .stTextInput > div > div > input {
         background-color: rgba(255, 255, 255, 0.1) !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
@@ -53,7 +65,6 @@ st.markdown("""
         color: rgba(255, 255, 255, 0.7) !important;
     }
     
-    /* Button styling */
     .stButton > button {
         background: linear-gradient(90deg, #667eea 0%, #764ba2 100%) !important;
         color: white !important;
@@ -68,193 +79,40 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
     }
     
-    /* Tab styling */
-    .stTabs [data-baseweb="tab-list"] {
-        background: transparent !important;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        background: rgba(255, 255, 255, 0.1) !important;
-        color: white !important;
-        border-radius: 8px 8px 0 0 !important;
-    }
-    
-    .stTabs [aria-selected="true"] {
-        background: rgba(255, 255, 255, 0.2) !important;
-    }
-    
-    .sidebar .sidebar-content {
-        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-    }
-    
-    .metric-card {
-        background: white;
-        padding: 1rem;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin: 0.5rem 0;
-        text-align: center;
-    }
-    
-    .content-card {
-        background: #f8f9fa;
+    .success-message {
+        background: rgba(72, 187, 120, 0.2);
+        border: 1px solid rgba(72, 187, 120, 0.5);
+        color: white;
         padding: 1rem;
         border-radius: 8px;
-        margin: 0.5rem 0;
-        border-left: 4px solid #667eea;
+        margin: 1rem 0;
     }
     
-    .nav-button {
-        margin: 0.2rem 0;
-    }
-    
-    /* Dashboard specific styles */
-    .dashboard-container {
-        display: flex;
-        height: 100vh;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    
-    .sidebar-nav {
-        width: 250px;
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        padding: 2rem;
-        border-right: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    .main-content {
-        flex: 1;
-        padding: 2rem;
-        overflow-y: auto;
-    }
-    
-    .user-welcome {
-        text-align: center;
-        margin-bottom: 2rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    .error-message {
+        background: rgba(245, 101, 101, 0.2);
+        border: 1px solid rgba(245, 101, 101, 0.5);
         color: white;
-    }
-    
-    .nav-item {
         padding: 1rem;
-        margin: 0.5rem 0;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: all 0.3s;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: white;
-        text-align: center;
-    }
-    
-    .nav-item:hover {
-        background: rgba(255, 255, 255, 0.15);
-        transform: translateX(5px);
-    }
-    
-    .nav-item.active {
-        background: linear-gradient(90deg, #667eea, #764ba2);
-    }
-    
-    .search-section {
-        margin-bottom: 2rem;
-    }
-    
-    .search-bar {
-        width: 100%;
-        padding: 1rem;
-        border-radius: 25px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-        font-size: 1rem;
-        margin-bottom: 1rem;
-    }
-    
-    .search-bar::placeholder {
-        color: rgba(255, 255, 255, 0.7);
-    }
-    
-    .search-buttons {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 2rem;
-    }
-    
-    .search-btn {
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-    
-    .search-btn:hover {
-        background: rgba(255, 255, 255, 0.2);
-    }
-    
-    .search-btn.active {
-        background: linear-gradient(90deg, #667eea, #764ba2);
-    }
-    
-    .content-section {
-        margin-bottom: 3rem;
-    }
-    
-    .section-title {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin-bottom: 1rem;
-        color: white;
-    }
-    
-    .content-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1rem;
-    }
-    
-    .content-card {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        padding: 1rem;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        transition: transform 0.3s, box-shadow 0.3s;
-        cursor: pointer;
-        color: white;
-    }
-    
-    .content-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-    }
-    
-    .card-image {
-        width: 100%;
-        height: 150px;
-        background: linear-gradient(45deg, #667eea, #764ba2);
         border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 3rem;
-        margin-bottom: 1rem;
+        margin: 1rem 0;
     }
     
-    .card-title {
-        font-weight: bold;
-        font-size: 1.1rem;
-        margin-bottom: 0.5rem;
+    .info-message {
+        background: rgba(66, 153, 225, 0.2);
+        border: 1px solid rgba(66, 153, 225, 0.5);
         color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
     }
     
-    .card-info {
-        font-size: 0.9rem;
-        color: rgba(255, 255, 255, 0.8);
+    .warning-message {
+        background: rgba(237, 137, 54, 0.2);
+        border: 1px solid rgba(237, 137, 54, 0.5);
+        color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -278,26 +136,30 @@ class APIClient:
             if headers is None:
                 headers = {'Content-Type': 'application/json'}
             
-            # Add token to header if available
             if 'token' in st.session_state:
                 headers['Authorization'] = f'Bearer {st.session_state.token}'
             
+            response = None
             if method.upper() == 'POST':
                 response = requests.post(url, json=data, headers=headers, timeout=10)
             elif method.upper() == 'GET':
                 response = requests.get(url, headers=headers, timeout=10)
-            elif method.upper() == 'PUT':
-                response = requests.put(url, json=data, headers=headers, timeout=10)
-            elif method.upper() == 'DELETE':
-                response = requests.delete(url, headers=headers, timeout=10)
-            else:
-                return {'success': False, 'message': 'Unsupported HTTP method'}
             
             if response.status_code in [200, 201]:
-                return {'success': True, 'data': response.json()}
+                try:
+                    return {'success': True, 'data': response.json()}
+                except:
+                    return {'success': True, 'data': {'message': 'Success'}}
             else:
-                error_msg = response.json().get('error', 'Unknown error') if response.content else f'HTTP {response.status_code}'
-                return {'success': False, 'message': error_msg}
+                try:
+                    error_data = response.json()
+                    return {
+                        'success': False, 
+                        'message': error_data.get('error', f'HTTP {response.status_code}'),
+                        'error_code': error_data.get('error_code', 'UNKNOWN')
+                    }
+                except:
+                    return {'success': False, 'message': f'HTTP {response.status_code}'}
                 
         except requests.exceptions.RequestException as e:
             return {'success': False, 'message': f'Connection error: {str(e)}'}
@@ -305,101 +167,44 @@ class APIClient:
             return {'success': False, 'message': f'Error: {str(e)}'}
 
     @staticmethod
-    def register_user(username: str, email: str, password: str, full_name: str) -> Dict[str, Any]:
+    def register_user(email: str, password: str) -> Dict[str, Any]:
         """User registration"""
-        data = {
-            'email': email,
-            'password': password
-        }
+        data = {'email': email, 'password': password}
         return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/signup", data)
 
     @staticmethod
     def confirm_user(email: str, code: str) -> Dict[str, Any]:
         """Confirm user registration with code"""
-        data = {
-            'email': email,
-            'code': code
-        }
+        data = {'email': email, 'code': code}
         return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/confirm", data)
 
     @staticmethod
-    def login_user(username: str, password: str) -> Dict[str, Any]:
+    def resend_code(email: str) -> Dict[str, Any]:
+        """Resend verification code"""
+        data = {'email': email}
+        return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/resend", data)
+
+    @staticmethod
+    def login_user(email: str, password: str) -> Dict[str, Any]:
         """User login"""
-        data = {
-            'email': username,  # Frontend username olarak gönderiyor ama backend email bekliyor
-            'password': password
-        }
+        data = {'email': email, 'password': password}
         return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/login", data)
 
-    @staticmethod
-    def verify_token() -> Dict[str, Any]:
-        """Token verification"""
-        return APIClient.make_request('GET', f"{API_URLS['auth']}/auth/verify")
-
-    @staticmethod
-    def logout_user() -> Dict[str, Any]:
-        """User logout"""
-        return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/logout")
-
-    @staticmethod
-    def get_movies() -> Dict[str, Any]:
-        """Get movies from movies service"""
-        return APIClient.make_request('GET', f"{API_URLS['movies']}/movies")
-
-    @staticmethod
-    def get_series() -> Dict[str, Any]:
-        """Get series from series service"""
-        return APIClient.make_request('GET', f"{API_URLS['series']}/series")
-
-    @staticmethod
-    def search_movies(query: str) -> Dict[str, Any]:
-        """Search movies"""
-        return APIClient.make_request('GET', f"{API_URLS['movies']}/search?q={query}")
-
-    @staticmethod
-    def search_series(query: str) -> Dict[str, Any]:
-        """Search series"""
-        return APIClient.make_request('GET', f"{API_URLS['series']}/search?q={query}")
-
-    @staticmethod
-    def get_recommendations() -> Dict[str, Any]:
-        """Get personalized recommendations"""
-        return APIClient.make_request('GET', f"{API_URLS['personalize']}/recommendations")
-
-    @staticmethod
-    def chat_with_bot(message: str) -> Dict[str, Any]:
-        """Chat with chatbot"""
-        data = {'message': message}
-        return APIClient.make_request('POST', f"{API_URLS['chatbot']}/chat", data)
-
-def is_logged_in() -> bool:
-    """Check if user is logged in"""
-    if 'token' in st.session_state and 'user_data' in st.session_state:
-        # Verify token validity
-        result = APIClient.verify_token()
-        return result['success']
-    return False
-
-def logout():
-    """Logout user"""
-    if 'token' in st.session_state:
-        APIClient.logout_user()
-    
-    # Clear session state
-    for key in ['token', 'user_data', 'username', 'current_page']:
-        if key in st.session_state:
-            del st.session_state[key]
-
-def navigate_to(page: str):
-    """Navigate to a specific page"""
-    st.session_state.current_page = page
-    st.rerun()
+def show_custom_message(message_type: str, message: str):
+    """Show custom styled messages"""
+    if message_type == "success":
+        st.markdown(f'<div class="success-message">✅ {message}</div>', unsafe_allow_html=True)
+    elif message_type == "error":
+        st.markdown(f'<div class="error-message">❌ {message}</div>', unsafe_allow_html=True)
+    elif message_type == "info":
+        st.markdown(f'<div class="info-message">ℹ️ {message}</div>', unsafe_allow_html=True)
+    elif message_type == "warning":
+        st.markdown(f'<div class="warning-message">⚠️ {message}</div>', unsafe_allow_html=True)
 
 def show_login_page():
-    """Login page"""
+    """Login page with improved confirmation flow"""
     st.markdown('<div class="main-header"><h1>🎬 Streaming Platform</h1><p>Welcome to the World of Movies and TV Shows!</p></div>', unsafe_allow_html=True)
     
-    # Tabs for login and registration
     # Check if we should show login tab after successful registration
     if st.session_state.get('show_login_tab', False):
         tab1, tab2 = st.tabs(["🔑 Sign In", "📝 Sign Up"])
@@ -409,12 +214,12 @@ def show_login_page():
     
     with tab1:
         st.markdown('<div class="auth-container">', unsafe_allow_html=True)
-        st.subheader("Sign In")
+        st.subheader("Sign In to Your Account")
         
         with st.form("login_form"):
-            username = st.text_input("Email", placeholder="Enter your email")
+            username = st.text_input("Email Address", placeholder="Enter your email")
             password = st.text_input("Password", type="password", placeholder="Enter your password")
-            login_button = st.form_submit_button("🚀 Sign In", use_container_width=True)
+            login_button = st.form_submit_button("Sign In", use_container_width=True)
             
             if login_button:
                 if username and password:
@@ -426,481 +231,253 @@ def show_login_page():
                         st.session_state.user_data = result['data']['user']
                         st.session_state.username = username
                         st.session_state.current_page = 'dashboard'
-                        st.success("✅ Successfully signed in!")
+                        show_custom_message("success", "Successfully signed in!")
+                        st.balloons()
                         st.rerun()
                     else:
-                        st.error(f"❌ Sign in error: {result['message']}")
+                        error_code = result.get('error_code', '')
+                        if error_code == 'UserNotConfirmedException':
+                            show_custom_message("warning", "Please verify your email first. Check the Sign Up tab to verify.")
+                            st.session_state.pending_verification_email = username
+                        else:
+                            show_custom_message("error", f"Sign in failed: {result['message']}")
                 else:
-                    st.error("⚠️ Please fill in all fields!")
+                    show_custom_message("error", "Please fill in all fields!")
         
         st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Designer footer
-    st.markdown('<div class="designer-footer">✨ Designed by Onur Yurtsever</div>', unsafe_allow_html=True)
     
     with tab2:
         st.markdown('<div class="auth-container">', unsafe_allow_html=True)
-        st.subheader("Sign Up")
         
-        # Check if we need to show confirmation form
-        if st.session_state.get('show_confirmation', False):
-            st.info("📧 Verification code sent to your email!")
-            
-            with st.form("confirmation_form"):
-                confirmation_code = st.text_input("Verification Code", placeholder="Enter the 6-digit code from your email")
-                confirm_button = st.form_submit_button("✅ Verify", use_container_width=True)
-                
-                if confirm_button:
-                    if confirmation_code:
-                        with st.spinner("Verifying..."):
-                            result = APIClient.confirm_user(st.session_state.registration_email, confirmation_code)
-                        
-                        if result['success']:
-                            st.success("✅ Email verified! You can now login.")
-                            st.balloons()
-                            
-                            # Clear confirmation state and show login tab
-                            del st.session_state.show_confirmation
-                            del st.session_state.registration_email
-                            st.session_state.show_login_tab = True
-                            st.rerun()
-                        else:
-                            st.error(f"❌ Verification error: {result['message']}")
-                    else:
-                        st.error("⚠️ Please enter the verification code!")
-            
-            # Back to registration button
-            if st.button("← Back to registration"):
-                del st.session_state.show_confirmation
-                del st.session_state.registration_email
-                st.rerun()
+        # Check current state
+        current_state = st.session_state.get('registration_state', 'register')
         
-        else:
-            # Normal registration form
-            with st.form("register_form"):
-                full_name = st.text_input("Full Name", placeholder="Enter your full name")
-                reg_username = st.text_input("Username", key="reg_username", placeholder="Choose a username")
-                email = st.text_input("Email", key="reg_email", placeholder="Enter your email")
-                reg_password = st.text_input("Password", type="password", key="reg_password", placeholder="At least 8 characters")
-                confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password")
-                register_button = st.form_submit_button("📝 Sign Up", use_container_width=True, disabled=st.session_state.get('is_registering', False))
-                
-                if register_button:
-                    st.session_state.is_registering = True
-                    if all([full_name, reg_username, email, reg_password, confirm_password]):
-                        if reg_password != confirm_password:
-                            st.error("❌ Passwords don't match!")
-                        elif len(reg_password) < 8:
-                            st.error("❌ Password must be at least 8 characters!")
-                        else:
-                            with st.spinner("Creating account..."):
-                                result = APIClient.register_user(reg_username, email, reg_password, full_name)
-                            
-                            if result['success']:
-                                st.success("✅ Account created! Verification code sent to your email.")
-                                st.balloons()
-                                
-                                # Show confirmation form
-                                st.session_state.show_confirmation = True
-                                st.session_state.registration_email = email
-                                st.rerun()
-                            else:
-                                if result.get('error_code') == 'USER_EXISTS':
-                                    st.error("❌ This email is already registered! Please login.")
-                                    st.session_state.show_login_tab = True
-                                else:
-                                    st.error(f"❌ Registration error: {result['message']}")
-                    else:
-                        st.error("⚠️ Please fill in all fields!")
+        if current_state == 'register':
+            show_registration_form()
+        elif current_state == 'verify_email':
+            show_verification_form()
+        elif current_state == 'resend_verification':
+            show_resend_verification()
         
         st.markdown('</div>', unsafe_allow_html=True)
 
+def show_registration_form():
+    """Show registration form"""
+    st.subheader("Create New Account")
+    
+    # Check if there's a pending verification from login attempt
+    if st.session_state.get('pending_verification_email'):
+        show_custom_message("info", f"You can verify your email address: {st.session_state.pending_verification_email}")
+        if st.button("Verify This Email", use_container_width=True):
+            st.session_state.registration_email = st.session_state.pending_verification_email
+            st.session_state.registration_state = 'verify_email'
+            del st.session_state.pending_verification_email
+            st.rerun()
+        st.divider()
+    
+    with st.form("register_form"):
+        email = st.text_input("Email Address", placeholder="Enter your email address")
+        password = st.text_input("Password", type="password", placeholder="Minimum 8 characters")
+        confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password")
+        register_button = st.form_submit_button("Create Account", use_container_width=True)
+        
+        if register_button:
+            if email and password and confirm_password:
+                if password != confirm_password:
+                    show_custom_message("error", "Passwords don't match!")
+                elif len(password) < 8:
+                    show_custom_message("error", "Password must be at least 8 characters!")
+                else:
+                    with st.spinner("Creating your account..."):
+                        result = APIClient.register_user(email, password)
+                    
+                    if result['success']:
+                        show_custom_message("success", "Account created successfully!")
+                        st.session_state.registration_email = email
+                        st.session_state.registration_state = 'verify_email'
+                        st.balloons()
+                        st.rerun()
+                    else:
+                        error_code = result.get('error_code', '')
+                        
+                        if error_code == 'USER_UNCONFIRMED':
+                            show_custom_message("warning", "This email is already registered but not verified.")
+                            st.session_state.registration_email = email
+                            st.session_state.registration_state = 'verify_email'
+                            st.rerun()
+                        elif error_code in ['USER_EXISTS_VERIFIED', 'UsernameExistsException']:
+                            show_custom_message("error", "This email is already registered. Please sign in instead.")
+                            st.session_state.show_login_tab = True
+                            st.rerun()
+                        else:
+                            show_custom_message("error", f"Registration failed: {result['message']}")
+            else:
+                show_custom_message("error", "Please fill in all fields!")
+
+def show_verification_form():
+    """Show email verification form"""
+    st.subheader("Verify Your Email")
+    
+    email = st.session_state.get('registration_email', 'your email')
+    
+    st.markdown('<div class="verification-container">', unsafe_allow_html=True)
+    show_custom_message("info", f"📧 Verification code sent to: {email}")
+    st.markdown("**Check your email inbox** (including spam folder) for a message from:")
+    st.markdown("- **From:** no-reply@verificationemail.com")
+    st.markdown("- **Subject:** Your verification code")
+    st.markdown("- **Content:** 6-digit verification code")
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    with st.form("verification_form"):
+        verification_code = st.text_input(
+            "Enter 6-Digit Verification Code", 
+            placeholder="123456",
+            max_chars=6,
+            help="Enter the 6-digit code from your email"
+        )
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            verify_button = st.form_submit_button("Verify Email", use_container_width=True)
+        with col2:
+            resend_button = st.form_submit_button("Resend Code", use_container_width=True)
+        
+        if verify_button:
+            if verification_code and len(verification_code) == 6:
+                with st.spinner("Verifying your email..."):
+                    result = APIClient.confirm_user(email, verification_code)
+                
+                if result['success']:
+                    show_custom_message("success", "Email verified successfully! You can now sign in.")
+                    # Clear verification state
+                    st.session_state.registration_state = 'register'
+                    if 'registration_email' in st.session_state:
+                        del st.session_state.registration_email
+                    st.session_state.show_login_tab = True
+                    st.balloons()
+                    st.rerun()
+                else:
+                    error_code = result.get('error_code', '')
+                    if error_code == 'CodeMismatchException':
+                        show_custom_message("error", "Invalid verification code. Please check your email and try again.")
+                    elif error_code == 'ExpiredCodeException':
+                        show_custom_message("warning", "Verification code has expired. Please request a new one.")
+                        st.session_state.registration_state = 'resend_verification'
+                        st.rerun()
+                    else:
+                        show_custom_message("error", f"Verification failed: {result['message']}")
+            else:
+                show_custom_message("error", "Please enter a valid 6-digit verification code!")
+        
+        elif resend_button:
+            st.session_state.registration_state = 'resend_verification'
+            st.rerun()
+    
+    # Back to registration button
+    if st.button("← Back to Registration"):
+        st.session_state.registration_state = 'register'
+        if 'registration_email' in st.session_state:
+            del st.session_state.registration_email
+        st.rerun()
+
+def show_resend_verification():
+    """Show resend verification form"""
+    st.subheader("Resend Verification Code")
+    
+    email = st.session_state.get('registration_email', '')
+    
+    st.markdown("**Didn't receive the verification code?**")
+    st.markdown("- Check your spam/junk folder")
+    st.markdown("- Make sure the email address is correct")
+    st.markdown("- Wait a few minutes for the email to arrive")
+    
+    with st.form("resend_form"):
+        email_input = st.text_input("Email Address", value=email, placeholder="Enter your email")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            resend_button = st.form_submit_button("Resend Code", use_container_width=True)
+        with col2:
+            back_button = st.form_submit_button("Back to Verification", use_container_width=True)
+        
+        if resend_button:
+            if email_input:
+                with st.spinner("Sending new verification code..."):
+                    result = APIClient.resend_code(email_input)
+                
+                if result['success']:
+                    show_custom_message("success", "New verification code sent! Please check your email.")
+                    st.session_state.registration_email = email_input
+                    st.session_state.registration_state = 'verify_email'
+                    st.rerun()
+                else:
+                    show_custom_message("error", f"Failed to resend code: {result['message']}")
+            else:
+                show_custom_message("error", "Please enter your email address!")
+        
+        elif back_button:
+            st.session_state.registration_state = 'verify_email'
+            st.rerun()
+
 def show_dashboard():
-    """Dashboard page with wireframe layout"""
-    # Initialize session state for search
-    if 'search_query' not in st.session_state:
-        st.session_state.search_query = ""
-    if 'search_type' not in st.session_state:
-        st.session_state.search_type = "movies"
+    """Dashboard page"""
+    st.markdown('<div class="main-header"><h1>🎬 Welcome to Your Dashboard</h1></div>', unsafe_allow_html=True)
     
-    # Main dashboard layout
-    st.markdown("""
-    <div class="dashboard-container">
-        <div class="sidebar-nav">
-            <div class="user-welcome">
-                <h3>👋 Welcome</h3>
-                <p><strong>{}</strong></p>
-                <p>@{}</p>
-            </div>
-            
-            <div class="nav-item" onclick="navigateTo('dashboard')">
-                🏠 Dashboard
-            </div>
-            <div class="nav-item" onclick="navigateTo('movies')">
-                🎬 Movies
-            </div>
-            <div class="nav-item" onclick="navigateTo('series')">
-                📺 Series
-            </div>
-            <div class="nav-item" onclick="navigateTo('personalize')">
-                ⭐ Personalize
-            </div>
-            <div class="nav-item" onclick="navigateTo('chatbot')">
-                🤖 Chatbot
-            </div>
-        </div>
-        
-        <div class="main-content">
-            <div class="search-section">
-                <input type="text" class="search-bar" placeholder="🔍 Search bar" id="searchInput">
-                <div class="search-buttons">
-                    <button class="search-btn" onclick="searchMovies()">🎬 Movies</button>
-                    <button class="search-btn" onclick="searchSeries()">📺 Series</button>
-                </div>
-            </div>
-            
-            <div class="content-section">
-                <div class="section-title">🏆 Top Rated TV Shows</div>
-                <div class="content-cards">
-                    <div class="content-card">
-                        <div class="card-image">📺</div>
-                        <div class="card-title">Breaking Bad</div>
-                        <div class="card-info">⭐ 9.5 | 2008-2013 | Crime Drama</div>
-                    </div>
-                    <div class="content-card">
-                        <div class="card-image">🐉</div>
-                        <div class="card-title">Game of Thrones</div>
-                        <div class="card-info">⭐ 9.3 | 2011-2019 | Fantasy</div>
-                    </div>
-                    <div class="content-card">
-                        <div class="card-image">🔍</div>
-                        <div class="card-title">Sherlock</div>
-                        <div class="card-info">⭐ 9.1 | 2010-2017 | Mystery</div>
-                    </div>
-                    <div class="content-card">
-                        <div class="card-image">👽</div>
-                        <div class="card-title">Stranger Things</div>
-                        <div class="card-info">⭐ 8.7 | 2016-2025 | Sci-Fi</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="content-section">
-                <div class="section-title">🎬 Top Rated Movies</div>
-                <div class="content-cards">
-                    <div class="content-card">
-                        <div class="card-image">🕴️</div>
-                        <div class="card-title">The Matrix</div>
-                        <div class="card-info">⭐ 8.7 | 1999 | Sci-Fi Action</div>
-                    </div>
-                    <div class="content-card">
-                        <div class="card-image">🌀</div>
-                        <div class="card-title">Inception</div>
-                        <div class="card-info">⭐ 8.8 | 2010 | Sci-Fi Thriller</div>
-                    </div>
-                    <div class="content-card">
-                        <div class="card-image">🦇</div>
-                        <div class="card-title">The Dark Knight</div>
-                        <div class="card-info">⭐ 9.0 | 2008 | Action Crime</div>
-                    </div>
-                    <div class="content-card">
-                        <div class="card-image">👑</div>
-                        <div class="card-title">The Godfather</div>
-                        <div class="card-info">⭐ 9.2 | 1972 | Crime Drama</div>
-                    </div>
-                    <div class="content-card">
-                        <div class="card-image">🪐</div>
-                        <div class="card-title">Interstellar</div>
-                        <div class="card-info">⭐ 8.6 | 2014 | Sci-Fi Drama</div>
-                    </div>
-                    <div class="content-card">
-                        <div class="card-image">🔫</div>
-                        <div class="card-title">Pulp Fiction</div>
-                        <div class="card-info">⭐ 8.9 | 1994 | Crime Thriller</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    """.format(
-        st.session_state.user_data.get('full_name', 'User'),
-        st.session_state.user_data.get('username', '')
-    ), unsafe_allow_html=True)
+    user = st.session_state.get('user_data', {})
+    st.write(f"Welcome back, {user.get('username', 'User')}!")
     
-    # Add JavaScript for navigation and search
-    st.markdown("""
-    <script>
-        function navigateTo(page) {
-            // This would trigger navigation in Streamlit
-            console.log('Navigating to:', page);
-        }
-        
-        function searchMovies() {
-            const query = document.getElementById('searchInput').value;
-            console.log('Searching movies for:', query);
-        }
-        
-        function searchSeries() {
-            const query = document.getElementById('searchInput').value;
-            console.log('Searching series for:', query);
-        }
-    </script>
-    """, unsafe_allow_html=True)
-
-def show_movies():
-    """Movies page"""
-    st.markdown('<div class="main-header"><h1>🎬 Movies</h1></div>', unsafe_allow_html=True)
+    # Sample dashboard content
+    col1, col2, col3 = st.columns(3)
     
-    # Search functionality
-    search_query = st.text_input("🔍 Search movies...", placeholder="Enter movie title")
-    col1, col2 = st.columns(2)
     with col1:
-        if st.button("🎬 Search Movies", use_container_width=True):
-            if search_query:
-                with st.spinner("Searching movies..."):
-                    result = APIClient.search_movies(search_query)
-                    if result['success']:
-                        st.success(f"Found {len(result['data'])} movies")
-                        for movie in result['data']:
-                            st.info(f"🎬 {movie.get('title', 'Unknown')} ({movie.get('year', 'N/A')})")
-                    else:
-                        st.error(f"Search error: {result['message']}")
-            else:
-                st.warning("Please enter a search query")
-    
+        st.metric("Movies Watched", "42", "5")
     with col2:
-        if st.button("📋 Show All Movies", use_container_width=True):
-            with st.spinner("Loading movies..."):
-                result = APIClient.get_movies()
-                if result['success']:
-                    st.success(f"Loaded {len(result['data'])} movies")
-                    for movie in result['data']:
-                        st.info(f"🎬 {movie.get('title', 'Unknown')} ({movie.get('year', 'N/A')})")
-                else:
-                    st.error(f"Error loading movies: {result['message']}")
+        st.metric("TV Shows", "18", "2")
+    with col3:
+        st.metric("Watch Time", "156h", "12h")
     
-    st.divider()
+    st.subheader("Continue Watching")
+    st.info("🎬 The Matrix Reloaded - 45 minutes left")
+    st.info("📺 Breaking Bad S3E8 - New episode")
     
-    # Movie grid
-    st.subheader("🎭 Popular Movies")
-    
-    movies = [
-        {"title": "The Matrix", "year": 1999, "rating": 8.7, "genre": "Sci-Fi"},
-        {"title": "Inception", "year": 2010, "rating": 8.8, "genre": "Sci-Fi"},
-        {"title": "Pulp Fiction", "year": 1994, "rating": 8.9, "genre": "Crime"},
-        {"title": "The Dark Knight", "year": 2008, "rating": 9.0, "genre": "Action"},
-        {"title": "Forrest Gump", "year": 1994, "rating": 8.8, "genre": "Drama"},
-        {"title": "The Godfather", "year": 1972, "rating": 9.2, "genre": "Crime"},
-    ]
-    
-    cols = st.columns(3)
-    for i, movie in enumerate(movies):
-        with cols[i % 3]:
-            st.info(f"""
-            **{movie['title']}** ({movie['year']})
-            
-            Genre: {movie['genre']}
-            
-            ⭐ {movie['rating']}/10
-            """)
+    st.subheader("Recommended for You")
+    st.success("🎬 Inception - Based on your sci-fi preferences")
+    st.success("📺 Westworld - You might enjoy this")
 
-def show_series():
-    """TV Shows page"""
-    st.markdown('<div class="main-header"><h1>📺 TV Shows</h1></div>', unsafe_allow_html=True)
-    
-    # Search functionality
-    search_query = st.text_input("🔍 Search TV shows...", placeholder="Enter show title")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("📺 Search Series", use_container_width=True):
-            if search_query:
-                with st.spinner("Searching series..."):
-                    result = APIClient.search_series(search_query)
-                    if result['success']:
-                        st.success(f"Found {len(result['data'])} series")
-                        for series in result['data']:
-                            st.success(f"📺 {series.get('title', 'Unknown')} ({series.get('year', 'N/A')})")
-                    else:
-                        st.error(f"Search error: {result['message']}")
-            else:
-                st.warning("Please enter a search query")
-    
-    with col2:
-        if st.button("📋 Show All Series", use_container_width=True):
-            with st.spinner("Loading series..."):
-                result = APIClient.get_series()
-                if result['success']:
-                    st.success(f"Loaded {len(result['data'])} series")
-                    for series in result['data']:
-                        st.success(f"📺 {series.get('title', 'Unknown')} ({series.get('year', 'N/A')})")
-                else:
-                    st.error(f"Error loading series: {result['message']}")
-    
-    st.divider()
-    
-    # TV Shows grid
-    st.subheader("🏆 Top Rated Shows")
-    
-    shows = [
-        {"title": "Breaking Bad", "seasons": 5, "rating": 9.5, "genre": "Drama"},
-        {"title": "Game of Thrones", "seasons": 8, "rating": 9.3, "genre": "Fantasy"},
-        {"title": "Stranger Things", "seasons": 4, "rating": 8.7, "genre": "Sci-Fi"},
-        {"title": "The Office", "seasons": 9, "rating": 9.0, "genre": "Comedy"},
-        {"title": "Friends", "seasons": 10, "rating": 8.9, "genre": "Comedy"},
-        {"title": "Sherlock", "seasons": 4, "rating": 9.1, "genre": "Mystery"},
-    ]
-    
-    cols = st.columns(3)
-    for i, show in enumerate(shows):
-        with cols[i % 3]:
-            st.success(f"""
-            **{show['title']}**
-            
-            Seasons: {show['seasons']}
-            
-            Genre: {show['genre']}
-            
-            ⭐ {show['rating']}/10
-            """)
+def logout():
+    """Logout user"""
+    # Clear all session state
+    keys_to_clear = ['token', 'user_data', 'username', 'current_page', 'registration_state', 'registration_email', 'pending_verification_email']
+    for key in keys_to_clear:
+        if key in st.session_state:
+            del st.session_state[key]
 
-def show_personalize():
-    """Personalize page"""
-    st.markdown('<div class="main-header"><h1>⭐ Personalized Recommendations</h1></div>', unsafe_allow_html=True)
-    
-    st.subheader("🎯 Recommended for You")
-    
-    # Get recommendations from ML service
-    with st.spinner("Loading personalized recommendations..."):
-        result = APIClient.get_recommendations()
-        if result['success']:
-            recommendations = result['data']
-            st.success(f"✅ Loaded {len(recommendations)} recommendations")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("### 🎬 Movies You Might Like")
-                for rec in recommendations.get('movies', []):
-                    st.info(f"""
-                    **{rec.get('title', 'Unknown')}**
-                    Match: {rec.get('match', 'N/A')}% | {rec.get('reason', 'Based on your preferences')}
-                    """)
-            
-            with col2:
-                st.markdown("### 📺 TV Shows You Might Like")
-                for rec in recommendations.get('series', []):
-                    st.success(f"""
-                    **{rec.get('title', 'Unknown')}**
-                    Match: {rec.get('match', 'N/A')}% | {rec.get('reason', 'Based on your preferences')}
-                    """)
-        else:
-            st.error(f"❌ Error loading recommendations: {result['message']}")
-            
-            # Fallback recommendations
-            st.markdown("### 🎬 Movies You Might Like")
-            fallback_movies = [
-                {"title": "Blade Runner 2049", "match": "95%", "reason": "Because you liked Sci-Fi movies"},
-                {"title": "Interstellar", "match": "92%", "reason": "Based on your viewing history"},
-                {"title": "Ex Machina", "match": "89%", "reason": "Similar to your favorites"},
-            ]
-            
-            for rec in fallback_movies:
-                st.info(f"""
-                **{rec["title"]}**
-                Match: {rec["match"]} | {rec["reason"]}
-                """)
-            
-            st.markdown("### 📺 TV Shows You Might Like")
-            fallback_series = [
-                {"title": "Westworld", "match": "96%", "reason": "Because you liked Sci-Fi shows"},
-                {"title": "Black Mirror", "match": "94%", "reason": "Based on your preferences"},
-                {"title": "Altered Carbon", "match": "91%", "reason": "Similar themes you enjoy"},
-            ]
-            
-            for rec in fallback_series:
-                st.success(f"""
-                **{rec["title"]}**
-                Match: {rec["match"]} | {rec["reason"]}
-                """)
-
-def show_chatbot():
-    """AI Chatbot page"""
-    st.markdown('<div class="main-header"><h1>🤖 AI Chat Assistant</h1></div>', unsafe_allow_html=True)
-    
-    st.write("💬 Ask me anything about movies and TV shows!")
-    
-    # Chat interface
-    if "messages" not in st.session_state:
-        st.session_state.messages = [
-            {"role": "assistant", "content": "Hello! I'm your AI assistant. How can I help you find movies or TV shows today?"}
-        ]
-    
-    # Display chat messages
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-    
-    # Chat input
-    if prompt := st.chat_input("Type your message here..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-        
-        # Send to chatbot service
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                result = APIClient.chat_with_bot(prompt)
-                if result['success']:
-                    response = result['data'].get('response', 'I understand your question. This is a demo response.')
-                else:
-                    response = f"I understand you're asking about: '{prompt}'. This is a demo response. The actual AI chatbot service will provide intelligent recommendations!"
-            
-            st.markdown(response)
-            st.session_state.messages.append({"role": "assistant", "content": response})
+def is_logged_in() -> bool:
+    """Check if user is logged in"""
+    return 'token' in st.session_state and 'user_data' in st.session_state
 
 def main():
     """Main function"""
     # Initialize session state
     if 'initialized' not in st.session_state:
         st.session_state.initialized = True
-        st.session_state.current_page = 'dashboard'
+        st.session_state.current_page = 'login'
     
     # Check if user is logged in
     if is_logged_in():
-        # Navigation logic
-        if 'current_page' not in st.session_state:
-            st.session_state.current_page = 'dashboard'
-        
         # Sidebar navigation
         with st.sidebar:
             st.markdown("### 🎬 Navigation")
             if st.button("🏠 Dashboard", use_container_width=True):
                 st.session_state.current_page = 'dashboard'
-            if st.button("🎬 Movies", use_container_width=True):
-                st.session_state.current_page = 'movies'
-            if st.button("📺 Series", use_container_width=True):
-                st.session_state.current_page = 'series'
-            if st.button("⭐ Personalize", use_container_width=True):
-                st.session_state.current_page = 'personalize'
-            if st.button("🤖 Chatbot", use_container_width=True):
-                st.session_state.current_page = 'chatbot'
             
             st.divider()
             if st.button("🚪 Logout", use_container_width=True):
                 logout()
                 st.rerun()
         
-        # Page routing
-        if st.session_state.current_page == 'dashboard':
-            show_dashboard()
-        elif st.session_state.current_page == 'movies':
-            show_movies()
-        elif st.session_state.current_page == 'series':
-            show_series()
-        elif st.session_state.current_page == 'personalize':
-            show_personalize()
-        elif st.session_state.current_page == 'chatbot':
-            show_chatbot()
+        # Show dashboard
+        show_dashboard()
     else:
         show_login_page()
 
