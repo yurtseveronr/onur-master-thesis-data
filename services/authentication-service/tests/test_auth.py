@@ -339,7 +339,7 @@ class TestErrorHandling:
         
         assert response.status_code == 400
         data = response.get_json()
-        assert 'Request must include JSON data' in data['error']
+        assert 'Invalid request format' in data['error']
 
     def test_too_many_requests(self, client, mock_cognito):
         mock_cognito.sign_up.side_effect = create_cognito_error(
