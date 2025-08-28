@@ -14,6 +14,6 @@ ENV AWS_REGION=eu-central-1
 ENV DYNAMODB_MOVIE_TABLE=movies
 ENV DYNAMODB_SERIES_TABLE=TVSeries
 
-EXPOSE 8080
+EXPOSE 8084
 
 CMD ["npx", "ts-node", "src/app.ts"]
