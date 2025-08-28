@@ -88,11 +88,12 @@ class TestSignup:
         response = client.post('/auth/signup', 
             json={'email': 'existing@example.com', 'password': 'password123'})
         
-        assert response.status_code == 409
+        assert response.status_code == 200
         data = response.get_json()
         assert data['success'] == False
-        assert 'already registered' in data['error']
-        assert data['error_code'] == 'USER_EXISTS'
+        assert 'not verified' in data['error']
+        assert data['error_code'] == 'USER_UNCONFIRMED'
+        assert data['requires_confirmation'] == True
 
     def test_signup_existing_user_confirmed(self, client, mock_cognito):
         # First, sign_up raises UsernameExistsException

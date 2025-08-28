@@ -138,7 +138,7 @@ def signup():
             Password=password,
             UserAttributes=[{'Name': 'email', 'Value': email}]
         )
-
+        logger.info(f"Sign Up Response: {response}")
         logger.info(f"SIGNUP SUCCESS: User created for {email}, UserSub: {response['UserSub']}")
         return jsonify({
             'success': True,
