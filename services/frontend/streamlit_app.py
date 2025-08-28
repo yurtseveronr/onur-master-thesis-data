@@ -78,7 +78,7 @@ API_URLS = {
     'user': 'http://user.services.svc.cluster.local:8000',
     'movies': 'http://movies.services.svc.cluster.local:8081',
     'series': 'http://series.services.svc.cluster.local:8082',
-    'search': 'http://search.services.svc.cluster.local:8080',
+    'search': 'http://search.services.svc.cluster.local:8084',
     'chatbot': 'http://chatbot.ai.svc.cluster.local:8091',
     'personalize': 'http://personalize.recommendation.svc.cluster.local:8001'
 }
