@@ -92,11 +92,17 @@ class TestAuthFunctions:
     
     def test_is_logged_in_true(self):
         """Test is_logged_in when user is logged in"""
+        # Clear any existing session state
+        for key in ['token', 'user_data', 'username', 'current_page']:
+            if key in st.session_state:
+                del st.session_state[key]
+        
         # Mock session state
         st.session_state['token'] = 'test-token'
         st.session_state['user_data'] = {'email': 'test@example.com'}
         
-        assert is_logged_in() == True
+        result = is_logged_in()
+        assert result == True
         
         # Clean up
         del st.session_state['token']
@@ -105,15 +111,20 @@ class TestAuthFunctions:
     def test_is_logged_in_false(self):
         """Test is_logged_in when user is not logged in"""
         # Ensure no session state
-        if 'token' in st.session_state:
-            del st.session_state['token']
-        if 'user_data' in st.session_state:
-            del st.session_state['user_data']
+        for key in ['token', 'user_data', 'username', 'current_page']:
+            if key in st.session_state:
+                del st.session_state[key]
         
-        assert is_logged_in() == False
+        result = is_logged_in()
+        assert result == False
     
     def test_logout(self):
         """Test logout function"""
+        # Clear any existing session state
+        for key in ['token', 'user_data', 'username', 'current_page']:
+            if key in st.session_state:
+                del st.session_state[key]
+        
         # Set up session state
         st.session_state['token'] = 'test-token'
         st.session_state['user_data'] = {'email': 'test@example.com'}
