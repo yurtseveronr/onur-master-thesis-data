@@ -175,13 +175,18 @@ class APIClient:
     @staticmethod
     def confirm_user(email: str, code: str) -> Dict[str, Any]:
         """Confirm user registration with code"""
-        data = {'email': email, 'code': code}
+        data = {
+            'email': email,
+            'code': code
+        }
         return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/confirm", data)
 
     @staticmethod
     def resend_code(email: str) -> Dict[str, Any]:
-        """Resend verification code"""
-        data = {'email': email}
+        """Resend confirmation code"""
+        data = {
+            'email': email
+        }
         return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/resend", data)
 
     @staticmethod
@@ -310,7 +315,8 @@ def show_registration_form():
                             st.session_state.show_login_tab = True
                             st.rerun()
                         else:
-                            show_custom_message("error", f"Registration failed: {result['message']}")
+                            error_message = result.get('error', result.get('message', 'Unknown error'))
+                            show_custom_message("error", f"Registration failed: {error_message}")
             else:
                 show_custom_message("error", "Please fill in all fields!")
 
@@ -365,7 +371,8 @@ def show_verification_form():
                         st.session_state.registration_state = 'resend_verification'
                         st.rerun()
                     else:
-                        show_custom_message("error", f"Verification failed: {result['message']}")
+                        error_message = result.get('error', result.get('message', 'Unknown error'))
+                        show_custom_message("error", f"Verification failed: {error_message}")
             else:
                 show_custom_message("error", "Please enter a valid 6-digit verification code!")
         
@@ -462,6 +469,7 @@ def main():
     if 'initialized' not in st.session_state:
         st.session_state.initialized = True
         st.session_state.current_page = 'login'
+        st.session_state.registration_state = 'register'
     
     # Check if user is logged in
     if is_logged_in():
@@ -479,7 +487,15 @@ def main():
         # Show dashboard
         show_dashboard()
     else:
-        show_login_page()
+        # Check registration state
+        registration_state = st.session_state.get('registration_state', 'register')
+        
+        if registration_state == 'verify_email':
+            show_verification_form()
+        elif registration_state == 'resend_verification':
+            show_resend_verification()
+        else:
+            show_login_page()
 
 if __name__ == "__main__":
     main()
