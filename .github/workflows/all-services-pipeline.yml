@@ -226,9 +226,9 @@ jobs:
     - name: Deploy to Kubernetes
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
-        kubectl set image deployment/authentication-service authentication-service=708778582346.dkr.ecr.us-east-1.amazonaws.com/authentication-service:latest -n services
-        kubectl rollout restart deployment authentication -n services
-        kubectl rollout status deployment/authentication-service -n services --timeout=300s
+        kubectl set image deployment/authentication authentication=708778582346.dkr.ecr.us-east-1.amazonaws.com/authentication-service:latest -n services
+        kubectl rollout restart deployment/authentication -n services
+        kubectl rollout status deployment/authentication -n services --timeout=300s
 
   user-service:
     runs-on: [self-hosted]
