@@ -439,9 +439,10 @@ def show_login_page():
             email = st.text_input("Email", key="reg_email", placeholder="Enter your email")
             reg_password = st.text_input("Password", type="password", key="reg_password", placeholder="At least 6 characters")
             confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password")
-            register_button = st.form_submit_button("📝 Sign Up", use_container_width=True)
+            register_button = st.form_submit_button("📝 Sign Up", use_container_width=True, disabled=st.session_state.get('is_registering', False))
             
             if register_button:
+                st.session_state.is_registering = True
                 if all([full_name, reg_username, email, reg_password, confirm_password]):
                     if reg_password != confirm_password:
                         st.error("❌ Passwords don't match!")

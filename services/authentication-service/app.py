@@ -124,11 +124,21 @@ def signup():
             Password=password,
             UserAttributes=[{'Name': 'email', 'Value': email}]
         )
+        
+        # Auto-confirm the user
+        try:
+            cognito.admin_confirm_sign_up(
+                UserPoolId=USER_POOL_ID,
+                Username=email
+            )
+            logger.info(f"User auto-confirmed: {email}")
+        except Exception as e:
+            logger.warning(f"Auto-confirm failed: {str(e)}")
 
         logger.info(f"Signup successful: {email}")
         return jsonify({
             'success': True,
-            'message': 'Registration successful! Please check your email for verification code.',
+            'message': 'Registration successful! You can now login.',
             'userSub': response['UserSub']
         }), 200
 
