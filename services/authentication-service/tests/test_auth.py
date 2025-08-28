@@ -88,8 +88,8 @@ def test_login_success(mock_auth, client):
     mock_auth.return_value = {
         "AuthenticationResult": {
             "AccessToken": "dummy-access-token",
-            "RefreshToken": "dummy-refresh-token",
-            "IdToken": "dummy-id-token"
+            "IdToken": "dummy-id-token",
+            "RefreshToken": "dummy-refresh-token"
         }
     }
 
@@ -100,7 +100,9 @@ def test_login_success(mock_auth, client):
 
     assert response.status_code == 200
     data = response.get_json()
-    assert data["tokens"]["AccessToken"] == "dummy-access-token"
+    assert data["success"] == True
+    assert data["token"] == "dummy-access-token"
+    assert data["user"]["email"] == "test@example.com"
 
 
 @patch("app.cognito.initiate_auth")
