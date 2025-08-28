@@ -185,7 +185,7 @@ def login():
 def login_root():
     try:
         data = request.get_json()
-        username = data['username']  # Frontend username olarak gönderiyor
+        username = data['username']  
         password = data['password']
 
         logger.info(f"Login attempt: {username}")
