@@ -94,7 +94,7 @@ jobs:
     - name: Code Coverage Report
       run: |
         cd services/frontend
-        python -m pytest test_streamlit_app.py --cov=streamlit_app --cov-report=xml --cov-fail-under=20 -v
+        python -m pytest test_frontend.py --cov=streamlit_app --cov-report=xml --cov-fail-under=20 -v
     
     - name: Static Code Analysis
       run: |
