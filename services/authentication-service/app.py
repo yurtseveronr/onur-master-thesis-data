@@ -98,6 +98,26 @@ def signup():
 
         logger.info(f"Signup attempt: {email}")
         
+        # Check if user already exists first
+        try:
+            cognito.admin_get_user(
+                UserPoolId=USER_POOL_ID,
+                Username=email
+            )
+            # User exists, return success message
+            logger.info(f"User already exists: {email}")
+            return jsonify({
+                'success': True,
+                'message': 'Registration successful! Please check your email for verification code.',
+                'userSub': 'existing_user'
+            }), 200
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'UserNotFoundException':
+                # User doesn't exist, proceed with signup
+                pass
+            else:
+                return handle_cognito_error(e)
+        
         response = cognito.sign_up(
             ClientId=CLIENT_ID,
             Username=email,
