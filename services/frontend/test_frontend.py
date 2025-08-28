@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 import sys
 import os
 
-
+# Add the frontend directory to the path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from streamlit_app import APIClient, show_custom_message, is_logged_in, logout
@@ -92,12 +92,6 @@ class TestAuthFunctions:
     
     def test_is_logged_in_true(self):
         """Test is_logged_in when user is logged in"""
-        # Clear session state first
-        if 'token' in st.session_state:
-            del st.session_state['token']
-        if 'user_data' in st.session_state:
-            del st.session_state['user_data']
-        
         # Mock session state
         st.session_state['token'] = 'test-token'
         st.session_state['user_data'] = {'email': 'test@example.com'}
@@ -120,16 +114,6 @@ class TestAuthFunctions:
     
     def test_logout(self):
         """Test logout function"""
-        # Clear session state first
-        if 'token' in st.session_state:
-            del st.session_state['token']
-        if 'user_data' in st.session_state:
-            del st.session_state['user_data']
-        if 'username' in st.session_state:
-            del st.session_state['username']
-        if 'current_page' in st.session_state:
-            del st.session_state['current_page']
-        
         # Set up session state
         st.session_state['token'] = 'test-token'
         st.session_state['user_data'] = {'email': 'test@example.com'}
