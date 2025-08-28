@@ -456,8 +456,10 @@ def show_login_page():
                             st.success("✅ Account created successfully! You can now sign in.")
                             st.balloons()
                             
+                            # Prevent double submission
                             st.session_state.show_login_tab = True
-                            st.rerun()
+                            st.session_state.registration_success = True
+                            # Don't call st.rerun() here - let the form reset naturally
                         else:
                             st.error(f"❌ Registration error: {result['message']}")
                 else:
