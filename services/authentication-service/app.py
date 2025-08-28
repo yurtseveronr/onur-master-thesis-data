@@ -104,21 +104,13 @@ def signup():
                 UserPoolId=USER_POOL_ID,
                 Username=email
             )
-            # User exists, auto-confirm and return success
-            try:
-                cognito.admin_confirm_sign_up(
-                    UserPoolId=USER_POOL_ID,
-                    Username=email
-                )
-                logger.info(f"Existing user auto-confirmed: {email}")
-            except Exception as e:
-                logger.warning(f"Auto-confirm failed: {str(e)}")
-            
+            # User exists, return error
+            logger.warning(f"User already exists: {email}")
             return jsonify({
-                'success': True,
-                'message': 'Registration successful! You can now login.',
-                'userSub': 'existing_user'
-            }), 200
+                'success': False,
+                'error': 'This email is already registered! Please login.',
+                'error_code': 'USER_EXISTS'
+            }), 409
         except ClientError as e:
             if e.response['Error']['Code'] == 'UserNotFoundException':
                 # User doesn't exist, proceed with signup
@@ -126,28 +118,20 @@ def signup():
             else:
                 return handle_cognito_error(e)
         
+        # Create new user
         response = cognito.sign_up(
             ClientId=CLIENT_ID,
             Username=email,
             Password=password,
             UserAttributes=[{'Name': 'email', 'Value': email}]
         )
-        
-        # Auto-confirm the user
-        try:
-            cognito.admin_confirm_sign_up(
-                UserPoolId=USER_POOL_ID,
-                Username=email
-            )
-            logger.info(f"User auto-confirmed: {email}")
-        except Exception as e:
-            logger.warning(f"Auto-confirm failed: {str(e)}")
 
         logger.info(f"Signup successful: {email}")
         return jsonify({
             'success': True,
-            'message': 'Registration successful! You can now login.',
-            'userSub': response['UserSub']
+            'message': 'Registration successful! Please check your email for verification code.',
+            'userSub': response['UserSub'],
+            'requires_confirmation': True
         }), 200
 
     except ClientError as e:
@@ -205,7 +189,7 @@ def confirm_signup():
         logger.info(f"Confirmation successful: {email}")
         return jsonify({
             'success': True,
-            'message': 'Email confirmed successfully! You can now login.'
+            'message': 'Email verified successfully! You can now login.'
         }), 200
 
     except ClientError as e:
@@ -235,8 +219,14 @@ def login():
 
         logger.info(f"Login successful: {email}")
         return jsonify({
-            'message': 'Welcome! Login successful',
-            'tokens': response['AuthenticationResult']
+            'success': True,
+            'message': 'Login successful!',
+            'token': response['AuthenticationResult']['AccessToken'],
+            'user': {
+                'email': email,
+                'username': email.split('@')[0],  # Email'den username oluştur
+                'full_name': email.split('@')[0]  # Geçici olarak
+            }
         }), 200
 
     except ClientError as e:

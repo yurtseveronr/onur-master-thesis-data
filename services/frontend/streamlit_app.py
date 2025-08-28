@@ -314,6 +314,15 @@ class APIClient:
         return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/signup", data)
 
     @staticmethod
+    def confirm_user(email: str, code: str) -> Dict[str, Any]:
+        """Confirm user registration with code"""
+        data = {
+            'email': email,
+            'code': code
+        }
+        return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/confirm", data)
+
+    @staticmethod
     def login_user(username: str, password: str) -> Dict[str, Any]:
         """User login"""
         data = {
@@ -403,7 +412,7 @@ def show_login_page():
         st.subheader("Sign In")
         
         with st.form("login_form"):
-            username = st.text_input("Username", placeholder="Enter your username")
+            username = st.text_input("Email", placeholder="Enter your email")
             password = st.text_input("Password", type="password", placeholder="Enter your password")
             login_button = st.form_submit_button("🚀 Sign In", use_container_width=True)
             
@@ -433,36 +442,76 @@ def show_login_page():
         st.markdown('<div class="auth-container">', unsafe_allow_html=True)
         st.subheader("Sign Up")
         
-        with st.form("register_form"):
-            full_name = st.text_input("Full Name", placeholder="Enter your full name")
-            reg_username = st.text_input("Username", key="reg_username", placeholder="Choose a username")
-            email = st.text_input("Email", key="reg_email", placeholder="Enter your email")
-            reg_password = st.text_input("Password", type="password", key="reg_password", placeholder="At least 6 characters")
-            confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password")
-            register_button = st.form_submit_button("📝 Sign Up", use_container_width=True, disabled=st.session_state.get('is_registering', False))
+        # Check if we need to show confirmation form
+        if st.session_state.get('show_confirmation', False):
+            st.info("📧 Verification code sent to your email!")
             
-            if register_button:
-                st.session_state.is_registering = True
-                if all([full_name, reg_username, email, reg_password, confirm_password]):
-                    if reg_password != confirm_password:
-                        st.error("❌ Passwords don't match!")
-                    elif len(reg_password) < 6:
-                        st.error("❌ Password must be at least 6 characters!")
-                    else:
-                        with st.spinner("Creating account..."):
-                            result = APIClient.register_user(reg_username, email, reg_password, full_name)
+            with st.form("confirmation_form"):
+                confirmation_code = st.text_input("Verification Code", placeholder="Enter the 6-digit code from your email")
+                confirm_button = st.form_submit_button("✅ Verify", use_container_width=True)
+                
+                if confirm_button:
+                    if confirmation_code:
+                        with st.spinner("Verifying..."):
+                            result = APIClient.confirm_user(st.session_state.registration_email, confirmation_code)
                         
                         if result['success']:
-                            st.success("✅ Account created successfully! Please check your email for verification code.")
+                            st.success("✅ Email verified! You can now login.")
                             st.balloons()
                             
-                            # Show confirmation form
-                            st.session_state.show_confirmation = True
-                            st.session_state.registration_email = email
+                            # Clear confirmation state and show login tab
+                            del st.session_state.show_confirmation
+                            del st.session_state.registration_email
+                            st.session_state.show_login_tab = True
+                            st.rerun()
                         else:
-                            st.error(f"❌ Registration error: {result['message']}")
-                else:
-                    st.error("⚠️ Please fill in all fields!")
+                            st.error(f"❌ Verification error: {result['message']}")
+                    else:
+                        st.error("⚠️ Please enter the verification code!")
+            
+            # Back to registration button
+            if st.button("← Back to registration"):
+                del st.session_state.show_confirmation
+                del st.session_state.registration_email
+                st.rerun()
+        
+        else:
+            # Normal registration form
+            with st.form("register_form"):
+                full_name = st.text_input("Full Name", placeholder="Enter your full name")
+                reg_username = st.text_input("Username", key="reg_username", placeholder="Choose a username")
+                email = st.text_input("Email", key="reg_email", placeholder="Enter your email")
+                reg_password = st.text_input("Password", type="password", key="reg_password", placeholder="At least 8 characters")
+                confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password")
+                register_button = st.form_submit_button("📝 Sign Up", use_container_width=True, disabled=st.session_state.get('is_registering', False))
+                
+                if register_button:
+                    st.session_state.is_registering = True
+                    if all([full_name, reg_username, email, reg_password, confirm_password]):
+                        if reg_password != confirm_password:
+                            st.error("❌ Passwords don't match!")
+                        elif len(reg_password) < 8:
+                            st.error("❌ Password must be at least 8 characters!")
+                        else:
+                            with st.spinner("Creating account..."):
+                                result = APIClient.register_user(reg_username, email, reg_password, full_name)
+                            
+                            if result['success']:
+                                st.success("✅ Account created! Verification code sent to your email.")
+                                st.balloons()
+                                
+                                # Show confirmation form
+                                st.session_state.show_confirmation = True
+                                st.session_state.registration_email = email
+                                st.rerun()
+                            else:
+                                if result.get('error_code') == 'USER_EXISTS':
+                                    st.error("❌ This email is already registered! Please login.")
+                                    st.session_state.show_login_tab = True
+                                else:
+                                    st.error(f"❌ Registration error: {result['message']}")
+                    else:
+                        st.error("⚠️ Please fill in all fields!")
         
         st.markdown('</div>', unsafe_allow_html=True)
 
