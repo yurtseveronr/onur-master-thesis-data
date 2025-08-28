@@ -107,6 +107,7 @@ def signup():
 
         logger.info(f"Signup successful: {email}")
         return jsonify({
+            'success': True,
             'message': 'Registration successful! Please check your email for verification code.',
             'userSub': response['UserSub']
         }), 200
