@@ -13,7 +13,7 @@ from config import USER_POOL_ID, CLIENT_ID, REGION, DEBUG, PORT
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# Simple console logging
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
