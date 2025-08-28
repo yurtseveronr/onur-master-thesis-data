@@ -75,7 +75,7 @@ st.markdown("""
 # API Base URLs
 API_URLS = {
     'auth': 'http://authentication.services.svc.cluster.local:5000',
-    'user': 'http://user.services.svc.cluster.local:8000',
+    'user': 'http://user.services.svc.cluster.local:8080',
     'movies': 'http://movies.services.svc.cluster.local:8081',
     'series': 'http://series.services.svc.cluster.local:8082',
     'search': 'http://search.services.svc.cluster.local:8080',
@@ -157,6 +157,26 @@ class APIClient:
     def get_recommendations() -> Dict[str, Any]:
         """Get personalized recommendations"""
         return APIClient.make_request('GET', f"{API_URLS['personalize']}/recommendations")
+
+    @staticmethod
+    def get_favorite_movies(email: str) -> Dict[str, Any]:
+        """Get user's favorite movies"""
+        return APIClient.make_request('GET', f"{API_URLS['user']}/api/favorites/movies/{email}")
+
+    @staticmethod
+    def get_favorite_series(email: str) -> Dict[str, Any]:
+        """Get user's favorite series"""
+        return APIClient.make_request('GET', f"{API_URLS['user']}/api/favorites/series/{email}")
+
+    @staticmethod
+    def add_favorite_movie(email: str, title: str) -> Dict[str, Any]:
+        """Add movie to favorites"""
+        return APIClient.make_request('POST', f"{API_URLS['user']}/api/favorites/movies/{email}/{title}")
+
+    @staticmethod
+    def add_favorite_series(email: str, title: str) -> Dict[str, Any]:
+        """Add series to favorites"""
+        return APIClient.make_request('POST', f"{API_URLS['user']}/api/favorites/series/{email}/{title}")
 
     @staticmethod
     def chat_with_bot(message: str) -> Dict[str, Any]:
@@ -256,25 +276,213 @@ def show_dashboard():
     st.markdown('<div class="main-header"><h1>🎬 Welcome to Your Dashboard</h1></div>', unsafe_allow_html=True)
     
     user = st.session_state.get('user_data', {})
-    st.write(f"Welcome back, {user.get('username', 'User')}!")
+    username = user.get('username', 'User')
+    st.write(f"Welcome back, {username}!")
     
-    # Sample dashboard content
-    col1, col2, col3 = st.columns(3)
+    # Get user favorites
+    email = st.session_state.get('username', '')
+    if email:
+        # Get favorite movies count
+        movies_result = APIClient.get_favorite_movies(email)
+        movies_count = len(movies_result.get('data', [])) if movies_result.get('success') else 0
+        
+        # Get favorite series count
+        series_result = APIClient.get_favorite_series(email)
+        series_count = len(series_result.get('data', [])) if series_result.get('success') else 0
+        
+        # Get recommendations
+        recommendations_result = APIClient.get_recommendations()
+        recommendations = recommendations_result.get('data', []) if recommendations_result.get('success') else []
+    else:
+        movies_count = 0
+        series_count = 0
+        recommendations = []
+    
+    # Dashboard metrics
+    col1, col2 = st.columns(2)
     
     with col1:
-        st.metric("Movies Watched", "42", "5")
+        st.metric("Movies Watched", movies_count)
     with col2:
-        st.metric("TV Shows", "18", "2")
-    with col3:
-        st.metric("Watch Time", "156h", "12h")
+        st.metric("TV Shows", series_count)
     
-    st.subheader("Continue Watching")
-    st.info("🎬 The Matrix Reloaded - 45 minutes left")
-    st.info("📺 Breaking Bad S3E8 - New episode")
-    
+    # Recommended for You
     st.subheader("Recommended for You")
-    st.success("🎬 Inception - Based on your sci-fi preferences")
-    st.success("📺 Westworld - You might enjoy this")
+    if recommendations:
+        for rec in recommendations:
+            st.success(f"🎬 {rec.get('title', 'Unknown')} - {rec.get('reason', 'Recommended for you')}")
+    else:
+        st.info("No personalized recommendations found")
+    
+    # Navigation tabs
+    st.subheader("Navigation")
+    tab1, tab2, tab3, tab4 = st.tabs(["🎬 Movies", "📺 Series", "🔍 Search", "🤖 Chatbot"])
+    
+    with tab1:
+        show_movies_page(email)
+    
+    with tab2:
+        show_series_page(email)
+    
+    with tab3:
+        show_search_page(email)
+    
+    with tab4:
+        show_chatbot_page()
+
+def show_movies_page(email: str):
+    """Movies page showing user's favorite movies"""
+    st.subheader("🎬 Your Favorite Movies")
+    
+    if not email:
+        st.warning("Please login to view your favorite movies")
+        return
+    
+    result = APIClient.get_favorite_movies(email)
+    
+    if result.get('success'):
+        movies = result.get('data', [])
+        if movies:
+            # Display movies in a grid
+            cols = st.columns(3)
+            for i, movie in enumerate(movies):
+                with cols[i % 3]:
+                    st.write(f"**{movie.get('Title', 'Unknown')}**")
+                    # Try to get poster from search service
+                    search_result = APIClient.search_movies(movie.get('Title', ''))
+                    if search_result.get('success') and search_result.get('data', {}).get('data', {}).get('Poster'):
+                        poster_url = search_result['data']['data']['Poster']
+                        if poster_url != "N/A":
+                            st.image(poster_url, width=150, caption=movie.get('Title', ''))
+                    st.write(f"IMDB ID: {movie.get('imdbID', 'Unknown')}")
+                    st.divider()
+        else:
+            st.info("No favorite movies found. Add some movies to your favorites!")
+    else:
+        st.error(f"Error loading movies: {result.get('message', 'Unknown error')}")
+
+def show_series_page(email: str):
+    """Series page showing user's favorite series"""
+    st.subheader("📺 Your Favorite Series")
+    
+    if not email:
+        st.warning("Please login to view your favorite series")
+        return
+    
+    result = APIClient.get_favorite_series(email)
+    
+    if result.get('success'):
+        series = result.get('data', [])
+        if series:
+            # Display series in a grid
+            cols = st.columns(3)
+            for i, show in enumerate(series):
+                with cols[i % 3]:
+                    st.write(f"**{show.get('Title', 'Unknown')}**")
+                    # Try to get poster from search service
+                    search_result = APIClient.search_series(show.get('Title', ''))
+                    if search_result.get('success') and search_result.get('data', {}).get('data', {}).get('Poster'):
+                        poster_url = search_result['data']['data']['Poster']
+                        if poster_url != "N/A":
+                            st.image(poster_url, width=150, caption=show.get('Title', ''))
+                    st.write(f"IMDB ID: {show.get('imdbID', 'Unknown')}")
+                    st.divider()
+        else:
+            st.info("No favorite series found. Add some series to your favorites!")
+    else:
+        st.error(f"Error loading series: {result.get('message', 'Unknown error')}")
+
+def show_search_page(email: str):
+    """Search page for movies and series"""
+    st.subheader("🔍 Search Movies & Series")
+    
+    search_type = st.selectbox("Search for:", ["movie", "series"])
+    search_query = st.text_input("Enter title to search:", placeholder="e.g., Matrix, Breaking Bad")
+    
+    if st.button("Search"):
+        if search_query:
+            with st.spinner("Searching..."):
+                if search_type == "movie":
+                    result = APIClient.search_movies(search_query)
+                else:
+                    result = APIClient.search_series(search_query)
+            
+            if result.get('success'):
+                data = result.get('data', {}).get('data', {})
+                if data and data.get('Response') == 'True':
+                    # Display search result
+                    col1, col2 = st.columns([1, 2])
+                    
+                    with col1:
+                        poster_url = data.get('Poster', '')
+                        if poster_url and poster_url != "N/A":
+                            st.image(poster_url, width=200, caption=data.get('Title', ''))
+                    
+                    with col2:
+                        st.write(f"**Title:** {data.get('Title', 'Unknown')}")
+                        st.write(f"**Year:** {data.get('Year', 'Unknown')}")
+                        st.write(f"**Genre:** {data.get('Genre', 'Unknown')}")
+                        st.write(f"**Director:** {data.get('Director', 'Unknown')}")
+                        st.write(f"**Plot:** {data.get('Plot', 'Unknown')}")
+                        st.write(f"**Rating:** {data.get('imdbRating', 'Unknown')}/10")
+                        
+                        # Add to favorites button
+                        if email:
+                            if st.button(f"❤️ Add to Favorites"):
+                                if search_type == "movie":
+                                    add_result = APIClient.add_favorite_movie(email, data.get('Title', ''))
+                                else:
+                                    add_result = APIClient.add_favorite_series(email, data.get('Title', ''))
+                                
+                                if add_result.get('success'):
+                                    st.success("Added to favorites!")
+                                    st.rerun()
+                                else:
+                                    st.error(f"Error: {add_result.get('message', 'Unknown error')}")
+                        else:
+                            st.warning("Login to add to favorites")
+                else:
+                    st.warning("Not Found")
+            else:
+                st.error(f"Search error: {result.get('message', 'Unknown error')}")
+
+def show_chatbot_page():
+    """Chatbot page"""
+    st.subheader("🤖 AI Chatbot")
+    st.write("Chat with our AI assistant about movies and series!")
+    
+    # Initialize chat history
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    
+    # Display chat history
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+    
+    # Chat input
+    if prompt := st.chat_input("Ask me about movies or series..."):
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        # Display user message
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        
+        # Get bot response
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                result = APIClient.chat_with_bot(prompt)
+                
+                if result.get('success'):
+                    response = result.get('data', {}).get('response', 'Sorry, I could not process your request.')
+                else:
+                    response = f"Error: {result.get('message', 'Unknown error')}"
+                
+                st.markdown(response)
+                
+                # Add assistant response to chat history
+                st.session_state.messages.append({"role": "assistant", "content": response})
 
 def logout():
     """Logout user"""
