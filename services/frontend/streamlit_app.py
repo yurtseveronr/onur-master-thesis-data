@@ -310,7 +310,12 @@ def show_registration_form():
                             st.session_state.registration_email = email
                             st.session_state.registration_state = 'verify_email'
                             st.rerun()
-                        elif error_code in ['USER_EXISTS_VERIFIED', 'UsernameExistsException']:
+                        elif error_code == 'UsernameExistsException':
+                            show_custom_message("warning", "This email is already registered but not verified.")
+                            st.session_state.registration_email = email
+                            st.session_state.registration_state = 'verify_email'
+                            st.rerun()
+                        elif error_code == 'USER_EXISTS_VERIFIED':
                             show_custom_message("error", "This email is already registered. Please sign in instead.")
                             st.session_state.show_login_tab = True
                             st.rerun()

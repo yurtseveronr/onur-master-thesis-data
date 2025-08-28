@@ -151,7 +151,48 @@ def signup():
         error_code = e.response['Error']['Code']
         logger.error(f"SIGNUP COGNITO ERROR: {error_code} for {email}")
         
-        # Handle all Cognito errors through handle_cognito_error
+        if error_code == 'UsernameExistsException':
+            logger.info(f"USER EXISTS: Checking status for {email}")
+            try:
+                user_info = cognito.admin_get_user(
+                    UserPoolId=USER_POOL_ID,
+                    Username=email
+                )
+                
+                user_status = user_info['UserStatus']
+                logger.info(f"USER STATUS CHECK: {user_status} for {email}")
+                
+                if user_status == 'UNCONFIRMED':
+                    logger.info(f"RESPONSE: USER_UNCONFIRMED for {email}")
+                    return jsonify({
+                        'success': False,
+                        'error': 'Email already registered but not verified. Please check your inbox for verification code.',
+                        'error_code': 'USER_UNCONFIRMED',
+                        'requires_confirmation': True,
+                        'email': email
+                    }), 200
+                else:
+                    logger.info(f"RESPONSE: USER_EXISTS_VERIFIED for {email}")
+                    return jsonify({
+                        'success': False,
+                        'error': 'This email is already registered and verified. Please login instead.',
+                        'error_code': 'USER_EXISTS_VERIFIED',
+                        'email': email
+                    }), 409
+                    
+            except ClientError as get_user_error:
+                logger.error(f"ADMIN_GET_USER FAILED: {get_user_error.response}")
+                logger.info(f"FALLBACK RESPONSE: USER_UNCONFIRMED for {email}")
+                return jsonify({
+                    'success': False,
+                    'error': 'Email already registered. Please check your inbox for verification code or try to login.',
+                    'error_code': 'USER_UNCONFIRMED',
+                    'requires_confirmation': True,
+                    'email': email
+                }), 200
+        
+        # Other Cognito errors
+        logger.info(f"OTHER COGNITO ERROR: Delegating to handle_cognito_error")
         return handle_cognito_error(e)
         
     except Exception as e:
