@@ -1,3 +1,108 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: onur-master-thesis-app-services
+  namespace: gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/yurtseveronr/onur-master-thesis-data
+    targetRevision: HEAD
+    path: kubernetes_manifest/services
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+  revisionHistoryLimit: 10 
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: onur-master-thesis-app-devops
+  namespace: gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/yurtseveronr/onur-master-thesis-data
+    targetRevision: HEAD
+    path: kubernetes_manifest/devops
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+  revisionHistoryLimit: 10 
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: onur-master-thesis-app-streaming
+  namespace: gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/yurtseveronr/onur-master-thesis-data
+    targetRevision: HEAD
+    path: kubernetes_manifest/streaming
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+  revisionHistoryLimit: 10 
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: onur-master-thesis-app-ai
+  namespace: gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/yurtseveronr/onur-master-thesis-data
+    targetRevision: HEAD
+    path: kubernetes_manifest/ai
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+  revisionHistoryLimit: 10 
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -11,6 +116,32 @@ spec:
     repoURL: https://github.com/yurtseveronr/onur-master-thesis-data
     targetRevision: HEAD
     path: kubernetes_manifest
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+  revisionHistoryLimit: 10 
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: onur-master-thesis-app-recommendation
+  namespace: gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/yurtseveronr/onur-master-thesis-data
+    targetRevision: HEAD
+    path: kubernetes_manifest/recommendation
   destination:
     server: https://kubernetes.default.svc
     namespace: default

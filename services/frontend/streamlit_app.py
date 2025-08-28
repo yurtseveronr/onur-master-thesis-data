@@ -328,7 +328,41 @@ def show_dashboard():
         show_search_page(email)
     
     with tab4:
-        show_chatbot_page()
+        st.subheader("🤖 AI Chatbot")
+        st.write("Chat with our AI assistant about movies and series!")
+    
+    # Chat input - moved outside tabs to avoid StreamlitAPIException
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    
+    # Display chat history
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+    
+    # Chat input
+    if prompt := st.chat_input("Ask me about movies or series..."):
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        # Display user message
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        
+        # Get bot response
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                result = APIClient.chat_with_bot(prompt)
+                
+                if result.get('success'):
+                    response = result.get('data', {}).get('response', 'Sorry, I could not process your request.')
+                else:
+                    response = f"Error: {result.get('message', 'Unknown error')}"
+                
+                st.markdown(response)
+                
+                # Add assistant response to chat history
+                st.session_state.messages.append({"role": "assistant", "content": response})
 
 def show_movies_page(email: str):
     """Movies page showing user's favorite movies"""
@@ -446,43 +480,7 @@ def show_search_page(email: str):
             else:
                 st.error(f"Search error: {result.get('message', 'Unknown error')}")
 
-def show_chatbot_page():
-    """Chatbot page"""
-    st.subheader("🤖 AI Chatbot")
-    st.write("Chat with our AI assistant about movies and series!")
-    
-    # Initialize chat history
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-    
-    # Display chat history
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-    
-    # Chat input
-    if prompt := st.chat_input("Ask me about movies or series..."):
-        # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        
-        # Display user message
-        with st.chat_message("user"):
-            st.markdown(prompt)
-        
-        # Get bot response
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                result = APIClient.chat_with_bot(prompt)
-                
-                if result.get('success'):
-                    response = result.get('data', {}).get('response', 'Sorry, I could not process your request.')
-                else:
-                    response = f"Error: {result.get('message', 'Unknown error')}"
-                
-                st.markdown(response)
-                
-                # Add assistant response to chat history
-                st.session_state.messages.append({"role": "assistant", "content": response})
+
 
 def logout():
     """Logout user"""
