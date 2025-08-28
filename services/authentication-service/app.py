@@ -172,14 +172,27 @@ def signup():
                 logger.info(f"USER STATUS CHECK: {user_status} for {email}")
                 
                 if user_status == 'UNCONFIRMED':
-                    logger.info(f"RESPONSE: USER_UNCONFIRMED for {email}")
-                    return jsonify({
-                        'success': False,
-                        'error': 'Email already registered but not verified. Please check your inbox for verification code.',
-                        'error_code': 'USER_UNCONFIRMED',
-                        'requires_confirmation': True,
-                        'email': email
-                    }), 200
+                    logger.info(f"USER UNCONFIRMED: Auto-confirming {email}")
+                    try:
+                        cognito.admin_confirm_sign_up(
+                            UserPoolId=USER_POOL_ID,
+                            Username=email
+                        )
+                        logger.info(f"User auto-confirmed: {email}")
+                        return jsonify({
+                            'success': True,
+                            'message': 'Registration successful! You can now login.',
+                            'userSub': 'existing_user'
+                        }), 200
+                    except Exception as e:
+                        logger.warning(f"Auto-confirm failed: {str(e)}")
+                        return jsonify({
+                            'success': False,
+                            'error': 'Email already registered but not verified. Please check your inbox for verification code.',
+                            'error_code': 'USER_UNCONFIRMED',
+                            'requires_confirmation': True,
+                            'email': email
+                        }), 200
                 else:
                     logger.info(f"RESPONSE: USER_EXISTS_VERIFIED for {email}")
                     return jsonify({
