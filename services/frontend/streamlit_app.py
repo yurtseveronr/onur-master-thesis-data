@@ -449,34 +449,9 @@ def show_dashboard():
         # Get favorite series count
         series_result = APIClient.get_favorite_series(email)
         series_count = len(series_result.get('data', [])) if series_result.get('success') else 0
-        
-        # Get recommendations
-        recommendations_result = APIClient.get_recommendations(email)
-        # Handle nested data structure
-        if recommendations_result.get('success'):
-            nested_data = recommendations_result.get('data', {})
-            if isinstance(nested_data, dict) and nested_data.get('success'):
-                recommendations = nested_data.get('data', [])
-            else:
-                recommendations = nested_data if isinstance(nested_data, list) else []
-        else:
-            recommendations = []
-        
-        # Get series recommendations
-        series_recommendations_result = APIClient.get_series_recommendations(email)
-        # Handle nested data structure for series
-        if series_recommendations_result.get('success'):
-            nested_data = series_recommendations_result.get('data', {})
-            if isinstance(nested_data, dict) and nested_data.get('success'):
-                series_recommendations = nested_data.get('data', [])
-            else:
-                series_recommendations = nested_data if isinstance(nested_data, list) else []
-        else:
-            series_recommendations = []
     else:
         movies_count = 0
         series_count = 0
-        recommendations = []
     
     # Dashboard metrics
     col1, col2 = st.columns(2)
@@ -486,8 +461,104 @@ def show_dashboard():
     with col2:
         st.metric("TV Shows", series_count)
     
-    # Recommended for You
-    st.subheader("Recommended for You")
+    # About section
+    st.subheader("About")
+    st.write("Bu uygulama Marmara Üniversitesi Bilgisayar Mühendisliği Tezli Yüksek Lisans öğrencisi Onur Yurtsever tarafından geliştirilmiştir. Uygulamanın amacı yeni nesil yazılım geliştirme yöntemlerinin, yazılım geliştirme süreçlerine olan etkisi incelenmiş, metrikler sayısal olarak ortaya konmuştur.")
+    st.write("This application was developed by Onur Yurtsever, a Master's thesis student in Computer Engineering at Marmara University. The purpose of the application was to examine the impact of next-generation software development methods on software development processes and to present numerical metrics.")
+
+def show_movies_page(email: str):
+    """Movies page showing user's favorite movies"""
+    st.subheader("🎬 Your Favorite Movies")
+    
+    if not email:
+        st.warning("Please login to view your favorite movies")
+        return
+    
+    result = APIClient.get_favorite_movies(email)
+    
+    if result.get('success'):
+        movies = result.get('data', [])
+        if movies:
+            # Display movies in a grid
+            cols = st.columns(3)
+            for i, movie in enumerate(movies):
+                with cols[i % 3]:
+                    st.write(f"**{movie.get('Title', 'Unknown')}**")
+                    # Try to get poster from search service
+                    search_result = APIClient.search_movies(movie.get('Title', ''))
+                    if search_result.get('success') and search_result.get('data', {}).get('data', {}).get('Poster'):
+                        poster_url = search_result['data']['data']['Poster']
+                        if poster_url != "N/A":
+                            st.image(poster_url, width=150, caption=movie.get('Title', ''))
+                    st.write(f"IMDB ID: {movie.get('imdbID', 'Unknown')}")
+                    st.divider()
+        else:
+            st.info("No favorite movies found. Add some movies to your favorites!")
+    else:
+        st.error(f"Error loading movies: {result.get('message', 'Unknown error')}")
+
+def show_series_page(email: str):
+    """Series page showing user's favorite series"""
+    st.subheader("📺 Your Favorite Series")
+    
+    if not email:
+        st.warning("Please login to view your favorite series")
+        return
+    
+    result = APIClient.get_favorite_series(email)
+    
+    if result.get('success'):
+        series = result.get('data', [])
+        if series:
+            # Display series in a grid
+            cols = st.columns(3)
+            for i, show in enumerate(series):
+                with cols[i % 3]:
+                    st.write(f"**{show.get('Title', 'Unknown')}**")
+                    # Try to get poster from search service
+                    search_result = APIClient.search_series(show.get('Title', ''))
+                    if search_result.get('success') and search_result.get('data', {}).get('data', {}).get('Poster'):
+                        poster_url = search_result['data']['data']['Poster']
+                        if poster_url != "N/A":
+                            st.image(poster_url, width=150, caption=show.get('Title', ''))
+                    st.write(f"IMDB ID: {show.get('imdbID', 'Unknown')}")
+                    st.divider()
+        else:
+            st.info("No favorite series found. Add some series to your favorites!")
+    else:
+        st.error(f"Error loading series: {result.get('message', 'Unknown error')}")
+
+def show_recommendations_page(email: str):
+    """Recommendations page"""
+    st.subheader("🎯 Recommended for You")
+    
+    if not email:
+        st.warning("Please login to view recommendations")
+        return
+    
+    # Get recommendations
+    recommendations_result = APIClient.get_recommendations(email)
+    # Handle nested data structure
+    if recommendations_result.get('success'):
+        nested_data = recommendations_result.get('data', {})
+        if isinstance(nested_data, dict) and nested_data.get('success'):
+            recommendations = nested_data.get('data', [])
+        else:
+            recommendations = nested_data if isinstance(nested_data, list) else []
+    else:
+        recommendations = []
+    
+    # Get series recommendations
+    series_recommendations_result = APIClient.get_series_recommendations(email)
+    # Handle nested data structure for series
+    if series_recommendations_result.get('success'):
+        nested_data = series_recommendations_result.get('data', {})
+        if isinstance(nested_data, dict) and nested_data.get('success'):
+            series_recommendations = nested_data.get('data', [])
+        else:
+            series_recommendations = nested_data if isinstance(nested_data, list) else []
+    else:
+        series_recommendations = []
     
     # Movies and Series recommendations in tabs
     rec_tab1, rec_tab2 = st.tabs(["🎬 Movies", "📺 Series"])
@@ -568,25 +639,13 @@ def show_dashboard():
                     st.success(f"📺 {rec}")
         else:
             st.info("No series recommendations found")
+
+def show_chatbot_page():
+    """Chatbot page"""
+    st.subheader("🤖 AI Chatbot")
+    st.write("Chat with our AI assistant about movies and series!")
     
-    # Navigation tabs
-    st.subheader("Navigation")
-    tab1, tab2, tab3, tab4 = st.tabs(["🎬 Movies", "📺 Series", "🔍 Search", "🤖 Chatbot"])
-    
-    with tab1:
-        show_movies_page(email)
-    
-    with tab2:
-        show_series_page(email)
-    
-    with tab3:
-        show_search_page(email)
-    
-    with tab4:
-        st.subheader("🤖 AI Chatbot")
-        st.write("Chat with our AI assistant about movies and series!")
-    
-    # Chat input - moved outside tabs to avoid StreamlitAPIException
+    # Chat input
     if "messages" not in st.session_state:
         st.session_state.messages = []
     
@@ -618,68 +677,6 @@ def show_dashboard():
                 
                 # Add assistant response to chat history
                 st.session_state.messages.append({"role": "assistant", "content": response})
-
-def show_movies_page(email: str):
-    """Movies page showing user's favorite movies"""
-    st.subheader("🎬 Your Favorite Movies")
-    
-    if not email:
-        st.warning("Please login to view your favorite movies")
-        return
-    
-    result = APIClient.get_favorite_movies(email)
-    
-    if result.get('success'):
-        movies = result.get('data', [])
-        if movies:
-            # Display movies in a grid
-            cols = st.columns(3)
-            for i, movie in enumerate(movies):
-                with cols[i % 3]:
-                    st.write(f"**{movie.get('Title', 'Unknown')}**")
-                    # Try to get poster from search service
-                    search_result = APIClient.search_movies(movie.get('Title', ''))
-                    if search_result.get('success') and search_result.get('data', {}).get('data', {}).get('Poster'):
-                        poster_url = search_result['data']['data']['Poster']
-                        if poster_url != "N/A":
-                            st.image(poster_url, width=150, caption=movie.get('Title', ''))
-                    st.write(f"IMDB ID: {movie.get('imdbID', 'Unknown')}")
-                    st.divider()
-        else:
-            st.info("No favorite movies found. Add some movies to your favorites!")
-    else:
-        st.error(f"Error loading movies: {result.get('message', 'Unknown error')}")
-
-def show_series_page(email: str):
-    """Series page showing user's favorite series"""
-    st.subheader("📺 Your Favorite Series")
-    
-    if not email:
-        st.warning("Please login to view your favorite series")
-        return
-    
-    result = APIClient.get_favorite_series(email)
-    
-    if result.get('success'):
-        series = result.get('data', [])
-        if series:
-            # Display series in a grid
-            cols = st.columns(3)
-            for i, show in enumerate(series):
-                with cols[i % 3]:
-                    st.write(f"**{show.get('Title', 'Unknown')}**")
-                    # Try to get poster from search service
-                    search_result = APIClient.search_series(show.get('Title', ''))
-                    if search_result.get('success') and search_result.get('data', {}).get('data', {}).get('Poster'):
-                        poster_url = search_result['data']['data']['Poster']
-                        if poster_url != "N/A":
-                            st.image(poster_url, width=150, caption=show.get('Title', ''))
-                    st.write(f"IMDB ID: {show.get('imdbID', 'Unknown')}")
-                    st.divider()
-        else:
-            st.info("No favorite series found. Add some series to your favorites!")
-    else:
-        st.error(f"Error loading series: {result.get('message', 'Unknown error')}")
 
 def show_search_page(email: str):
     """Search page for movies and series"""
@@ -749,36 +746,45 @@ def is_logged_in() -> bool:
 
 def main():
     """Main function"""
-    # Initialize session state
-    if 'initialized' not in st.session_state:
-        st.session_state.initialized = True
-        st.session_state.current_page = 'login'
+    st.set_page_config(
+        page_title="Movie & Series Recommendation App",
+        page_icon="🎬",
+        layout="wide"
+    )
     
     # Check if user is logged in
-    if is_logged_in():
+    if 'token' not in st.session_state:
+        show_login_page()
+    else:
         # Sidebar navigation
         with st.sidebar:
-            st.markdown("### 🎬 Navigation")
-            if st.button("🏠 Dashboard", use_container_width=True):
-                st.session_state.current_page = 'dashboard'
+            st.title("🎬 Movie App")
+            st.write("---")
             
-            st.divider()
+            # Navigation menu
+            page = st.selectbox(
+                "Navigation",
+                ["Dashboard", "Movies", "Series", "Recommended for You", "Search", "Chatbot"]
+            )
+            
+            st.write("---")
             if st.button("🚪 Logout", use_container_width=True):
                 logout()
                 st.rerun()
         
-        # Show dashboard
-        show_dashboard()
-    else:
-        # Show authentication pages based on current_page
-        current_page = st.session_state.get('current_page', 'login')
-        
-        if current_page == 'signup':
-            show_signup_page()
-        elif current_page == 'verification':
-            show_verification_page()
-        else:  # default to login
-            show_login_page()
+        # Main content area
+        if page == "Dashboard":
+            show_dashboard()
+        elif page == "Movies":
+            show_movies_page(st.session_state.get('username', ''))
+        elif page == "Series":
+            show_series_page(st.session_state.get('username', ''))
+        elif page == "Recommended for You":
+            show_recommendations_page(st.session_state.get('username', ''))
+        elif page == "Search":
+            show_search_page(st.session_state.get('username', ''))
+        elif page == "Chatbot":
+            show_chatbot_page()
 
 if __name__ == "__main__":
     st.sidebar.markdown("---")
