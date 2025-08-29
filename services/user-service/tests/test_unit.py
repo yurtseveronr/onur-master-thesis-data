@@ -196,7 +196,7 @@ class TestFavoritesService:
         result = FavoritesService.add_favorite_series(TEST_EMAIL, TEST_SERIES_TITLE)
         
         assert result == expected_response
-        mock_repo.assert_called_once_with(TEST_EMAIL, TEST_SERIES_TITLE)
+        mock_repo.assert_called_once_with(TEST_EMAIL, TEST_SERIES_TITLE, None)
     
     @patch.object(FavoritesRepository, 'delete_favorite_movie')
     def test_delete_favorite_movie(self, mock_repo):
@@ -269,7 +269,7 @@ class TestFavoritesAPI:
         
         assert response.status_code == 200
         assert response.json() == expected_response
-        mock_service.assert_called_once_with(TEST_EMAIL, TEST_SERIES_TITLE)
+        mock_service.assert_called_once_with(TEST_EMAIL, TEST_SERIES_TITLE, None)
     
     @patch.object(FavoritesService, 'delete_favorite_movie')
     def test_delete_favorite_movie_endpoint(self, mock_service):
