@@ -411,7 +411,7 @@ jobs:
       run: |
         cd services/movie-service/movie-service
         aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 708778582346.dkr.ecr.us-east-1.amazonaws.com
-        docker tag movie-service:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/movie-service:latest
+        docker tag movie-service:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/movies-service:latest
         docker push 708778582346.dkr.ecr.us-east-1.amazonaws.com/movie-service:latest
     
     - name: Deploy to Kubernetes
