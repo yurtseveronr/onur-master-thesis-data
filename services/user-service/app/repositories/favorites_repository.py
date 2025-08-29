@@ -68,7 +68,16 @@ class FavoritesRepository:
         return {"message": f"Movie '{title}' added to favorites!"}
 
     @staticmethod
-    def add_favorite_series(email: str, title: str):
+    def add_favorite_series(email: str, title: str, imdb_id: str = None):
+        # If imdb_id is provided, use it directly
+        if imdb_id:
+            dynamodb.put_item(
+                TableName=USER_SERIES_TABLE,
+                Item={"email": {"S": email}, "imdbID": {"S": imdb_id}, "Title": {"S": title}}
+            )
+            return {"message": f"Series '{title}' added to favorites!"}
+        
+        # Otherwise, try to find it in series table
         imdb_id = FavoritesRepository.get_imdb_id_from_title(title, SERIES_TABLE)
         if not imdb_id:
             return {"error": f"Series '{title}' not found!"}
