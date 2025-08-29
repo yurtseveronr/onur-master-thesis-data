@@ -195,9 +195,11 @@ class APIClient:
         return APIClient.make_request('GET', f"{API_URLS['search']}/api/search?title={query}&type=series")
 
     @staticmethod
-    def get_recommendations() -> Dict[str, Any]:
+    def get_recommendations(email: str) -> Dict[str, Any]:
         """Get personalized recommendations"""
-        return APIClient.make_request('GET', f"{API_URLS['personalize']}/recommendations")
+        # Get movie recommendations
+        data = {'user_id': email, 'num_results': 5}
+        return APIClient.make_request('POST', f"{API_URLS['personalize']}/api/movies/get-recommendation/", data)
 
     @staticmethod
     def get_favorite_movies(email: str) -> Dict[str, Any]:
@@ -412,8 +414,7 @@ def show_dashboard():
         series_count = len(series_result.get('data', [])) if series_result.get('success') else 0
         
         # Get recommendations
-        recommendations_result = APIClient.get_recommendations()
-        st.write("DEBUG: Recommendations result:", recommendations_result)  # Debug
+        recommendations_result = APIClient.get_recommendations(email)
         recommendations = recommendations_result.get('data', []) if recommendations_result.get('success') else []
     else:
         movies_count = 0
