@@ -1,7 +1,7 @@
 import express from 'express';
 import searchRouter from './api/searchRouter';
 import { config } from './config/env';
-
+//express app
 const app = express();
 app.use(express.json());
 app.use('/api', searchRouter);
