@@ -235,7 +235,7 @@ class APIClient:
         if series_result.get('success'):
             title = series_result.get('data', {}).get('Title', '')
             if title:
-                return APIClient.make_request('POST', f"{API_URLS['user']}/api/favorites/series/{email}/{title}")
+                return APIClient.make_request('POST', f"{API_URLS['user']}/api/favorites/series/{email}/{title}?imdb_id={series_id}")
         return {'success': False, 'message': 'Could not get series title'}
 
     @staticmethod
