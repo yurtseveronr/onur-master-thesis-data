@@ -436,18 +436,24 @@ def show_dashboard():
     rec_tab1, rec_tab2 = st.tabs(["🎬 Movies", "📺 Series"])
     
     with rec_tab1:
-        if recommendations:
+        if recommendations and isinstance(recommendations, list):
             for rec in recommendations:
-                if rec.get('type') == 'movie' or 'movie' in rec.get('title', '').lower():
-                    st.success(f"🎬 {rec.get('title', 'Unknown')} - {rec.get('reason', 'Recommended for you')}")
+                if isinstance(rec, dict):
+                    if rec.get('type') == 'movie' or 'movie' in rec.get('title', '').lower():
+                        st.success(f"🎬 {rec.get('title', 'Unknown')} - {rec.get('reason', 'Recommended for you')}")
+                elif isinstance(rec, str):
+                    st.success(f"🎬 {rec}")
         else:
             st.info("No movie recommendations found")
     
     with rec_tab2:
-        if recommendations:
+        if recommendations and isinstance(recommendations, list):
             for rec in recommendations:
-                if rec.get('type') == 'series' or 'series' in rec.get('title', '').lower():
-                    st.success(f"📺 {rec.get('title', 'Unknown')} - {rec.get('reason', 'Recommended for you')}")
+                if isinstance(rec, dict):
+                    if rec.get('type') == 'series' or 'series' in rec.get('title', '').lower():
+                        st.success(f"📺 {rec.get('title', 'Unknown')} - {rec.get('reason', 'Recommended for you')}")
+                elif isinstance(rec, str):
+                    st.success(f"📺 {rec}")
         else:
             st.info("No series recommendations found")
     
