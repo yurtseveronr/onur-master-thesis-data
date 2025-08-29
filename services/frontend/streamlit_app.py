@@ -187,12 +187,34 @@ class APIClient:
     @staticmethod
     def search_movies(query: str) -> Dict[str, Any]:
         """Search movies"""
-        return APIClient.make_request('GET', f"{API_URLS['search']}/api/search?title={query}&type=movie")
+        # Search service doesn't need authentication
+        try:
+            response = requests.get(f"{API_URLS['search']}/api/search?title={query}&type=movie", timeout=10)
+            if response.status_code in [200, 201]:
+                try:
+                    return {'success': True, 'data': response.json()}
+                except:
+                    return {'success': True, 'data': {'message': 'Success'}}
+            else:
+                return {'success': False, 'message': f'HTTP {response.status_code}'}
+        except Exception as e:
+            return {'success': False, 'message': f'Error: {str(e)}'}
 
     @staticmethod
     def search_series(query: str) -> Dict[str, Any]:
         """Search series"""
-        return APIClient.make_request('GET', f"{API_URLS['search']}/api/search?title={query}&type=series")
+        # Search service doesn't need authentication
+        try:
+            response = requests.get(f"{API_URLS['search']}/api/search?title={query}&type=series", timeout=10)
+            if response.status_code in [200, 201]:
+                try:
+                    return {'success': True, 'data': response.json()}
+                except:
+                    return {'success': True, 'data': {'message': 'Success'}}
+            else:
+                return {'success': False, 'message': f'HTTP {response.status_code}'}
+        except Exception as e:
+            return {'success': False, 'message': f'Error: {str(e)}'}
 
     @staticmethod
     def get_recommendations(email: str) -> Dict[str, Any]:
@@ -484,12 +506,17 @@ def show_movies_page(email: str):
             for i, movie in enumerate(movies):
                 with cols[i % 3]:
                     st.write(f"**{movie.get('Title', 'Unknown')}**")
-                    # Try to get poster from search service
-                    search_result = APIClient.search_movies(movie.get('Title', ''))
-                    if search_result.get('success') and search_result.get('data', {}).get('data', {}).get('Poster'):
-                        poster_url = search_result['data']['data']['Poster']
-                        if poster_url != "N/A":
+                    # Try to get poster from movie service by ID
+                    movie_result = APIClient.get_movie_by_id(movie.get('imdbID', ''))
+                    if movie_result.get('success'):
+                        movie_data = movie_result.get('data', {})
+                        poster_url = movie_data.get('Poster', '')
+                        if poster_url and poster_url != "N/A":
                             st.image(poster_url, width=150, caption=movie.get('Title', ''))
+                        else:
+                            st.write("🎬 No poster available")
+                    else:
+                        st.write("🎬 No poster available")
                     st.write(f"IMDB ID: {movie.get('imdbID', 'Unknown')}")
                     st.divider()
         else:
@@ -515,12 +542,17 @@ def show_series_page(email: str):
             for i, show in enumerate(series):
                 with cols[i % 3]:
                     st.write(f"**{show.get('Title', 'Unknown')}**")
-                    # Try to get poster from search service
-                    search_result = APIClient.search_series(show.get('Title', ''))
-                    if search_result.get('success') and search_result.get('data', {}).get('data', {}).get('Poster'):
-                        poster_url = search_result['data']['data']['Poster']
-                        if poster_url != "N/A":
+                    # Try to get poster from series service by ID
+                    series_result = APIClient.get_series_by_id(show.get('imdbID', ''))
+                    if series_result.get('success'):
+                        series_data = series_result.get('data', {})
+                        poster_url = series_data.get('Poster', '')
+                        if poster_url and poster_url != "N/A":
                             st.image(poster_url, width=150, caption=show.get('Title', ''))
+                        else:
+                            st.write("📺 No poster available")
+                    else:
+                        st.write("📺 No poster available")
                     st.write(f"IMDB ID: {show.get('imdbID', 'Unknown')}")
                     st.divider()
         else:

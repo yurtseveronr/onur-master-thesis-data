@@ -1,9 +1,17 @@
 import express from 'express';
 import searchRouter from './api/searchRouter';
 import { config } from './config/env';
+
 //express app
 const app = express();
 app.use(express.json());
+
+// Authentication middleware - skip for now
+app.use((req, res, next) => {
+  // Skip authentication for search service
+  next();
+});
+
 app.use('/api', searchRouter);
 
 app.use((err: any, _req: any, res: any, _next: any) => {
