@@ -100,6 +100,6 @@ def chat():
         return jsonify(error=err.get("Code", "ClientError") + ": " + err.get("Message", str(e))), 500
     except Exception as e:
         return jsonify(error=str(e)), 500
-
+#startup
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8091)
