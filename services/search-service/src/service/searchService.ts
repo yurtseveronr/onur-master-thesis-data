@@ -4,8 +4,6 @@ import { searchOmdb } from '../omdb/search';
 export async function search(title: string, type: 'movie' | 'series'): Promise<any> {
   console.log(`🔍 Searching for: "${title}" (${type})`);
   
-  const normalizedTitle = title.toLowerCase();
-  
   // Step 1: Try OMDB API first
   console.log('📡 Step 1: Trying OMDB API...');
   try {
@@ -29,7 +27,7 @@ export async function search(title: string, type: 'movie' | 'series'): Promise<a
   // Step 2: Try DynamoDB database
   console.log('🗄️ Step 2: Trying DynamoDB database...');
   try {
-    const dynamoResult = await searchDynamo(normalizedTitle, type);
+    const dynamoResult = await searchDynamo(title, type);
     if (dynamoResult) {
       console.log('✅ Found in DynamoDB!');
       return { 
