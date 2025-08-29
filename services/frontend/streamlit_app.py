@@ -463,6 +463,10 @@ def show_dashboard():
     # Recommended for You
     st.subheader("Recommended for You")
     
+    # Debug: Show raw data
+    st.write("DEBUG - Recommendations:", recommendations)
+    st.write("DEBUG - Series recommendations:", series_recommendations)
+    
     # Movies and Series recommendations in tabs
     rec_tab1, rec_tab2 = st.tabs(["🎬 Movies", "📺 Series"])
     
