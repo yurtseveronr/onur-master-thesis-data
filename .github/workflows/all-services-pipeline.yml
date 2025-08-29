@@ -527,6 +527,13 @@ jobs:
       with:
         role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
         aws-region: us-east-1
+
+    - name: Use Node.js 20 (LTS)
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: services/search-service/package-lock.json  
     
     - name: Setup Environment
       run: |
@@ -799,6 +806,13 @@ jobs:
       with:
         role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
         aws-region: us-east-1
+
+    - name: Use Node.js 20 (LTS)
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: services/kinesis-producer/package-lock.json
     
     - name: Setup Environment
       run: |
@@ -886,6 +900,13 @@ jobs:
         role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
         aws-region: us-east-1
     
+    - name: Use Node.js 20 (LTS)
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: services/kinesis-consumer/package-lock.json
+
     - name: Setup Environment
       run: |
         apt-get update && apt-get install -y nodejs npm wget unzip curl docker.io openjdk-21-jdk
