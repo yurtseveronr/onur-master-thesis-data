@@ -20,7 +20,7 @@ spec:
         node-type: streaming
       containers:
         - name: kinesis-producer
-          image: 708778582346.dkr.ecr.us-east-1.amazonaws.com/kinesis-producer:latest
+          image: 708778582346.dkr.ecr.us-east-1.amazonaws.com/producer:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000

@@ -187,12 +187,12 @@ class APIClient:
     @staticmethod
     def search_movies(query: str) -> Dict[str, Any]:
         """Search movies"""
-        return APIClient.make_request('GET', f"{API_URLS['movies']}/search?q={query}")
+        return APIClient.make_request('GET', f"{API_URLS['search']}/api/search?title={query}&type=movie")
 
     @staticmethod
     def search_series(query: str) -> Dict[str, Any]:
         """Search series"""
-        return APIClient.make_request('GET', f"{API_URLS['series']}/search?q={query}")
+        return APIClient.make_request('GET', f"{API_URLS['search']}/api/search?title={query}&type=series")
 
     @staticmethod
     def get_recommendations() -> Dict[str, Any]:
