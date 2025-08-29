@@ -201,6 +201,12 @@ class APIClient:
         return APIClient.make_request('GET', f"{API_URLS['personalize']}/api/movies/recommendations/?user_id={email}&num_results=5")
 
     @staticmethod
+    def get_series_recommendations(email: str) -> Dict[str, Any]:
+        """Get personalized series recommendations"""
+        # Get series recommendations
+        return APIClient.make_request('GET', f"{API_URLS['personalize']}/api/series/recommendations/?user_id={email}&num_results=5")
+
+    @staticmethod
     def get_favorite_movies(email: str) -> Dict[str, Any]:
         """Get user's favorite movies"""
         return APIClient.make_request('GET', f"{API_URLS['user']}/api/favorites/movies/{email}")
@@ -415,6 +421,10 @@ def show_dashboard():
         # Get recommendations
         recommendations_result = APIClient.get_recommendations(email)
         recommendations = recommendations_result.get('data', []) if recommendations_result.get('success') else []
+        
+        # Get series recommendations
+        series_recommendations_result = APIClient.get_series_recommendations(email)
+        series_recommendations = series_recommendations_result.get('data', []) if series_recommendations_result.get('success') else []
     else:
         movies_count = 0
         series_count = 0
@@ -431,6 +441,10 @@ def show_dashboard():
     # Recommended for You
     st.subheader("Recommended for You")
     
+    # Debug: Show recommendations data
+    st.write("DEBUG - Movies recommendations:", recommendations)
+    st.write("DEBUG - Series recommendations:", series_recommendations)
+    
     # Movies and Series recommendations in tabs
     rec_tab1, rec_tab2 = st.tabs(["🎬 Movies", "📺 Series"])
     
@@ -446,11 +460,10 @@ def show_dashboard():
             st.info("No movie recommendations found")
     
     with rec_tab2:
-        if recommendations and isinstance(recommendations, list):
-            for rec in recommendations:
+        if series_recommendations and isinstance(series_recommendations, list):
+            for rec in series_recommendations:
                 if isinstance(rec, dict):
-                    if rec.get('type') == 'series' or 'series' in rec.get('title', '').lower():
-                        st.success(f"📺 {rec.get('title', 'Unknown')} - {rec.get('reason', 'Recommended for you')}")
+                    st.success(f"📺 {rec.get('title', 'Unknown')} - {rec.get('reason', 'Recommended for you')}")
                 elif isinstance(rec, str):
                     st.success(f"📺 {rec}")
         else:
