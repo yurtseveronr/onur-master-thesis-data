@@ -198,8 +198,7 @@ class APIClient:
     def get_recommendations(email: str) -> Dict[str, Any]:
         """Get personalized recommendations"""
         # Get movie recommendations
-        data = {'user_id': email, 'num_results': 5}
-        return APIClient.make_request('POST', f"{API_URLS['personalize']}/api/movies/get-recommendation/", data)
+        return APIClient.make_request('GET', f"{API_URLS['personalize']}/api/movies/recommendations/?user_id={email}&num_results=5")
 
     @staticmethod
     def get_favorite_movies(email: str) -> Dict[str, Any]:

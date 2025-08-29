@@ -43,6 +43,36 @@ async def get_series_recommendation(request: RecommendationRequest):
             ).dict()
         )
 
+@router.get(
+    "/recommendations/",
+    response_model=RecommendationResponse,
+    summary="Get series recommendations (GET)",
+    description="Get personalized series recommendations for a user via GET"
+)
+async def get_series_recommendations_get(user_id: str = "yurtseveronr@gmail.com", num_results: int = 5):
+    try:
+        recommendations = await personalize_service.get_recommendations(
+            content_type='series',
+            user_id=user_id,
+            num_results=num_results
+        )
+        
+        return RecommendationResponse(
+            success=True,
+            data=recommendations,
+            count=len(recommendations),
+            message=f"Successfully retrieved {len(recommendations)} series recommendations"
+        )
+    except Exception as e:
+        logger.error(f"Series recommendation error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=ErrorResponse(
+                error="Error retrieving series recommendations",
+                detail=str(e)
+            ).dict()
+        )
+
 # Series endpoint  
 @router.post(
     "/create-event/",

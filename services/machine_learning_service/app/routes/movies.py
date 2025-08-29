@@ -43,6 +43,36 @@ async def get_movies_recommendation(request: RecommendationRequest):
             ).dict()
         )
 
+@router.get(
+    "/recommendations/",
+    response_model=RecommendationResponse,
+    summary="Get movie recommendations (GET)",
+    description="Get personalized movie recommendations for a user via GET"
+)
+async def get_movies_recommendations_get(user_id: str = "yurtseveronr@gmail.com", num_results: int = 5):
+    try:
+        recommendations = await personalize_service.get_recommendations(
+            content_type='movies',
+            user_id=user_id,
+            num_results=num_results
+        )
+        
+        return RecommendationResponse(
+            success=True,
+            data=recommendations,
+            count=len(recommendations),
+            message=f"Successfully retrieved {len(recommendations)} movie recommendations"
+        )
+    except Exception as e:
+        logger.error(f"Movies recommendation error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=ErrorResponse(
+                error="Error retrieving movie recommendations",
+                detail=str(e)
+            ).dict()
+        )
+
 @router.post(
     "/create-event/",
     response_model=EventResponse,
