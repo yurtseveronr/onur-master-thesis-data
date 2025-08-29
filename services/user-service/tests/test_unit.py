@@ -185,7 +185,7 @@ class TestFavoritesService:
         result = FavoritesService.add_favorite_movie(TEST_EMAIL, TEST_MOVIE_TITLE)
         
         assert result == expected_response
-        mock_repo.assert_called_once_with(TEST_EMAIL, TEST_MOVIE_TITLE)
+        mock_repo.assert_called_once_with(TEST_EMAIL, TEST_MOVIE_TITLE, None)
     
     @patch.object(FavoritesRepository, 'add_favorite_series')
     def test_add_favorite_series(self, mock_repo):
@@ -257,7 +257,7 @@ class TestFavoritesAPI:
         
         assert response.status_code == 200
         assert response.json() == expected_response
-        mock_service.assert_called_once_with(TEST_EMAIL, TEST_MOVIE_TITLE)
+        mock_service.assert_called_once_with(TEST_EMAIL, TEST_MOVIE_TITLE, None)
     
     @patch.object(FavoritesService, 'add_favorite_series')
     def test_add_favorite_series_endpoint(self, mock_service):
@@ -306,5 +306,5 @@ class TestFavoritesAPI:
             response = client.post(f"/api/favorites/movies/{TEST_EMAIL}/{encoded_title}")
             
             # Verify that the title was properly decoded
-            mock_service.assert_called_once_with(TEST_EMAIL, expected_title)
+            mock_service.assert_called_once_with(TEST_EMAIL, expected_title, None)
             assert response.status_code == 200
