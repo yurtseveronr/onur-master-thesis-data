@@ -46,6 +46,18 @@ jobs:
           machine-learning-service: services/machine_learning_service/**
           kinesis-producer: services/kinesis-producer/**
           kinesis-consumer: services/kinesis-consumer/**
+    - name: Debug Changes
+      run: |
+        echo "Frontend changes: ${{ steps.filter.outputs.frontend }}"
+        echo "Auth changes: ${{ steps.filter.outputs.authentication-service }}"
+        echo "User changes: ${{ steps.filter.outputs.user-service }}"
+        echo "Movie changes: ${{ steps.filter.outputs.movie-service }}"
+        echo "Series changes: ${{ steps.filter.outputs.series-service }}"
+        echo "Search changes: ${{ steps.filter.outputs.search-service }}"
+        echo "Bedrock changes: ${{ steps.filter.outputs.bedrock-backend }}"
+        echo "ML changes: ${{ steps.filter.outputs.machine-learning-service }}"
+        echo "Producer changes: ${{ steps.filter.outputs.kinesis-producer }}"
+        echo "Consumer changes: ${{ steps.filter.outputs.kinesis-consumer }}"
 
   frontend:
     needs: changes
