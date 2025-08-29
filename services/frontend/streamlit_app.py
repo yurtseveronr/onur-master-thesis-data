@@ -442,7 +442,6 @@ def show_dashboard():
         
         # Get recommendations
         recommendations_result = APIClient.get_recommendations(email)
-        st.write("DEBUG - Full recommendations result:", recommendations_result)
         # Handle nested data structure
         if recommendations_result.get('success'):
             nested_data = recommendations_result.get('data', {})
@@ -452,17 +451,9 @@ def show_dashboard():
                 recommendations = nested_data if isinstance(nested_data, list) else []
         else:
             recommendations = []
-        st.write("DEBUG - Extracted recommendations:", recommendations)
-        
-        # Debug: Check if recommendations have the right structure
-        if recommendations and isinstance(recommendations, list):
-            st.write("DEBUG - First recommendation:", recommendations[0])
-            if isinstance(recommendations[0], dict):
-                st.write("DEBUG - Has item_id:", recommendations[0].get('item_id'))
         
         # Get series recommendations
         series_recommendations_result = APIClient.get_series_recommendations(email)
-        st.write("DEBUG - Full series recommendations result:", series_recommendations_result)
         # Handle nested data structure for series
         if series_recommendations_result.get('success'):
             nested_data = series_recommendations_result.get('data', {})
@@ -472,7 +463,6 @@ def show_dashboard():
                 series_recommendations = nested_data if isinstance(nested_data, list) else []
         else:
             series_recommendations = []
-        st.write("DEBUG - Extracted series recommendations:", series_recommendations)
     else:
         movies_count = 0
         series_count = 0
@@ -493,15 +483,11 @@ def show_dashboard():
     rec_tab1, rec_tab2 = st.tabs(["🎬 Movies", "📺 Series"])
     
     with rec_tab1:
-        st.write("DEBUG: Recommendations received:", recommendations)
         if recommendations and isinstance(recommendations, list):
-            st.write(f"DEBUG: Found {len(recommendations)} recommendations")
             for rec in recommendations:
                 if isinstance(rec, dict) and rec.get('item_id'):
-                    st.write(f"DEBUG: Processing item_id: {rec['item_id']}")
                     # Get movie details by ID
                     movie_result = APIClient.get_movie_by_id(rec['item_id'])
-                    st.write(f"DEBUG: Movie result: {movie_result}")
                     
                     if movie_result.get('success'):
                         movie_data = movie_result.get('data', {})
@@ -529,8 +515,8 @@ def show_dashboard():
                                 else:
                                     st.error("Error!")
                         st.divider()
-                    else:
-                        st.warning(f"Movie ID: {rec['item_id']} - Details not found")
+                    # Skip movies that are not found
+                    pass
                 elif isinstance(rec, str):
                     st.success(f"🎬 {rec}")
         else:
@@ -566,8 +552,8 @@ def show_dashboard():
                                 else:
                                     st.error("Error!")
                         st.divider()
-                    else:
-                        st.warning(f"Series ID: {rec['item_id']} - Details not found")
+                    # Skip series that are not found
+                    pass
                 elif isinstance(rec, str):
                     st.success(f"📺 {rec}")
         else:
