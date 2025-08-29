@@ -8,7 +8,7 @@ from functools import wraps
 import json
 import traceback
 from config import USER_POOL_ID, CLIENT_ID, REGION, DEBUG, PORT
-#FLASK APP
+
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
