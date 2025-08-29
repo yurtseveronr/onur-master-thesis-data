@@ -431,11 +431,25 @@ def show_dashboard():
     
     # Recommended for You
     st.subheader("Recommended for You")
-    if recommendations:
-        for rec in recommendations:
-            st.success(f"🎬 {rec.get('title', 'Unknown')} - {rec.get('reason', 'Recommended for you')}")
-    else:
-        st.info("No personalized recommendations found")
+    
+    # Movies and Series recommendations in tabs
+    rec_tab1, rec_tab2 = st.tabs(["🎬 Movies", "📺 Series"])
+    
+    with rec_tab1:
+        if recommendations:
+            for rec in recommendations:
+                if rec.get('type') == 'movie' or 'movie' in rec.get('title', '').lower():
+                    st.success(f"🎬 {rec.get('title', 'Unknown')} - {rec.get('reason', 'Recommended for you')}")
+        else:
+            st.info("No movie recommendations found")
+    
+    with rec_tab2:
+        if recommendations:
+            for rec in recommendations:
+                if rec.get('type') == 'series' or 'series' in rec.get('title', '').lower():
+                    st.success(f"📺 {rec.get('title', 'Unknown')} - {rec.get('reason', 'Recommended for you')}")
+        else:
+            st.info("No series recommendations found")
     
     # Navigation tabs
     st.subheader("Navigation")
@@ -650,6 +664,5 @@ def main():
 
 if __name__ == "__main__":
     st.sidebar.markdown("---")
-    st.sidebar.markdown(f"**Last Updated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    st.sidebar.markdown("**Version:** 3.0 - 3-Step Authentication Flow")
+    st.sidebar.markdown("**Master thesis for Onur Yurtsever**")
     main()
