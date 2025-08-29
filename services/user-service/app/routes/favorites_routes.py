@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from urllib.parse import unquote
 from app.services.favorites_service import FavoritesService
-
+#FAST_API ROUTES
 router = APIRouter()
 
 @router.get("/favorites/movies/{email}")
