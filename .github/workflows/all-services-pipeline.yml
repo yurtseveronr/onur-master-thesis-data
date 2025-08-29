@@ -244,6 +244,7 @@ jobs:
         kubectl rollout status deployment/authentication -n services --timeout=300s
 
   user-service:
+    needs: changes
     runs-on: [self-hosted]
     if: ${{ needs.changes.outputs.user-service == 'true' }}
     steps:
@@ -331,6 +332,7 @@ jobs:
         kubectl rollout status deployment/user -n services --timeout=300s
 
   movie-service:
+    needs: changes
     runs-on: [self-hosted]
     if: ${{ needs.changes.outputs.movie-service == 'true' }}
     steps:
@@ -417,6 +419,7 @@ jobs:
         kubectl rollout status deployment/movies -n services --timeout=300s
 
   series-service:
+    needs: changes
     runs-on: [self-hosted]
     if: ${{ needs.changes.outputs.series-service == 'true' }}
     steps:
@@ -503,6 +506,7 @@ jobs:
         kubectl rollout status deployment/series -n services --timeout=300s
 
   search-service:
+    needs: changes
     runs-on: [self-hosted]
     if: ${{ needs.changes.outputs.search-service == 'true' }}
     steps:
@@ -587,6 +591,7 @@ jobs:
         kubectl rollout status deployment/search -n services --timeout=300s
 
   bedrock-backend:
+    needs: changes
     runs-on: [self-hosted]
     if: ${{ needs.changes.outputs.bedrock-backend == 'true' }}
     steps:
@@ -672,6 +677,7 @@ jobs:
         kubectl rollout status deployment/bedrock-backend -n ai --timeout=300s
 
   machine-learning-service:
+    needs: changes
     runs-on: [self-hosted]
     if: ${{ needs.changes.outputs.machine-learning-service == 'true' }}
     steps:
@@ -757,6 +763,7 @@ jobs:
         kubectl rollout status deployment/machine-learning-service -n ai --timeout=300s
 
   kinesis-producer:
+    needs: changes
     runs-on: [self-hosted]
     if: ${{ needs.changes.outputs.kinesis-producer == 'true' }}
     steps:
@@ -840,6 +847,7 @@ jobs:
         kubectl rollout status deployment/kinesis-producer -n streaming --timeout=300s
 
   kinesis-consumer:
+    needs: changes
     runs-on: [self-hosted]
     if: ${{ needs.changes.outputs.kinesis-consumer == 'true' }}
     steps:
