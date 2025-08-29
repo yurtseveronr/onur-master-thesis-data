@@ -873,13 +873,13 @@ jobs:
       run: |
         cd services/kinesis-producer
         aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 708778582346.dkr.ecr.us-east-1.amazonaws.com
-        docker tag kinesis-producer:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/kinesis-producer:latest
-        docker push 708778582346.dkr.ecr.us-east-1.amazonaws.com/kinesis-producer:latest
+        docker tag kinesis-producer:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/producer-service:latest
+        docker push 708778582346.dkr.ecr.us-east-1.amazonaws.com/producer-service:latest
     
     - name: Deploy to Kubernetes
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
-        kubectl set image deployment/kinesis-producer kinesis-producer=708778582346.dkr.ecr.us-east-1.amazonaws.com/kinesis-producer:latest -n streaming
+        kubectl set image deployment/kinesis-producer kinesis-producer=708778582346.dkr.ecr.us-east-1.amazonaws.com/producer-service:latest -n streaming
         kubectl rollout restart deployment/kinesis-producer -n streaming
         kubectl rollout status deployment/kinesis-producer -n streaming --timeout=300s
 
@@ -972,12 +972,12 @@ jobs:
       run: |
         cd services/kinesis-consumer
         aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 708778582346.dkr.ecr.us-east-1.amazonaws.com
-        docker tag kinesis-consumer:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/kinesis-consumer:latest
-        docker push 708778582346.dkr.ecr.us-east-1.amazonaws.com/kinesis-consumer:latest
+        docker tag kinesis-consumer:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/consumer-service:latest
+        docker push 708778582346.dkr.ecr.us-east-1.amazonaws.com/consumer-service:latest
     
     - name: Deploy to Kubernetes
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
-        kubectl set image deployment/kinesis-consumer kinesis-consumer=708778582346.dkr.ecr.us-east-1.amazonaws.com/kinesis-consumer:latest -n streaming
+        kubectl set image deployment/kinesis-consumer kinesis-consumer=708778582346.dkr.ecr.us-east-1.amazonaws.com/consumer-service:latest -n streaming
         kubectl rollout restart deployment/kinesis-consumer -n streaming
         kubectl rollout status deployment/kinesis-consumer -n streaming --timeout=300s 

@@ -1,4 +1,4 @@
-//KINESIS CONSUMER API
+
 const express = require('express');
 const {
   KinesisClient,
