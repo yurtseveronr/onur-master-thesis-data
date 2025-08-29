@@ -10,7 +10,7 @@ ENV MOVIES_CAMPAIGN_ARN="arn:aws:personalize:us-east-1:708778582346:campaign/mov
 ENV SERIES_DATASET_ARN="arn:aws:personalize:us-east-1:708778582346:dataset/tv_series-dataset-group"
 ENV MOVIES_DATASET_ARN="arn:aws:personalize:us-east-1:708778582346:dataset/movies-dataset-group"
 
-# Set work directory
+
 WORKDIR /app
 
 # Install system dependencies
