@@ -463,10 +463,6 @@ def show_dashboard():
     # Recommended for You
     st.subheader("Recommended for You")
     
-    # Debug: Show raw data
-    st.write("DEBUG - Recommendations:", recommendations)
-    st.write("DEBUG - Series recommendations:", series_recommendations)
-    
     # Movies and Series recommendations in tabs
     rec_tab1, rec_tab2 = st.tabs(["🎬 Movies", "📺 Series"])
     
@@ -474,8 +470,11 @@ def show_dashboard():
         if recommendations and isinstance(recommendations, list):
             for rec in recommendations:
                 if isinstance(rec, dict) and rec.get('item_id'):
+                    st.write(f"Getting movie details for ID: {rec['item_id']}")
                     # Get movie details by ID
                     movie_result = APIClient.get_movie_by_id(rec['item_id'])
+                    st.write(f"Movie result: {movie_result}")
+                    
                     if movie_result.get('success'):
                         movie_data = movie_result.get('data', {})
                         title = movie_data.get('title', 'Unknown Movie')
@@ -501,8 +500,11 @@ def show_dashboard():
         if series_recommendations and isinstance(series_recommendations, list):
             for rec in series_recommendations:
                 if isinstance(rec, dict) and rec.get('item_id'):
+                    st.write(f"Getting series details for ID: {rec['item_id']}")
                     # Get series details by ID
                     series_result = APIClient.get_series_by_id(rec['item_id'])
+                    st.write(f"Series result: {series_result}")
+                    
                     if series_result.get('success'):
                         series_data = series_result.get('data', {})
                         title = series_data.get('title', 'Unknown Series')
