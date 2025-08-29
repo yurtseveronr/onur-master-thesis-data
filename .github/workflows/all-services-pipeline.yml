@@ -84,7 +84,8 @@ jobs:
         
         # Install tools
         wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
-        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee -a /etc/apt/sources.list.d/trivy.list
+        rm -f /etc/apt/sources.list.d/trivy.list
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee /etc/apt/sources.list.d/trivy.list
         apt-get update && apt-get install -y trivy
         
         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -180,7 +181,8 @@ jobs:
         
         # Install tools
         wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
-        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee -a /etc/apt/sources.list.d/trivy.list
+        rm -f /etc/apt/sources.list.d/trivy.list
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee /etc/apt/sources.list.d/trivy.list
         apt-get update && apt-get install -y trivy
         
         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -269,7 +271,8 @@ jobs:
         
         # Install tools
         wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
-        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee -a /etc/apt/sources.list.d/trivy.list
+        rm -f /etc/apt/sources.list.d/trivy.list
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee /etc/apt/sources.list.d/trivy.list
         apt-get update && apt-get install -y trivy
         
         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -356,7 +359,8 @@ jobs:
         
         # Install tools
         wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
-        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee -a /etc/apt/sources.list.d/trivy.list
+        rm -f /etc/apt/sources.list.d/trivy.list
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee /etc/apt/sources.list.d/trivy.list
         apt-get update && apt-get install -y trivy
         
         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -444,7 +448,8 @@ jobs:
         
         # Install tools
         wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
-        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee -a /etc/apt/sources.list.d/trivy.list
+        rm -f /etc/apt/sources.list.d/trivy.list
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee /etc/apt/sources.list.d/trivy.list
         apt-get update && apt-get install -y trivy
         
         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -541,7 +546,8 @@ jobs:
         
         # Install tools
         wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
-        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee -a /etc/apt/sources.list.d/trivy.list
+        rm -f /etc/apt/sources.list.d/trivy.list
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee /etc/apt/sources.list.d/trivy.list
         apt-get update && apt-get install -y trivy
         
         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -629,7 +635,8 @@ jobs:
         
         # Install tools
         wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
-        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee -a /etc/apt/sources.list.d/trivy.list
+        rm -f /etc/apt/sources.list.d/trivy.list
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee /etc/apt/sources.list.d/trivy.list
         apt-get update && apt-get install -y trivy
         
         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -716,7 +723,8 @@ jobs:
         
         # Install tools
         wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
-        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee -a /etc/apt/sources.list.d/trivy.list
+        rm -f /etc/apt/sources.list.d/trivy.list
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee /etc/apt/sources.list.d/trivy.list
         apt-get update && apt-get install -y trivy
         
         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -801,7 +809,8 @@ jobs:
         
         # Install tools
         wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
-        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee -a /etc/apt/sources.list.d/trivy.list
+        rm -f /etc/apt/sources.list.d/trivy.list
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee /etc/apt/sources.list.d/trivy.list
         apt-get update && apt-get install -y trivy
         
         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -886,7 +895,8 @@ jobs:
         
         # Install tools
         wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
-        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee -a /etc/apt/sources.list.d/trivy.list
+        rm -f /etc/apt/sources.list.d/trivy.list
+        echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee /etc/apt/sources.list.d/trivy.list
         apt-get update && apt-get install -y trivy
         
         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
