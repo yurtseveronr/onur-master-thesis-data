@@ -10,8 +10,8 @@ class FavoritesService:
         return FavoritesRepository.get_favorite_series(email)
 
     @staticmethod
-    def add_favorite_movie(email: str, title: str):
-        return FavoritesRepository.add_favorite_movie(email, title)
+    def add_favorite_movie(email: str, title: str, imdb_id: str = None):
+        return FavoritesRepository.add_favorite_movie(email, title, imdb_id)
 
     @staticmethod
     def add_favorite_series(email: str, title: str):

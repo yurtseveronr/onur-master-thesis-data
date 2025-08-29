@@ -224,7 +224,7 @@ class APIClient:
         if movie_result.get('success'):
             title = movie_result.get('data', {}).get('Title', '')
             if title:
-                return APIClient.make_request('POST', f"{API_URLS['user']}/api/favorites/movies/{email}/{title}")
+                return APIClient.make_request('POST', f"{API_URLS['user']}/api/favorites/movies/{email}/{title}?imdb_id={movie_id}")
         return {'success': False, 'message': 'Could not get movie title'}
 
     @staticmethod
