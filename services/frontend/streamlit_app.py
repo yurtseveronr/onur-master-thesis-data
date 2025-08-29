@@ -209,12 +209,12 @@ class APIClient:
     @staticmethod
     def get_movie_by_id(movie_id: str) -> Dict[str, Any]:
         """Get movie details by ID"""
-        return APIClient.make_request('GET', f"{API_URLS['movies']}/api/movies/{movie_id}")
+        return APIClient.make_request('GET', f"{API_URLS['movies']}/api/movies/id/{movie_id}")
 
     @staticmethod
     def get_series_by_id(series_id: str) -> Dict[str, Any]:
         """Get series details by ID"""
-        return APIClient.make_request('GET', f"{API_URLS['series']}/api/series/{series_id}")
+        return APIClient.make_request('GET', f"{API_URLS['series']}/api/series/id/{series_id}")
 
     @staticmethod
     def add_movie_to_favorites(email: str, movie_id: str) -> Dict[str, Any]:
@@ -462,10 +462,6 @@ def show_dashboard():
     
     # Recommended for You
     st.subheader("Recommended for You")
-    
-    # Debug: Show recommendations data
-    st.write("DEBUG - Movies recommendations:", recommendations)
-    st.write("DEBUG - Series recommendations:", series_recommendations)
     
     # Movies and Series recommendations in tabs
     rec_tab1, rec_tab2 = st.tabs(["🎬 Movies", "📺 Series"])
