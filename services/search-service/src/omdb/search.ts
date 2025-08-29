@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { config } from '../config/env';
 
+//OMDB API CALL
 export async function searchOmdb(title: string, type: string): Promise<any> {
   const params = {
     apikey: config.omdbApiKey,
