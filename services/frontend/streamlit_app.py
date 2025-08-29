@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 # STREAMLIT APP
 st.set_page_config(
-    page_title="Streaming Platform",
+    page_title="Movie & Series Recommendation App",
     page_icon="🎬",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -746,11 +746,6 @@ def is_logged_in() -> bool:
 
 def main():
     """Main function"""
-    st.set_page_config(
-        page_title="Movie & Series Recommendation App",
-        page_icon="🎬",
-        layout="wide"
-    )
     
     # Check if user is logged in
     if 'token' not in st.session_state:
