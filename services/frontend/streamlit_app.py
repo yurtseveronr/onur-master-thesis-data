@@ -101,7 +101,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# API Base URLs
+
 API_URLS = {
     'auth': 'http://authentication.services.svc.cluster.local:5000',
     'user': 'http://user.services.svc.cluster.local:8080',
