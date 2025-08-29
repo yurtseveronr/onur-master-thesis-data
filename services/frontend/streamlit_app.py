@@ -219,14 +219,24 @@ class APIClient:
     @staticmethod
     def add_movie_to_favorites(email: str, movie_id: str) -> Dict[str, Any]:
         """Add movie to favorites"""
-        data = {'email': email, 'movie_id': movie_id}
-        return APIClient.make_request('POST', f"{API_URLS['user']}/api/favorites/movies", data)
+        # First get movie title by ID
+        movie_result = APIClient.get_movie_by_id(movie_id)
+        if movie_result.get('success'):
+            title = movie_result.get('data', {}).get('Title', '')
+            if title:
+                return APIClient.make_request('POST', f"{API_URLS['user']}/api/favorites/movies/{email}/{title}")
+        return {'success': False, 'message': 'Could not get movie title'}
 
     @staticmethod
     def add_series_to_favorites(email: str, series_id: str) -> Dict[str, Any]:
         """Add series to favorites"""
-        data = {'email': email, 'series_id': series_id}
-        return APIClient.make_request('POST', f"{API_URLS['user']}/api/favorites/series", data)
+        # First get series title by ID
+        series_result = APIClient.get_series_by_id(series_id)
+        if series_result.get('success'):
+            title = series_result.get('data', {}).get('Title', '')
+            if title:
+                return APIClient.make_request('POST', f"{API_URLS['user']}/api/favorites/series/{email}/{title}")
+        return {'success': False, 'message': 'Could not get series title'}
 
     @staticmethod
     def get_favorite_movies(email: str) -> Dict[str, Any]:
