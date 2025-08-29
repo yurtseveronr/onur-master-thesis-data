@@ -144,6 +144,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/frontend frontend=708778582346.dkr.ecr.us-east-1.amazonaws.com/frontend-service:latest -n services
+        kubectl rollout restart deployment/frontend -n services
         kubectl rollout status deployment/frontend -n services --timeout=300s
 
   authentication-service:
@@ -329,6 +330,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/user user=708778582346.dkr.ecr.us-east-1.amazonaws.com/user-service:latest -n services
+        kubectl rollout restart deployment/user -n services
         kubectl rollout status deployment/user -n services --timeout=300s
 
   movie-service:
@@ -416,6 +418,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/movies movies=708778582346.dkr.ecr.us-east-1.amazonaws.com/movie-service:latest -n services
+        kubectl rollout restart deployment/movies -n services
         kubectl rollout status deployment/movies -n services --timeout=300s
 
   series-service:
@@ -503,6 +506,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/series series=708778582346.dkr.ecr.us-east-1.amazonaws.com/series-service:latest -n services
+        kubectl rollout restart deployment/series -n services
         kubectl rollout status deployment/series -n services --timeout=300s
 
   search-service:
@@ -588,6 +592,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/search search=708778582346.dkr.ecr.us-east-1.amazonaws.com/search-service:latest -n services
+        kubectl rollout restart deployment/search -n services
         kubectl rollout status deployment/search -n services --timeout=300s
 
   bedrock-backend:
@@ -674,6 +679,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/bedrock-backend bedrock-backend=708778582346.dkr.ecr.us-east-1.amazonaws.com/bedrock-backend:latest -n ai
+        kubectl rollout restart deployment/bedrock-backend -n ai
         kubectl rollout status deployment/bedrock-backend -n ai --timeout=300s
 
   machine-learning-service:
@@ -760,6 +766,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/machine-learning-service machine-learning-service=708778582346.dkr.ecr.us-east-1.amazonaws.com/machine-learning-service:latest -n ai
+        kubectl rollout restart deployment/machine-learning-service -n ai
         kubectl rollout status deployment/machine-learning-service -n ai --timeout=300s
 
   kinesis-producer:
@@ -844,6 +851,7 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/kinesis-producer kinesis-producer=708778582346.dkr.ecr.us-east-1.amazonaws.com/kinesis-producer:latest -n streaming
+        kubectl rollout restart deployment/kinesis-producer -n streaming
         kubectl rollout status deployment/kinesis-producer -n streaming --timeout=300s
 
   kinesis-consumer:
@@ -928,4 +936,5 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
         kubectl set image deployment/kinesis-consumer kinesis-consumer=708778582346.dkr.ecr.us-east-1.amazonaws.com/kinesis-consumer:latest -n streaming
+        kubectl rollout restart deployment/kinesis-consumer -n streaming
         kubectl rollout status deployment/kinesis-consumer -n streaming --timeout=300s 
