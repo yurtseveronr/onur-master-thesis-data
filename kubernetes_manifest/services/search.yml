@@ -19,9 +19,9 @@ spec:
       nodeSelector:
         node-type: services
       containers:
-        - name: user
+        - name: search
           image: 708778582346.dkr.ecr.us-east-1.amazonaws.com/search-service:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8084
 ---

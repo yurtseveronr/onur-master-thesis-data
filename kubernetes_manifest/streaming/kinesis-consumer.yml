@@ -1,51 +1,49 @@
-
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: chatbot
-  namespace: ai
+  name: kinesis-consumer
+  namespace: streaming
   labels:
-    app: chatbot
+    app: kinesis-consumer
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: chatbot
+      app: kinesis-consumer
   template:
     metadata:
       labels:
-        app: chatbot
+        app: kinesis-consumer
     spec:
-      serviceAccountName: ai-sa
+      serviceAccountName: streaming-sa
       nodeSelector:
-        node-type: ai
+        node-type: streaming
       containers:
-        - name: chatbot
-          image: 708778582346.dkr.ecr.us-east-1.amazonaws.com/chatbot-service:latest
+        - name: kinesis-consumer
+          image: 708778582346.dkr.ecr.us-east-1.amazonaws.com/kinesis-consumer:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 8091
+            - containerPort: 3000
           
           readinessProbe:
-            tcpSocket: { port: 8091 }
+            tcpSocket: { port: 3000 }
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
-            tcpSocket: { port: 8091 }
+            tcpSocket: { port: 3000 }
             initialDelaySeconds: 10
             periodSeconds: 20
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: chatbot
-  namespace: ai
+  name: kinesis-consumer
+  namespace: streaming
 spec:
   type: ClusterIP
   selector:
-    app: chatbot
+    app: kinesis-consumer
   ports:
     - name: http
-      port: 8091
-      targetPort: 8091
+      port: 3000
+      targetPort: 3000 

@@ -19,9 +19,9 @@ spec:
       nodeSelector:
         node-type: services
       containers:
-        - name: user
+        - name: movies
           image: 708778582346.dkr.ecr.us-east-1.amazonaws.com/movies-service:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8081
 ---

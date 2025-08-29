@@ -69,6 +69,35 @@ st.markdown("""
         border-radius: 8px;
         margin: 1rem 0;
     }
+    
+    .verification-container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 2rem;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        text-align: center;
+    }
+    
+    .verification-code {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin: 2rem 0;
+    }
+    
+    .verification-code input {
+        width: 50px;
+        height: 50px;
+        text-align: center;
+        font-size: 24px;
+        border-radius: 8px;
+        border: 2px solid #ddd;
+        background: white;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -126,6 +155,18 @@ class APIClient:
         """User registration"""
         data = {'email': email, 'password': password}
         return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/signup", data)
+
+    @staticmethod
+    def confirm_signup(email: str, code: str) -> Dict[str, Any]:
+        """Confirm user signup with verification code"""
+        data = {'email': email, 'code': code}
+        return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/confirm", data)
+
+    @staticmethod
+    def resend_confirmation(email: str) -> Dict[str, Any]:
+        """Resend confirmation code"""
+        data = {'email': email}
+        return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/resend", data)
 
     @staticmethod
     def login_user(email: str, password: str) -> Dict[str, Any]:
@@ -195,81 +236,161 @@ def show_custom_message(message_type: str, message: str):
     elif message_type == "warning":
         st.markdown(f'<div class="warning-message">⚠️ {message}</div>', unsafe_allow_html=True)
 
-def show_login_page():
-    """Login page with simple auth flow"""
-    st.markdown('<div class="main-header"><h1>🎬 Streaming Platform</h1><p>Welcome to the World of Movies and TV Shows!</p></div>', unsafe_allow_html=True)
+def show_signup_page():
+    """Sign-up page"""
+    st.markdown('<div class="main-header"><h1>🎬 Streaming Platform</h1><p>Create Your Account</p></div>', unsafe_allow_html=True)
     
-    tab1, tab2 = st.tabs(["🔑 Sign In", "📝 Sign Up"])
+    st.markdown('<div class="auth-container">', unsafe_allow_html=True)
+    st.subheader("📝 Create New Account")
     
-    with tab1:
-        st.markdown('<div class="auth-container">', unsafe_allow_html=True)
-        st.subheader("Sign In to Your Account")
+    with st.form("signup_form"):
+        email = st.text_input("Email Address", placeholder="Enter your email address")
+        password = st.text_input("Password", type="password", placeholder="Minimum 8 characters")
+        confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password")
+        signup_button = st.form_submit_button("Create Account", use_container_width=True)
         
-        with st.form("login_form"):
-            email = st.text_input("Email Address", placeholder="Enter your email")
-            password = st.text_input("Password", type="password", placeholder="Enter your password")
-            login_button = st.form_submit_button("Sign In", use_container_width=True)
-            
-            if login_button:
-                if email and password:
-                    with st.spinner("Signing in..."):
-                        result = APIClient.login_user(email, password)
+        if signup_button:
+            if email and password and confirm_password:
+                if password != confirm_password:
+                    show_custom_message("error", "Passwords don't match!")
+                elif len(password) < 8:
+                    show_custom_message("error", "Password must be at least 8 characters!")
+                else:
+                    with st.spinner("Creating your account..."):
+                        result = APIClient.register_user(email, password)
                     
                     if result['success']:
-                        st.session_state.token = result['data']['token']
-                        st.session_state.user_data = result['data']['user']
-                        st.session_state.username = email
-                        st.session_state.current_page = 'dashboard'
-                        show_custom_message("success", "Successfully signed in!")
+                        # Store email for verification page
+                        st.session_state.verification_email = email
+                        st.session_state.current_page = 'verification'
+                        show_custom_message("success", "Account created successfully! Please check your email for verification code.")
                         st.balloons()
                         st.rerun()
                     else:
-                        error_message = result.get('message', 'Unknown error')
-                        show_custom_message("error", f"Sign in failed: {error_message}")
-                else:
-                    show_custom_message("error", "Please fill in all fields!")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    with tab2:
-        st.markdown('<div class="auth-container">', unsafe_allow_html=True)
-        st.subheader("Create New Account")
-        
-        with st.form("register_form"):
-            email = st.text_input("Email Address", placeholder="Enter your email address")
-            password = st.text_input("Password", type="password", placeholder="Minimum 8 characters")
-            confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password")
-            register_button = st.form_submit_button("Create Account", use_container_width=True)
-            
-            if register_button:
-                if email and password and confirm_password:
-                    if password != confirm_password:
-                        show_custom_message("error", "Passwords don't match!")
-                    elif len(password) < 8:
-                        show_custom_message("error", "Password must be at least 8 characters!")
-                    else:
-                        with st.spinner("Creating your account..."):
-                            result = APIClient.register_user(email, password)
-                        
-                        if result['success']:
-                            show_custom_message("success", "Account created successfully! You can now sign in.")
-                            st.balloons()
-                            # Switch to login tab
-                            st.session_state.show_login_tab = True
+                        error_code = result.get('error_code', '')
+                        if error_code == 'USER_EXISTS_VERIFIED':
+                            show_custom_message("error", "This email is already registered. Please sign in instead.")
+                            st.session_state.current_page = 'login'
                             st.rerun()
                         else:
-                            error_code = result.get('error_code', '')
-                            if error_code == 'USER_EXISTS_VERIFIED':
-                                show_custom_message("error", "This email is already registered. Please sign in instead.")
-                                st.session_state.show_login_tab = True
-                                st.rerun()
-                            else:
-                                error_message = result.get('message', 'Unknown error')
-                                show_custom_message("error", f"Registration failed: {error_message}")
-                else:
-                    show_custom_message("error", "Please fill in all fields!")
+                            error_message = result.get('message', 'Unknown error')
+                            show_custom_message("error", f"Registration failed: {error_message}")
+            else:
+                show_custom_message("error", "Please fill in all fields!")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Navigation to login
+    st.markdown('<div style="text-align: center; margin-top: 2rem;">', unsafe_allow_html=True)
+    st.write("Already have an account?")
+    if st.button("🔑 Sign In Instead", use_container_width=True):
+        st.session_state.current_page = 'login'
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+def show_verification_page():
+    """Email verification page"""
+    st.markdown('<div class="main-header"><h1>🎬 Streaming Platform</h1><p>Verify Your Email</p></div>', unsafe_allow_html=True)
+    
+    email = st.session_state.get('verification_email', '')
+    if not email:
+        st.error("No email found for verification. Please sign up first.")
+        st.session_state.current_page = 'signup'
+        st.rerun()
+    
+    st.markdown('<div class="verification-container">', unsafe_allow_html=True)
+    st.subheader("📧 Email Verification")
+    st.write(f"Please enter the verification code sent to: **{email}**")
+    
+    # Verification code input
+    with st.form("verification_form"):
+        verification_code = st.text_input("Verification Code", placeholder="Enter 6-digit code", max_chars=6)
+        verify_button = st.form_submit_button("Verify Email", use_container_width=True)
         
-        st.markdown('</div>', unsafe_allow_html=True)
+        if verify_button:
+            if verification_code and len(verification_code) == 6:
+                with st.spinner("Verifying your email..."):
+                    result = APIClient.confirm_signup(email, verification_code)
+                
+                if result['success']:
+                    show_custom_message("success", "Email verified successfully! You can now sign in.")
+                    st.balloons()
+                    # Clear verification email and go to login
+                    if 'verification_email' in st.session_state:
+                        del st.session_state.verification_email
+                    st.session_state.current_page = 'login'
+                    st.rerun()
+                else:
+                    error_message = result.get('message', 'Unknown error')
+                    show_custom_message("error", f"Verification failed: {error_message}")
+            else:
+                show_custom_message("error", "Please enter a valid 6-digit verification code!")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Resend code option
+    st.markdown('<div style="text-align: center; margin-top: 2rem;">', unsafe_allow_html=True)
+    st.write("Didn't receive the code?")
+    if st.button("📤 Resend Code", use_container_width=True):
+        with st.spinner("Resending verification code..."):
+            result = APIClient.resend_confirmation(email)
+        
+        if result['success']:
+            show_custom_message("success", "Verification code sent again! Please check your email.")
+        else:
+            error_message = result.get('message', 'Unknown error')
+            show_custom_message("error", f"Failed to resend code: {error_message}")
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Navigation back to signup
+    st.markdown('<div style="text-align: center; margin-top: 1rem;">', unsafe_allow_html=True)
+    if st.button("⬅️ Back to Sign Up", use_container_width=True):
+        if 'verification_email' in st.session_state:
+            del st.session_state.verification_email
+        st.session_state.current_page = 'signup'
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+def show_login_page():
+    """Login page"""
+    st.markdown('<div class="main-header"><h1>🎬 Streaming Platform</h1><p>Welcome Back!</p></div>', unsafe_allow_html=True)
+    
+    st.markdown('<div class="auth-container">', unsafe_allow_html=True)
+    st.subheader("🔑 Sign In to Your Account")
+    
+    with st.form("login_form"):
+        email = st.text_input("Email Address", placeholder="Enter your email")
+        password = st.text_input("Password", type="password", placeholder="Enter your password")
+        login_button = st.form_submit_button("Sign In", use_container_width=True)
+        
+        if login_button:
+            if email and password:
+                with st.spinner("Signing in..."):
+                    result = APIClient.login_user(email, password)
+                
+                if result['success']:
+                    st.session_state.token = result['data']['token']
+                    st.session_state.user_data = result['data']['user']
+                    st.session_state.username = email
+                    st.session_state.current_page = 'dashboard'
+                    show_custom_message("success", "Successfully signed in!")
+                    st.balloons()
+                    st.rerun()
+                else:
+                    error_message = result.get('message', 'Unknown error')
+                    show_custom_message("error", f"Sign in failed: {error_message}")
+            else:
+                show_custom_message("error", "Please fill in all fields!")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Navigation to signup
+    st.markdown('<div style="text-align: center; margin-top: 2rem;">', unsafe_allow_html=True)
+    st.write("Don't have an account?")
+    if st.button("📝 Create Account", use_container_width=True):
+        st.session_state.current_page = 'signup'
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 def show_dashboard():
     """Dashboard page"""
@@ -480,12 +601,10 @@ def show_search_page(email: str):
             else:
                 st.error(f"Search error: {result.get('message', 'Unknown error')}")
 
-
-
 def logout():
     """Logout user"""
     # Clear all session state
-    keys_to_clear = ['token', 'user_data', 'username', 'current_page']
+    keys_to_clear = ['token', 'user_data', 'username', 'current_page', 'verification_email']
     for key in keys_to_clear:
         if key in st.session_state:
             del st.session_state[key]
@@ -517,10 +636,18 @@ def main():
         # Show dashboard
         show_dashboard()
     else:
-        show_login_page()
+        # Show authentication pages based on current_page
+        current_page = st.session_state.get('current_page', 'login')
+        
+        if current_page == 'signup':
+            show_signup_page()
+        elif current_page == 'verification':
+            show_verification_page()
+        else:  # default to login
+            show_login_page()
 
 if __name__ == "__main__":
     st.sidebar.markdown("---")
     st.sidebar.markdown(f"**Last Updated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    st.sidebar.markdown("**Version:** 2.0 - Auto-verified flow")
+    st.sidebar.markdown("**Version:** 3.0 - 3-Step Authentication Flow")
     main()

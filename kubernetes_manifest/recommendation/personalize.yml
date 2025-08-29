@@ -21,7 +21,7 @@ spec:
       containers:
         - name: personalize
           image: 708778582346.dkr.ecr.us-east-1.amazonaws.com/personalize-service:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8001
 ---
