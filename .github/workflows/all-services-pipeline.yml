@@ -415,13 +415,13 @@ jobs:
       run: |
         cd services/movie-service/movie-service
         aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 708778582346.dkr.ecr.us-east-1.amazonaws.com
-        docker tag movie-service:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/movies-service:latest
+        docker tag movies-service:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/movies-service:latest
         docker push 708778582346.dkr.ecr.us-east-1.amazonaws.com/movies-service:latest
     
     - name: Deploy to Kubernetes
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
-        kubectl set image deployment/movies movies=708778582346.dkr.ecr.us-east-1.amazonaws.com/movie-service:latest -n services
+        kubectl set image deployment/movies movies=708778582346.dkr.ecr.us-east-1.amazonaws.com/movies-service:latest -n services
         kubectl rollout restart deployment/movies -n services
         kubectl rollout status deployment/movies -n services --timeout=300s
 
@@ -816,7 +816,7 @@ jobs:
     
     - name: Setup Environment
       run: |
-        apt-get update && apt-get install -y nodejs npm wget unzip curl docker.io openjdk-21-jdk
+        apt-get update && apt-get install -y npm wget unzip curl docker.io openjdk-21-jdk
         export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
         service docker start || true
         chmod 666 /var/run/docker.sock || true
@@ -909,7 +909,13 @@ jobs:
 
     - name: Setup Environment
       run: |
-        apt-get update && apt-get install -y nodejs npm wget unzip curl docker.io openjdk-21-jdk
+        apt-get update && apt-get install -y wget unzip curl docker.io openjdk-21-jdk
+        
+        # Node.js 20 is already installed by actions/setup-node@v4
+        # Verify Node.js version
+        node --version
+        npm --version
+        
         export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
         service docker start || true
         chmod 666 /var/run/docker.sock || true
