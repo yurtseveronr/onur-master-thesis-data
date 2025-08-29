@@ -525,7 +525,16 @@ jobs:
     
     - name: Setup Environment
       run: |
-        apt-get update && apt-get install -y nodejs npm wget unzip curl docker.io openjdk-21-jdk
+        apt-get update && apt-get install -y wget unzip curl docker.io openjdk-21-jdk
+        
+        # Install Node.js 18 (LTS)
+        curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+        apt-get install -y nodejs
+        
+        # Verify Node.js version
+        node --version
+        npm --version
+        
         export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
         service docker start || true
         chmod 666 /var/run/docker.sock || true
