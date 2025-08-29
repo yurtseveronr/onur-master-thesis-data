@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     app_name: str = "Machine Learning API"
     debug: bool = True
     
-    # AWS settings - Doğrudan environment'tan al
+    
     aws_region: str = os.getenv('AWS_REGION', 'us-east-1')
     series_campaign_arn: str = os.getenv('SERIES_CAMPAIGN_ARN', '')
     movies_campaign_arn: str = os.getenv('MOVIES_CAMPAIGN_ARN', '')

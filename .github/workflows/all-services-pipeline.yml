@@ -780,15 +780,14 @@ jobs:
       run: |
         cd services/machine_learning_service
         aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 708778582346.dkr.ecr.us-east-1.amazonaws.com
-        docker tag machine-learning-service:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/machine-learning-service:latest
-        docker push 708778582346.dkr.ecr.us-east-1.amazonaws.com/machine-learning-service:latest
-    
+        docker tag machine-learning-service:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/personalize-service:latest
+        docker push 708778582346.dkr.ecr.us-east-1.amazonaws.com/personalize-service:latest
     - name: Deploy to Kubernetes
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
-        kubectl set image deployment/machine-learning-service machine-learning-service=708778582346.dkr.ecr.us-east-1.amazonaws.com/machine-learning-service:latest -n ai
-        kubectl rollout restart deployment/machine-learning-service -n ai
-        kubectl rollout status deployment/machine-learning-service -n ai --timeout=300s
+        kubectl set image deployment/personalize personalize=708778582346.dkr.ecr.us-east-1.amazonaws.com/personalize-service:latest -n recommendation
+        kubectl rollout restart deployment/personalize -n recommendation
+        kubectl rollout status deployment/personalize -n recommendation --timeout=300s
 
   kinesis-producer:
     needs: changes
@@ -835,7 +834,8 @@ jobs:
     
     - name: Unit Tests
       run: |
-        cd services/kinesis-producer
+        cd services/kinesis-producer:latest
+    
         npm install
         npm test
 

@@ -109,7 +109,7 @@ API_URLS = {
     'series': 'http://series.services.svc.cluster.local:8082',
     'search': 'http://search.services.svc.cluster.local:8084',
     'chatbot': 'http://chatbot.ai.svc.cluster.local:8091',
-    'personalize': 'http://personalize.recommendation.svc.cluster.local:8001'
+    'personalize': 'http://personalize.recommendation.svc.cluster.local:8000'
 }
 
 class APIClient:
@@ -413,6 +413,7 @@ def show_dashboard():
         
         # Get recommendations
         recommendations_result = APIClient.get_recommendations()
+        st.write("DEBUG: Recommendations result:", recommendations_result)  # Debug
         recommendations = recommendations_result.get('data', []) if recommendations_result.get('success') else []
     else:
         movies_count = 0
