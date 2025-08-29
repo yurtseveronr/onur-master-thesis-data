@@ -442,11 +442,15 @@ def show_dashboard():
         
         # Get recommendations
         recommendations_result = APIClient.get_recommendations(email)
+        st.write("DEBUG - Full recommendations result:", recommendations_result)
         recommendations = recommendations_result.get('data', []) if recommendations_result.get('success') else []
+        st.write("DEBUG - Extracted recommendations:", recommendations)
         
         # Get series recommendations
         series_recommendations_result = APIClient.get_series_recommendations(email)
+        st.write("DEBUG - Full series recommendations result:", series_recommendations_result)
         series_recommendations = series_recommendations_result.get('data', []) if series_recommendations_result.get('success') else []
+        st.write("DEBUG - Extracted series recommendations:", series_recommendations)
     else:
         movies_count = 0
         series_count = 0
@@ -470,25 +474,35 @@ def show_dashboard():
         if recommendations and isinstance(recommendations, list):
             for rec in recommendations:
                 if isinstance(rec, dict) and rec.get('item_id'):
-                    st.write(f"Getting movie details for ID: {rec['item_id']}")
                     # Get movie details by ID
                     movie_result = APIClient.get_movie_by_id(rec['item_id'])
-                    st.write(f"Movie result: {movie_result}")
                     
                     if movie_result.get('success'):
                         movie_data = movie_result.get('data', {})
-                        title = movie_data.get('title', 'Unknown Movie')
+                        title = movie_data.get('Title', 'Unknown Movie')
                         
-                        col1, col2 = st.columns([3, 1])
+                        col1, col2, col3 = st.columns([2, 2, 1])
                         with col1:
-                            st.success(f"🎬 {title} - Score: {rec.get('score', 0)}")
+                            # Show poster if available
+                            poster_url = movie_data.get('Poster', '')
+                            if poster_url and poster_url != 'N/A':
+                                st.image(poster_url, width=150, caption=title)
+                            else:
+                                st.write("🎬 No poster available")
                         with col2:
-                            if st.button(f"Add to Favorites", key=f"movie_{rec['item_id']}"):
+                            st.write(f"**{title}**")
+                            st.write(f"Year: {movie_data.get('Year', 'N/A')}")
+                            st.write(f"Genre: {movie_data.get('Genre', 'N/A')}")
+                            st.write(f"Rating: {movie_data.get('imdbRating', 'N/A')}")
+                            st.write(f"Score: {rec.get('score', 0)}")
+                        with col3:
+                            if st.button(f"❤️ Add to Favorites", key=f"movie_{rec['item_id']}"):
                                 result = APIClient.add_movie_to_favorites(email, rec['item_id'])
                                 if result.get('success'):
-                                    st.success("Added to favorites!")
+                                    st.success("Added!")
                                 else:
-                                    st.error(f"Error: {result.get('message', 'Unknown error')}")
+                                    st.error("Error!")
+                        st.divider()
                     else:
                         st.warning(f"Movie ID: {rec['item_id']} - Details not found")
                 elif isinstance(rec, str):
@@ -500,25 +514,32 @@ def show_dashboard():
         if series_recommendations and isinstance(series_recommendations, list):
             for rec in series_recommendations:
                 if isinstance(rec, dict) and rec.get('item_id'):
-                    st.write(f"Getting series details for ID: {rec['item_id']}")
                     # Get series details by ID
                     series_result = APIClient.get_series_by_id(rec['item_id'])
-                    st.write(f"Series result: {series_result}")
                     
                     if series_result.get('success'):
                         series_data = series_result.get('data', {})
-                        title = series_data.get('title', 'Unknown Series')
+                        title = series_data.get('Title', 'Unknown Series')
                         
-                        col1, col2 = st.columns([3, 1])
+                        col1, col2, col3 = st.columns([2, 2, 1])
                         with col1:
-                            st.success(f"📺 {title} - Score: {rec.get('score', 0)}")
+                            # Show poster if available (series might not have poster)
+                            st.write("📺 Series")
                         with col2:
-                            if st.button(f"Add to Favorites", key=f"series_{rec['item_id']}"):
+                            st.write(f"**{title}**")
+                            st.write(f"Year: {series_data.get('Year', 'N/A')}")
+                            st.write(f"Genre: {series_data.get('Genre', 'N/A')}")
+                            st.write(f"Rating: {series_data.get('imdbRating', 'N/A')}")
+                            st.write(f"Seasons: {series_data.get('TotalSeasons', 'N/A')}")
+                            st.write(f"Score: {rec.get('score', 0)}")
+                        with col3:
+                            if st.button(f"❤️ Add to Favorites", key=f"series_{rec['item_id']}"):
                                 result = APIClient.add_series_to_favorites(email, rec['item_id'])
                                 if result.get('success'):
-                                    st.success("Added to favorites!")
+                                    st.success("Added!")
                                 else:
-                                    st.error(f"Error: {result.get('message', 'Unknown error')}")
+                                    st.error("Error!")
+                        st.divider()
                     else:
                         st.warning(f"Series ID: {rec['item_id']} - Details not found")
                 elif isinstance(rec, str):
