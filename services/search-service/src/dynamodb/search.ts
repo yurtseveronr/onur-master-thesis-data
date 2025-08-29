@@ -7,6 +7,7 @@ export async function searchDynamo(title: string, type: string): Promise<any | n
     const TableName = type === 'movie' ? config.movieTable : config.seriesTable;
     console.log(`🗄️ Searching DynamoDB table: ${TableName}`);
 
+    // Simple contains search - DynamoDB doesn't support case-insensitive search natively
     const command = new ScanCommand({
       TableName,
       FilterExpression: 'contains(#t, :title)',
@@ -14,7 +15,7 @@ export async function searchDynamo(title: string, type: string): Promise<any | n
       ExpressionAttributeValues: { ':title': title },
     });
 
-    console.log(`🔍 DynamoDB search query: ${title}`);
+    console.log(`🔍 DynamoDB search query: ${title} (case-insensitive)`);
     const result = await ddb.send(command);
     
     if (result.Items && result.Items.length > 0) {
