@@ -207,6 +207,28 @@ class APIClient:
         return APIClient.make_request('GET', f"{API_URLS['personalize']}/api/series/recommendations/?user_id={email}&num_results=5")
 
     @staticmethod
+    def get_movie_by_id(movie_id: str) -> Dict[str, Any]:
+        """Get movie details by ID"""
+        return APIClient.make_request('GET', f"{API_URLS['movies']}/api/movies/{movie_id}")
+
+    @staticmethod
+    def get_series_by_id(series_id: str) -> Dict[str, Any]:
+        """Get series details by ID"""
+        return APIClient.make_request('GET', f"{API_URLS['series']}/api/series/{series_id}")
+
+    @staticmethod
+    def add_movie_to_favorites(email: str, movie_id: str) -> Dict[str, Any]:
+        """Add movie to favorites"""
+        data = {'email': email, 'movie_id': movie_id}
+        return APIClient.make_request('POST', f"{API_URLS['user']}/api/favorites/movies", data)
+
+    @staticmethod
+    def add_series_to_favorites(email: str, series_id: str) -> Dict[str, Any]:
+        """Add series to favorites"""
+        data = {'email': email, 'series_id': series_id}
+        return APIClient.make_request('POST', f"{API_URLS['user']}/api/favorites/series", data)
+
+    @staticmethod
     def get_favorite_movies(email: str) -> Dict[str, Any]:
         """Get user's favorite movies"""
         return APIClient.make_request('GET', f"{API_URLS['user']}/api/favorites/movies/{email}")
@@ -451,9 +473,25 @@ def show_dashboard():
     with rec_tab1:
         if recommendations and isinstance(recommendations, list):
             for rec in recommendations:
-                if isinstance(rec, dict):
-                    if rec.get('type') == 'movie' or 'movie' in rec.get('title', '').lower():
-                        st.success(f"🎬 {rec.get('title', 'Unknown')} - {rec.get('reason', 'Recommended for you')}")
+                if isinstance(rec, dict) and rec.get('item_id'):
+                    # Get movie details by ID
+                    movie_result = APIClient.get_movie_by_id(rec['item_id'])
+                    if movie_result.get('success'):
+                        movie_data = movie_result.get('data', {})
+                        title = movie_data.get('title', 'Unknown Movie')
+                        
+                        col1, col2 = st.columns([3, 1])
+                        with col1:
+                            st.success(f"🎬 {title} - Score: {rec.get('score', 0)}")
+                        with col2:
+                            if st.button(f"Add to Favorites", key=f"movie_{rec['item_id']}"):
+                                result = APIClient.add_movie_to_favorites(email, rec['item_id'])
+                                if result.get('success'):
+                                    st.success("Added to favorites!")
+                                else:
+                                    st.error(f"Error: {result.get('message', 'Unknown error')}")
+                    else:
+                        st.warning(f"Movie ID: {rec['item_id']} - Details not found")
                 elif isinstance(rec, str):
                     st.success(f"🎬 {rec}")
         else:
@@ -462,8 +500,25 @@ def show_dashboard():
     with rec_tab2:
         if series_recommendations and isinstance(series_recommendations, list):
             for rec in series_recommendations:
-                if isinstance(rec, dict):
-                    st.success(f"📺 {rec.get('title', 'Unknown')} - {rec.get('reason', 'Recommended for you')}")
+                if isinstance(rec, dict) and rec.get('item_id'):
+                    # Get series details by ID
+                    series_result = APIClient.get_series_by_id(rec['item_id'])
+                    if series_result.get('success'):
+                        series_data = series_result.get('data', {})
+                        title = series_data.get('title', 'Unknown Series')
+                        
+                        col1, col2 = st.columns([3, 1])
+                        with col1:
+                            st.success(f"📺 {title} - Score: {rec.get('score', 0)}")
+                        with col2:
+                            if st.button(f"Add to Favorites", key=f"series_{rec['item_id']}"):
+                                result = APIClient.add_series_to_favorites(email, rec['item_id'])
+                                if result.get('success'):
+                                    st.success("Added to favorites!")
+                                else:
+                                    st.error(f"Error: {result.get('message', 'Unknown error')}")
+                    else:
+                        st.warning(f"Series ID: {rec['item_id']} - Details not found")
                 elif isinstance(rec, str):
                     st.success(f"📺 {rec}")
         else:
