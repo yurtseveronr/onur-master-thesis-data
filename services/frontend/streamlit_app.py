@@ -757,10 +757,23 @@ def main():
             st.write("---")
             
             # Navigation menu
-            page = st.selectbox(
-                "Navigation",
-                ["Dashboard", "Movies", "Series", "Recommended for You", "Search", "Chatbot"]
-            )
+            if st.button("🏠 Dashboard", use_container_width=True):
+                st.session_state.current_page = "Dashboard"
+            
+            if st.button("🎬 Movies", use_container_width=True):
+                st.session_state.current_page = "Movies"
+            
+            if st.button("📺 Series", use_container_width=True):
+                st.session_state.current_page = "Series"
+            
+            if st.button("🎯 Recommended for You", use_container_width=True):
+                st.session_state.current_page = "Recommended for You"
+            
+            if st.button("🔍 Search", use_container_width=True):
+                st.session_state.current_page = "Search"
+            
+            if st.button("🤖 Chatbot", use_container_width=True):
+                st.session_state.current_page = "Chatbot"
             
             st.write("---")
             if st.button("🚪 Logout", use_container_width=True):
@@ -768,17 +781,19 @@ def main():
                 st.rerun()
         
         # Main content area
-        if page == "Dashboard":
+        current_page = st.session_state.get('current_page', 'Dashboard')
+        
+        if current_page == "Dashboard":
             show_dashboard()
-        elif page == "Movies":
+        elif current_page == "Movies":
             show_movies_page(st.session_state.get('username', ''))
-        elif page == "Series":
+        elif current_page == "Series":
             show_series_page(st.session_state.get('username', ''))
-        elif page == "Recommended for You":
+        elif current_page == "Recommended for You":
             show_recommendations_page(st.session_state.get('username', ''))
-        elif page == "Search":
+        elif current_page == "Search":
             show_search_page(st.session_state.get('username', ''))
-        elif page == "Chatbot":
+        elif current_page == "Chatbot":
             show_chatbot_page()
 
 if __name__ == "__main__":
