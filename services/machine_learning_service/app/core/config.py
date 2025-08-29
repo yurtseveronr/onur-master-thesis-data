@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
 import os
-
+#CONFIG
 class Settings(BaseSettings):
     # App settings
     app_name: str = "Machine Learning API"

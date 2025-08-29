@@ -1,6 +1,6 @@
 import express from 'express';
 import { search } from '../service/searchService';
-
+//SEARCH ROUTER
 const router = express.Router();
 
 router.get('/search', async (req, res, next) => {

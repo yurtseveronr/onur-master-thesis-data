@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// 📺 Get Series by IMDb ID
+// Get Series by IMDb ID
 func GetSeriesByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	imdbID := vars["imdbID"]

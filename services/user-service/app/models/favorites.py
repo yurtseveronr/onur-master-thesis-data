@@ -3,8 +3,8 @@ from typing import List
 
 class FavoriteMovies(BaseModel):
     email: EmailStr
-    movies: List[str]  # IMDb ID listesi
+    movies: List[str] 
 
 class FavoriteSeries(BaseModel):
     email: EmailStr
-    series: List[str]  # IMDb ID listesi
+    series: List[str]  

@@ -3,7 +3,7 @@ import requests
 import json
 from datetime import datetime
 from typing import Optional, Dict, Any
-
+# STREAMLIT APP
 st.set_page_config(
     page_title="Streaming Platform",
     page_icon="🎬",

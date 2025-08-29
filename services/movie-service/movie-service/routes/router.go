@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// ✅ Logging Middleware (Gelen request'leri loglamak için)
+// Logging Middleware (Gelen request'leri loglamak için)
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("🔥 Incoming Request:", r.Method, r.URL.Path)
