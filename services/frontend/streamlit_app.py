@@ -650,7 +650,9 @@ def show_recommendations_page(email: str):
                             st.write(f"Rating: {movie_data.get('imdbRating', 'N/A')}")
                             st.write(f"Score: {rec.get('score', 0)}")
                         with col3:
+                            st.write(f"DEBUG: Button key: movie_{rec['item_id']}")
                             if st.button(f"❤️ Add to Favorites", key=f"movie_{rec['item_id']}"):
+                                st.write("DEBUG: Movie button clicked!")
                                 result = APIClient.add_movie_to_favorites(email, rec['item_id'])
                                 if result.get('success'):
                                     st.success("Added!")
@@ -689,7 +691,9 @@ def show_recommendations_page(email: str):
                             st.write(f"Rating: {rating}")
                             st.write(f"Score: {rec.get('score', 0)}")
                         with col3:
+                            st.write(f"DEBUG: Button key: series_found_{rec['item_id']}")
                             if st.button(f"❤️ Add to Favorites", key=f"series_found_{rec['item_id']}"):
+                                st.write("DEBUG: Series button clicked!")
                                 result = APIClient.add_series_to_favorites(email, rec['item_id'])
                                 if result.get('success'):
                                     st.success("Added!")
