@@ -3,7 +3,16 @@ from botocore.exceptions import ClientError, ReadTimeoutError
 import pytest
 from unittest.mock import Mock, patch
 import json
-from app import app
+
+# Mock the bedrock_agent client before importing app
+with patch('boto3.client') as mock_boto3:
+    mock_bedrock_agent = Mock()
+    mock_bedrock_agent.describe_agent_alias.return_value = {
+        "AgentAlias": {"Status": "ACTIVE"}
+    }
+    mock_boto3.return_value = mock_bedrock_agent
+    
+    from app import app
 
 @pytest.fixture
 def client():
