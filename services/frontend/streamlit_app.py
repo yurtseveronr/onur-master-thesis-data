@@ -329,6 +329,7 @@ def show_signup_page():
                     st.session_state.current_page = 'verification'
                     show_custom_message("success", "Account created successfully! Please check your email for verification code.")
                     st.balloons()
+                    st.rerun()
                 else:
                     error_code = result.get('error_code', '')
                     if error_code == 'USER_EXISTS_VERIFIED':
@@ -347,6 +348,7 @@ def show_signup_page():
     st.write("Already have an account?")
     if st.button("🔑 Sign In Instead", use_container_width=True):
         st.session_state.current_page = 'login'
+        st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
 def show_verification_page():
@@ -379,6 +381,7 @@ def show_verification_page():
                     if 'verification_email' in st.session_state:
                         del st.session_state.verification_email
                     st.session_state.current_page = 'login'
+                    st.rerun()
                 else:
                     error_message = result.get('message', 'Unknown error')
                     show_custom_message("error", f"Verification failed: {error_message}")
@@ -407,6 +410,7 @@ def show_verification_page():
         if 'verification_email' in st.session_state:
             del st.session_state.verification_email
         st.session_state.current_page = 'signup'
+        st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
 def show_login_page():
@@ -433,6 +437,7 @@ def show_login_page():
                     st.session_state.current_page = 'dashboard'
                     show_custom_message("success", "Successfully signed in!")
                     st.balloons()
+                    st.rerun()
                 else:
                     error_message = result.get('message', 'Unknown error')
                     show_custom_message("error", f"Sign in failed: {error_message}")
@@ -446,6 +451,7 @@ def show_login_page():
     st.write("Don't have an account?")
     if st.button("📝 Create Account", use_container_width=True):
         st.session_state.current_page = 'signup'
+        st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
 def show_dashboard():
@@ -776,7 +782,15 @@ def main():
     
     # Check if user is logged in
     if 'token' not in st.session_state:
-        show_login_page()
+        # Check current page for authentication flow
+        current_page = st.session_state.get('current_page', 'login')
+        
+        if current_page == 'signup':
+            show_signup_page()
+        elif current_page == 'verification':
+            show_verification_page()
+        else:
+            show_login_page()
     else:
         # Sidebar navigation
         with st.sidebar:
