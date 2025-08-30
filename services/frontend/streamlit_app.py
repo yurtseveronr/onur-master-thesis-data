@@ -842,27 +842,27 @@ def show_search_page(email: str):
                         
                         # Add to favorites button
                         if email:
-                            st.write(f"DEBUG: Search button key: search_{search_type}_{data.get('imdbID', 'no_id')}")
-                            if st.button(f"❤️ Add to Favorites", key=f"search_{search_type}_{data.get('imdbID', 'no_id')}"):
+                            if st.button(f"❤️ Add to Favorites", key=f"search_add_{search_type}"):
                                 st.write("DEBUG: Search button clicked!")
                                 imdb_id = data.get('imdbID', '')
+                                title = data.get('Title', '')
                                 st.write(f"DEBUG: IMDB ID: {imdb_id}")
-                                st.write(f"DEBUG: Title: {data.get('Title', '')}")
+                                st.write(f"DEBUG: Title: {title}")
                                 
                                 if search_type == "movie":
                                     if imdb_id:
-                                        st.write("DEBUG: Using add_movie_to_favorites")
-                                        add_result = APIClient.add_movie_to_favorites(email, imdb_id)
+                                        st.write("DEBUG: Using test_add_movie_favorite")
+                                        add_result = APIClient.test_add_movie_favorite(email, imdb_id, title)
                                     else:
                                         st.write("DEBUG: Using add_favorite_movie")
-                                        add_result = APIClient.add_favorite_movie(email, data.get('Title', ''))
+                                        add_result = APIClient.add_favorite_movie(email, title)
                                 else:
                                     if imdb_id:
-                                        st.write("DEBUG: Using add_series_to_favorites")
-                                        add_result = APIClient.add_series_to_favorites(email, imdb_id)
+                                        st.write("DEBUG: Using test_add_series_favorite")
+                                        add_result = APIClient.test_add_series_favorite(email, imdb_id, title)
                                     else:
                                         st.write("DEBUG: Using add_favorite_series")
-                                        add_result = APIClient.add_favorite_series(email, data.get('Title', ''))
+                                        add_result = APIClient.add_favorite_series(email, title)
                                 
                                 st.write(f"DEBUG: Add result: {add_result}")
                                 if add_result.get('success'):
