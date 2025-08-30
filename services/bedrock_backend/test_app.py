@@ -4,13 +4,38 @@ import pytest
 from unittest.mock import Mock, patch
 import json
 
-# Mock the bedrock_agent client before importing app
+# Mock all AWS clients before importing app
 with patch('boto3.client') as mock_boto3:
+    # Mock secretsmanager
+    mock_secretsmanager = Mock()
+    mock_secretsmanager.get_secret_value.return_value = {
+        "SecretString": json.dumps({
+            "BEDROCK_AGENT_ID": "arn:aws:bedrock:us-east-1:123456789012:agent/test-agent",
+            "BEDROCK_AGENT_ALIAS_ARN": "arn:aws:bedrock:us-east-1:123456789012:agent/test-agent/alias/test-alias"
+        })
+    }
+    
+    # Mock bedrock_agent
     mock_bedrock_agent = Mock()
     mock_bedrock_agent.describe_agent_alias.return_value = {
         "AgentAlias": {"Status": "ACTIVE"}
     }
-    mock_boto3.return_value = mock_bedrock_agent
+    
+    # Mock bedrock_agent_runtime
+    mock_agent_rt = Mock()
+    
+    # Configure boto3.client to return different mocks based on service name
+    def mock_client(service_name, **kwargs):
+        if service_name == "secretsmanager":
+            return mock_secretsmanager
+        elif service_name == "bedrock-agent":
+            return mock_bedrock_agent
+        elif service_name == "bedrock-agent-runtime":
+            return mock_agent_rt
+        else:
+            return Mock()
+    
+    mock_boto3.side_effect = mock_client
     
     from app import app
 
