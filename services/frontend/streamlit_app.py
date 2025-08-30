@@ -639,9 +639,14 @@ def show_recommendations_page(email: str):
                         
                         col1, col2, col3 = st.columns([2, 2, 1])
                         with col1:
-                            # Show series icon since poster might not be available
-                            st.write("📺")
-                            st.write(f"**{title}**")
+                            # Show poster if available, otherwise show icon
+                            poster_url = series_data.get('Poster', '')
+                            if poster_url and poster_url != 'N/A':
+                                st.image(poster_url, width=150, caption=title)
+                            else:
+                                st.write("📺")
+                                st.write("No poster available")
+                                st.write(f"**{title}**")
                         with col2:
                             st.write(f"**{title}**")
                             st.write(f"Year: {series_data.get('Year', 'N/A')}")
@@ -727,6 +732,8 @@ def show_search_page(email: str):
                         poster_url = data.get('Poster', '')
                         if poster_url and poster_url != "N/A":
                             st.image(poster_url, width=200, caption=data.get('Title', ''))
+                        else:
+                            st.write("🎬 No poster available")
                     
                     with col2:
                         st.write(f"**Title:** {data.get('Title', 'Unknown')}")

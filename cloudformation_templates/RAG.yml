@@ -14,7 +14,7 @@ Parameters:
   # Agent foundation model *ID* (STRING literal!)
   AgentModelId:
     Type: String
-    Default: anthropic.claude-3-5-haiku-20241022-v1:0
+    Default: anthropic.claude-3-haiku-20240307-v1:0
 
 Resources:
   BedrockAgentRole:
