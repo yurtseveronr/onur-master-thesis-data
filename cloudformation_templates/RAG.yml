@@ -13,7 +13,7 @@ Parameters:
     Default: movies-series
   EmbeddingModelArn:
     Type: String
-    Default: arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-g1-text-02:0
+    Default: arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v1
   EnrichmentModelArn:
     Type: String
     Default: arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-5-haiku-20241022-v1:0
@@ -60,7 +60,7 @@ Resources:
       PublicConnectivity: true
       ReplicaCount: 1
       VectorSearchConfiguration:
-        VectorSearchDimension: 1536  
+        VectorSearchDimension: 1024  
 
   BedrockKnowledgeBase:
     Type: AWS::Bedrock::KnowledgeBase
