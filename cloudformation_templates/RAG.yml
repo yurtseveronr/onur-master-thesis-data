@@ -60,7 +60,7 @@ Resources:
       PublicConnectivity: true
       ReplicaCount: 1
       VectorSearchConfiguration:
-        VectorSearchDimension: 1024  
+        VectorSearchDimension: 1536  
 
   BedrockKnowledgeBase:
     Type: AWS::Bedrock::KnowledgeBase
