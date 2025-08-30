@@ -103,7 +103,7 @@ def chat():
     try:
         raw = invoke_with_retry(msg)
         reply = parse_reply(raw)
-        return jsonify(reply=reply)
+        return jsonify(response=reply)
     except ReadTimeoutError:
         return jsonify(error="Timeout invoking agent"), 504
     except ClientError as e:
