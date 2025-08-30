@@ -826,19 +826,29 @@ def show_search_page(email: str):
                         
                         # Add to favorites button
                         if email:
+                            st.write(f"DEBUG: Search button key: search_{search_type}_{data.get('imdbID', 'no_id')}")
                             if st.button(f"❤️ Add to Favorites", key=f"search_{search_type}_{data.get('imdbID', 'no_id')}"):
+                                st.write("DEBUG: Search button clicked!")
                                 imdb_id = data.get('imdbID', '')
+                                st.write(f"DEBUG: IMDB ID: {imdb_id}")
+                                st.write(f"DEBUG: Title: {data.get('Title', '')}")
+                                
                                 if search_type == "movie":
                                     if imdb_id:
+                                        st.write("DEBUG: Using add_movie_to_favorites")
                                         add_result = APIClient.add_movie_to_favorites(email, imdb_id)
                                     else:
+                                        st.write("DEBUG: Using add_favorite_movie")
                                         add_result = APIClient.add_favorite_movie(email, data.get('Title', ''))
                                 else:
                                     if imdb_id:
+                                        st.write("DEBUG: Using add_series_to_favorites")
                                         add_result = APIClient.add_series_to_favorites(email, imdb_id)
                                     else:
+                                        st.write("DEBUG: Using add_favorite_series")
                                         add_result = APIClient.add_favorite_series(email, data.get('Title', ''))
                                 
+                                st.write(f"DEBUG: Add result: {add_result}")
                                 if add_result.get('success'):
                                     st.success("Added to favorites!")
                                     st.rerun()
