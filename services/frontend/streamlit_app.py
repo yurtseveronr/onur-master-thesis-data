@@ -543,7 +543,19 @@ def show_series_page(email: str):
             for i, show in enumerate(series):
                 with cols[i % 3]:
                     st.write(f"**{show.get('Title', 'Unknown')}**")
-                    st.write("📺")
+                    
+                    # Try to get poster from series service by ID
+                    series_result = APIClient.get_series_by_id(show.get('imdbID', ''))
+                    if series_result.get('success'):
+                        series_data = series_result.get('data', {})
+                        poster_url = series_data.get('Poster', '')
+                        if poster_url and poster_url != "N/A" and poster_url != "No poster available":
+                            st.image(poster_url, width=150, caption=show.get('Title', ''))
+                        else:
+                            st.write("📺 No poster available")
+                    else:
+                        st.write("📺 No poster available")
+                    
                     st.write(f"IMDB ID: {show.get('imdbID', 'Unknown')}")
                     st.divider()
         else:
