@@ -661,14 +661,8 @@ def show_recommendations_page(email: str):
     
     with rec_tab2:
         if series_recommendations and isinstance(series_recommendations, list):
-            st.write(f"Series bulundu: {len(series_recommendations)} adet")
             for i, rec in enumerate(series_recommendations):
                 if isinstance(rec, dict) and rec.get('item_id'):
-                    # Basit görünüm - önce sadece ID'leri gösterelim
-                    st.write(f"**Series {i+1}**")
-                    st.write(f"IMDB ID: {rec['item_id']}")
-                    st.write(f"Score: {rec.get('score', 0)}")
-                    
                     # Series service'den detayları al
                     series_result = APIClient.get_series_by_id(rec['item_id'])
                     
@@ -679,22 +673,43 @@ def show_recommendations_page(email: str):
                         genre = series_data.get('Genre', 'N/A')
                         rating = series_data.get('imdbRating', 'N/A')
                         
-                        st.write(f"Title: {title}")
-                        st.write(f"Year: {year}")
-                        st.write(f"Genre: {genre}")
-                        st.write(f"Rating: {rating}")
-                        
-                        # Add to favorites button
-                        if st.button(f"❤️ Add to Favorites", key=f"series_{rec['item_id']}"):
-                            result = APIClient.add_series_to_favorites(email, rec['item_id'])
-                            if result.get('success'):
-                                st.success("Added to favorites!")
-                            else:
-                                st.error("Failed to add to favorites!")
+                        col1, col2, col3 = st.columns([2, 2, 1])
+                        with col1:
+                            st.write("📺")
+                            st.write("Series Poster")
+                        with col2:
+                            st.write(f"**{title}**")
+                            st.write(f"Year: {year}")
+                            st.write(f"Genre: {genre}")
+                            st.write(f"Rating: {rating}")
+                            st.write(f"Score: {rec.get('score', 0)}")
+                        with col3:
+                            if st.button(f"❤️ Add to Favorites", key=f"series_{rec['item_id']}"):
+                                result = APIClient.add_series_to_favorites(email, rec['item_id'])
+                                if result.get('success'):
+                                    st.success("Added!")
+                                else:
+                                    st.error("Error!")
+                        st.divider()
                     else:
-                        st.error(f"Series bilgisi alınamadı: {series_result.get('message', 'Unknown error')}")
-                    
-                    st.divider()
+                        # Series bulunamadıysa basit görünüm
+                        col1, col2, col3 = st.columns([2, 2, 1])
+                        with col1:
+                            st.write("📺")
+                            st.write("No poster available")
+                        with col2:
+                            st.write(f"**Series {i+1}**")
+                            st.write(f"IMDB ID: {rec['item_id']}")
+                            st.write(f"Score: {rec.get('score', 0)}")
+                            st.write("⚠️ Series details not available")
+                        with col3:
+                            if st.button(f"❤️ Add to Favorites", key=f"series_{rec['item_id']}"):
+                                result = APIClient.add_series_to_favorites(email, rec['item_id'])
+                                if result.get('success'):
+                                    st.success("Added!")
+                                else:
+                                    st.error("Error!")
+                        st.divider()
         else:
             st.info("No series recommendations found")
     
