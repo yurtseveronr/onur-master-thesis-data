@@ -116,7 +116,7 @@ jobs:
           fi
           
           # Start ingestion job
-          INGESTION_JOB_ID=$(aws bedrock start-ingestion-job \
+          INGESTION_JOB_ID=$(aws bedrock-agent start-ingestion-job \
             --data-source-id "$DATA_SOURCE_ID" \
             --region ${{ env.AWS_REGION }} \
             --query 'IngestionJob.IngestionJobId' \
@@ -147,7 +147,7 @@ jobs:
             echo "Current status: $STATUS"
             sleep 30
             
-            STATUS=$(aws bedrock get-ingestion-job \
+            STATUS=$(aws bedrock-agent get-ingestion-job \
               --ingestion-job-id "$INGESTION_JOB_ID" \
               --region ${{ env.AWS_REGION }} \
               --query 'IngestionJob.Status' \
