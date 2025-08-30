@@ -199,13 +199,13 @@ Resources:
           - Sid: PersonalizeAccess
             Effect: Allow
             Action:
-              - personalize-runtime:GetRecommendations
+              - personalize:GetRecommendations
               - personalize:DescribeCampaign
               - personalize:DescribeDataset
               - personalize:DescribeEventTracker
               - personalize:ListEventTrackers
               - personalize:CreateEventTracker
-              - personalize-events:PutEvents
+              - personalize:PutEvents
             Resource:
               - !Sub 'arn:aws:personalize:${Region}:${AccountId}:campaign/tv-series-campaign'
               - !Sub 'arn:aws:personalize:${Region}:${AccountId}:campaign/movies-campaign'

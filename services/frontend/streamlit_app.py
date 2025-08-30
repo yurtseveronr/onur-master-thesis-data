@@ -671,7 +671,7 @@ def show_recommendations_page(email: str):
                     st.success(f"📺 {rec}")
         else:
             st.info("No series recommendations found")
-
+    
 def show_chatbot_page():
     """Chatbot page"""
     st.subheader("🤖 AI Chatbot")

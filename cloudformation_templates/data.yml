@@ -65,9 +65,18 @@ Resources:
       AttributeDefinitions:
         - AttributeName: imdbID
           AttributeType: S
+        - AttributeName: Title
+          AttributeType: S
       KeySchema:
         - AttributeName: imdbID
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: TitleIndex
+          KeySchema:
+            - AttributeName: Title
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
       Tags:
         - Key: Name
           Value: Movies Table
@@ -82,9 +91,18 @@ Resources:
       AttributeDefinitions:
         - AttributeName: imdbID
           AttributeType: S
+        - AttributeName: Title
+          AttributeType: S
       KeySchema:
         - AttributeName: imdbID
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: TitleIndex
+          KeySchema:
+            - AttributeName: Title
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
       Tags:
         - Key: Name
           Value: TV Series Table

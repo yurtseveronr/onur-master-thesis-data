@@ -13,10 +13,13 @@ Parameters:
     Default: movies-series
   EmbeddingModelArn:
     Type: String
-    Default: arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0
+    Default: arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-g1-text-02:0
   EnrichmentModelArn:
     Type: String
-    Default: arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-haiku-20240307-v1:0
+    Default: arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-5-haiku-20241022-v1:0
+  AgentModelArn:
+    Type: String
+    Default: arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-5-haiku-20241022-v1:0
 
 Resources:
   BedrockAgentRole:
@@ -57,7 +60,7 @@ Resources:
       PublicConnectivity: true
       ReplicaCount: 1
       VectorSearchConfiguration:
-        VectorSearchDimension: 1024  
+        VectorSearchDimension: 1536  
 
   BedrockKnowledgeBase:
     Type: AWS::Bedrock::KnowledgeBase
@@ -97,8 +100,8 @@ Resources:
         ChunkingConfiguration:
           ChunkingStrategy: FIXED_SIZE
           FixedSizeChunkingConfiguration:
-            MaxTokens:         300
-            OverlapPercentage: 20
+            MaxTokens:         800
+            OverlapPercentage: 15
         ContextEnrichmentConfiguration:
           Type: BEDROCK_FOUNDATION_MODEL
           BedrockFoundationModelConfiguration:
@@ -113,7 +116,7 @@ Resources:
     Properties:
       AgentName: !Sub "${CollectionName}-agent-test"
       AgentResourceRoleArn: !GetAtt BedrockAgentRole.Arn
-      FoundationModel: arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-micro-v1:0
+      FoundationModel: !Ref AgentModelArn
       Description: "RAG assistant"
       Instruction: |
         You are a retrieval-augmented assistant. Use the knowledge base to answer user queries as helpfully as possible.
