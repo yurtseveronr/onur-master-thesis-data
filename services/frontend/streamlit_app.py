@@ -617,14 +617,11 @@ def show_recommendations_page(email: str):
     rec_tab1, rec_tab2 = st.tabs(["🎬 Movies", "📺 Series"])
     
     with rec_tab1:
-        st.write(f"DEBUG: Movies tab - recommendations: {recommendations}")
         if recommendations and isinstance(recommendations, list):
             for rec in recommendations:
-                st.write(f"DEBUG: Processing movie rec: {rec}")
                 if isinstance(rec, dict) and rec.get('item_id'):
                     # Get movie details by ID
                     movie_result = APIClient.get_movie_by_id(rec['item_id'])
-                    st.write(f"DEBUG: Movie result for {rec['item_id']}: {movie_result}")
                     
                     if movie_result.get('success'):
                         movie_data = movie_result.get('data', {})
