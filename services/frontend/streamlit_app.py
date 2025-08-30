@@ -792,6 +792,22 @@ def show_search_page(email: str):
     """Search page for movies and series"""
     st.subheader("🔍 Search Movies & Series")
     
+    # Test butonları
+    st.write("---")
+    st.write("**SEARCH TEST BUTTONS:**")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🧪 Test Add Movie to Favorites", key="search_test_movie"):
+            st.write("DEBUG: Search test movie button clicked!")
+            result = APIClient.test_add_movie_favorite(email, "tt0111161", "The Shawshank Redemption")
+            st.write(f"SEARCH TEST RESULT: {result}")
+    with col2:
+        if st.button("🧪 Test Add Series to Favorites", key="search_test_series"):
+            st.write("DEBUG: Search test series button clicked!")
+            result = APIClient.test_add_series_favorite(email, "tt0944947", "Game of Thrones")
+            st.write(f"SEARCH TEST RESULT: {result}")
+    st.write("---")
+    
     search_type = st.selectbox("Search for:", ["movie", "series"])
     search_query = st.text_input("Enter title to search:", placeholder="e.g., Matrix, Breaking Bad")
     
