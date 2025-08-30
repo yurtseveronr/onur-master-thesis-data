@@ -304,37 +304,11 @@ def show_signup_page():
     st.markdown('<div class="auth-container">', unsafe_allow_html=True)
     st.subheader("📝 Create New Account")
     
-    # Initialize session state for form values
-    if 'signup_email' not in st.session_state:
-        st.session_state.signup_email = ""
-    if 'signup_password' not in st.session_state:
-        st.session_state.signup_password = ""
-    if 'signup_confirm_password' not in st.session_state:
-        st.session_state.signup_confirm_password = ""
-    
-    email = st.text_input("Email Address", 
-                         value=st.session_state.signup_email,
-                         placeholder="Enter your email address",
-                         key="email_input")
-    password = st.text_input("Password", 
-                            type="password", 
-                            value=st.session_state.signup_password,
-                            placeholder="Minimum 8 characters",
-                            key="password_input")
-    confirm_password = st.text_input("Confirm Password", 
-                                    type="password", 
-                                    value=st.session_state.signup_confirm_password,
-                                    placeholder="Confirm your password",
-                                    key="confirm_password_input")
+    email = st.text_input("Email Address", placeholder="Enter your email address")
+    password = st.text_input("Password", type="password", placeholder="Minimum 8 characters")
+    confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password")
     
     if st.button("Create Account", use_container_width=True):
-        # Save form values to session state
-        st.session_state.signup_email = email
-        st.session_state.signup_password = password
-        st.session_state.signup_confirm_password = confirm_password
-        st.session_state.signup_clicked = True
-        
-    if st.session_state.get('signup_clicked', False):
         st.write("DEBUG: Button clicked!")
         st.write(f"DEBUG: Email = {email}")
         st.write(f"DEBUG: Password = {password}")
