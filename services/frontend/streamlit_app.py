@@ -669,21 +669,15 @@ def show_recommendations_page(email: str):
                     st.write(f"IMDB ID: {rec['item_id']}")
                     st.write(f"Score: {rec.get('score', 0)}")
                     
-                    # Şimdi search ile detayları alır
-                    search_result = APIClient.search_series_by_id(rec['item_id'])
+                    # Series service'den detayları al
+                    series_result = APIClient.get_series_by_id(rec['item_id'])
                     
-                    if search_result.get('success'):
-                        search_data = search_result.get('data', {})
-                        # OMDB API response structure kontrol et
-                        if 'data' in search_data:
-                            series_info = search_data['data']
-                        else:
-                            series_info = search_data
-                            
-                        title = series_info.get('Title', 'Unknown Series')
-                        year = series_info.get('Year', 'N/A')
-                        genre = series_info.get('Genre', 'N/A')
-                        rating = series_info.get('imdbRating', 'N/A')
+                    if series_result.get('success'):
+                        series_data = series_result.get('data', {})
+                        title = series_data.get('Title', 'Unknown Series')
+                        year = series_data.get('Year', 'N/A')
+                        genre = series_data.get('Genre', 'N/A')
+                        rating = series_data.get('imdbRating', 'N/A')
                         
                         st.write(f"Title: {title}")
                         st.write(f"Year: {year}")
@@ -698,7 +692,7 @@ def show_recommendations_page(email: str):
                             else:
                                 st.error("Failed to add to favorites!")
                     else:
-                        st.error(f"Series bilgisi alınamadı: {search_result.get('message', 'Unknown error')}")
+                        st.error(f"Series bilgisi alınamadı: {series_result.get('message', 'Unknown error')}")
                     
                     st.divider()
         else:
