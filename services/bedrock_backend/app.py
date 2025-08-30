@@ -30,8 +30,8 @@ def load_credentials():
     creds = json.loads(resp["SecretString"])
     AGENT_ID = creds["BEDROCK_AGENT_ID"].split("/")[-1]
     AGENT_ALIAS_ARN = creds["BEDROCK_AGENT_ALIAS_ARN"]
-    # Use TestAlias instead of the alias from secrets
-    AGENT_ALIAS_ID = "TestAlias"
+    # Use DRAFT instead of the alias from secrets
+    AGENT_ALIAS_ID = "DRAFT"
 
 def wait_for_alias(alias_arn, timeout=600, interval=10):
     start = time.time()
