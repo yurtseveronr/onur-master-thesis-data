@@ -698,9 +698,9 @@ jobs:
     - name: Deploy to Kubernetes
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
-        kubectl set image deployment/bedrock-backend bedrock-backend=708778582346.dkr.ecr.us-east-1.amazonaws.com/chatbot-service:latest -n ai
-        kubectl rollout restart deployment/bedrock-backend -n ai
-        kubectl rollout status deployment/bedrock-backend -n ai --timeout=300s
+        kubectl set image deployment/chatbot chatbot=708778582346.dkr.ecr.us-east-1.amazonaws.com/chatbot-service:latest -n ai
+        kubectl rollout restart deployment/chatbot -n ai
+        kubectl rollout status deployment/chatbot -n ai --timeout=300s
 
   machine-learning-service:
     needs: changes
