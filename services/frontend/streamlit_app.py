@@ -309,36 +309,40 @@ def show_signup_page():
     confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password")
     
     if st.button("Create Account", use_container_width=True):
-            st.write("DEBUG: Button clicked!")
-            st.write(f"DEBUG: Email = {email}")
-            st.write(f"DEBUG: Password = {password}")
-            st.write(f"DEBUG: Confirm = {confirm_password}")
-            
-            if email and password and confirm_password:
-                if password != confirm_password:
-                    show_custom_message("error", "Passwords don't match!")
-                elif len(password) < 8:
-                    show_custom_message("error", "Password must be at least 8 characters!")
-                else:
-                    with st.spinner("Creating your account..."):
-                        result = APIClient.register_user(email, password)
-                    
-                    if result['success']:
-                        # Store email for verification page
-                        st.session_state.verification_email = email
-                        st.session_state.current_page = 'verification'
-                        show_custom_message("success", "Account created successfully! Please check your email for verification code.")
-                        st.balloons()
-                    else:
-                        error_code = result.get('error_code', '')
-                        if error_code == 'USER_EXISTS_VERIFIED':
-                            show_custom_message("error", "This email is already registered. Please sign in instead.")
-                            st.session_state.current_page = 'login'
-                        else:
-                            error_message = result.get('message', 'Unknown error')
-                            show_custom_message("error", f"Registration failed: {error_message}")
+        st.write("DEBUG: Button clicked!")
+        st.write("DEBUG: This should appear when button is clicked!")
+        
+    if st.session_state.get('signup_clicked', False):
+        st.write("DEBUG: Button clicked!")
+        st.write(f"DEBUG: Email = {email}")
+        st.write(f"DEBUG: Password = {password}")
+        st.write(f"DEBUG: Confirm = {confirm_password}")
+        
+        if email and password and confirm_password:
+            if password != confirm_password:
+                show_custom_message("error", "Passwords don't match!")
+            elif len(password) < 8:
+                show_custom_message("error", "Password must be at least 8 characters!")
             else:
-                show_custom_message("error", "Please fill in all fields!")
+                with st.spinner("Creating your account..."):
+                    result = APIClient.register_user(email, password)
+                
+                if result['success']:
+                    # Store email for verification page
+                    st.session_state.verification_email = email
+                    st.session_state.current_page = 'verification'
+                    show_custom_message("success", "Account created successfully! Please check your email for verification code.")
+                    st.balloons()
+                else:
+                    error_code = result.get('error_code', '')
+                    if error_code == 'USER_EXISTS_VERIFIED':
+                        show_custom_message("error", "This email is already registered. Please sign in instead.")
+                        st.session_state.current_page = 'login'
+                    else:
+                        error_message = result.get('message', 'Unknown error')
+                        show_custom_message("error", f"Registration failed: {error_message}")
+        else:
+            show_custom_message("error", "Please fill in all fields!")
     
     st.markdown('</div>', unsafe_allow_html=True)
     
