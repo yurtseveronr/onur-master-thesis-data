@@ -236,17 +236,13 @@ class APIClient:
     def get_recommendations(email: str) -> Dict[str, Any]:
         """Get personalized recommendations"""
         # Get movie recommendations
-        url = f"{API_URLS['personalize']}/api/movies/recommendations/?user_id={email}&num_results=5"
-        st.write(f"DEBUG: Calling movies API URL: {url}")
-        return APIClient.make_request('GET', url)
+        return APIClient.make_request('GET', f"{API_URLS['personalize']}/api/movies/recommendations/?user_id={email}&num_results=5")
 
     @staticmethod
     def get_series_recommendations(email: str) -> Dict[str, Any]:
         """Get personalized series recommendations"""
         # Get series recommendations
-        url = f"{API_URLS['personalize']}/api/series/recommendations/?user_id={email}&num_results=5"
-        st.write(f"DEBUG: Calling series API URL: {url}")
-        return APIClient.make_request('GET', url)
+        return APIClient.make_request('GET', f"{API_URLS['personalize']}/api/series/recommendations/?user_id={email}&num_results=5")
 
     @staticmethod
     def get_movie_by_id(movie_id: str) -> Dict[str, Any]:
@@ -591,12 +587,8 @@ def show_recommendations_page(email: str):
         st.warning("Please login to view recommendations")
         return
     
-    # Debug: Show email being used
-    st.write(f"DEBUG: Using email: {email}")
-    
     # Get recommendations
     recommendations_result = APIClient.get_recommendations(email)
-    st.write(f"DEBUG: Movies API Response: {recommendations_result}")
     
     # Handle nested data structure
     if recommendations_result.get('success'):
@@ -608,11 +600,8 @@ def show_recommendations_page(email: str):
     else:
         recommendations = []
     
-    st.write(f"DEBUG: Processed movies recommendations: {recommendations}")
-    
     # Get series recommendations
     series_recommendations_result = APIClient.get_series_recommendations(email)
-    st.write(f"DEBUG: Series API Response: {series_recommendations_result}")
     
     # Handle nested data structure for series
     if series_recommendations_result.get('success'):
@@ -624,17 +613,18 @@ def show_recommendations_page(email: str):
     else:
         series_recommendations = []
     
-    st.write(f"DEBUG: Processed series recommendations: {series_recommendations}")
-    
     # Movies and Series recommendations in tabs
     rec_tab1, rec_tab2 = st.tabs(["🎬 Movies", "📺 Series"])
     
     with rec_tab1:
+        st.write(f"DEBUG: Movies tab - recommendations: {recommendations}")
         if recommendations and isinstance(recommendations, list):
             for rec in recommendations:
+                st.write(f"DEBUG: Processing movie rec: {rec}")
                 if isinstance(rec, dict) and rec.get('item_id'):
                     # Get movie details by ID
                     movie_result = APIClient.get_movie_by_id(rec['item_id'])
+                    st.write(f"DEBUG: Movie result for {rec['item_id']}: {movie_result}")
                     
                     if movie_result.get('success'):
                         movie_data = movie_result.get('data', {})
@@ -671,44 +661,46 @@ def show_recommendations_page(email: str):
     
     with rec_tab2:
         if series_recommendations and isinstance(series_recommendations, list):
-            for rec in series_recommendations:
+            st.write(f"Series bulundu: {len(series_recommendations)} adet")
+            for i, rec in enumerate(series_recommendations):
                 if isinstance(rec, dict) and rec.get('item_id'):
-                    # Get series details by ID from search service
+                    # Basit görünüm - önce sadece ID'leri gösterelim
+                    st.write(f"**Series {i+1}**")
+                    st.write(f"IMDB ID: {rec['item_id']}")
+                    st.write(f"Score: {rec.get('score', 0)}")
+                    
+                    # Şimdi search ile detayları alır
                     search_result = APIClient.search_series_by_id(rec['item_id'])
                     
                     if search_result.get('success'):
-                        search_data = search_result.get('data', {}).get('data', {})
-                        title = search_data.get('Title', 'Unknown Series')
+                        search_data = search_result.get('data', {})
+                        # OMDB API response structure kontrol et
+                        if 'data' in search_data:
+                            series_info = search_data['data']
+                        else:
+                            series_info = search_data
+                            
+                        title = series_info.get('Title', 'Unknown Series')
+                        year = series_info.get('Year', 'N/A')
+                        genre = series_info.get('Genre', 'N/A')
+                        rating = series_info.get('imdbRating', 'N/A')
                         
-                        col1, col2, col3 = st.columns([2, 2, 1])
-                        with col1:
-                            # Show poster if available, otherwise show icon
-                            poster_url = search_data.get('Poster', '')
-                            if poster_url and poster_url != 'N/A':
-                                st.image(poster_url, width=150, caption=title)
+                        st.write(f"Title: {title}")
+                        st.write(f"Year: {year}")
+                        st.write(f"Genre: {genre}")
+                        st.write(f"Rating: {rating}")
+                        
+                        # Add to favorites button
+                        if st.button(f"❤️ Add to Favorites", key=f"series_{rec['item_id']}"):
+                            result = APIClient.add_series_to_favorites(email, rec['item_id'])
+                            if result.get('success'):
+                                st.success("Added to favorites!")
                             else:
-                                st.write("📺")
-                                st.write("No poster available")
-                                st.write(f"**{title}**")
-                        with col2:
-                            st.write(f"**{title}**")
-                            st.write(f"Year: {search_data.get('Year', 'N/A')}")
-                            st.write(f"Genre: {search_data.get('Genre', 'N/A')}")
-                            st.write(f"Rating: {search_data.get('imdbRating', 'N/A')}")
-                            st.write(f"Seasons: {search_data.get('totalSeasons', 'N/A')}")
-                            st.write(f"Score: {rec.get('score', 0)}")
-                        with col3:
-                            if st.button(f"❤️ Add to Favorites", key=f"series_{rec['item_id']}"):
-                                result = APIClient.add_series_to_favorites(email, rec['item_id'])
-                                if result.get('success'):
-                                    st.success("Added!")
-                                else:
-                                    st.error("Error!")
-                        st.divider()
-                    # Skip series that are not found
-                    pass
-                elif isinstance(rec, str):
-                    st.success(f"📺 {rec}")
+                                st.error("Failed to add to favorites!")
+                    else:
+                        st.error(f"Series bilgisi alınamadı: {search_result.get('message', 'Unknown error')}")
+                    
+                    st.divider()
         else:
             st.info("No series recommendations found")
     
