@@ -259,10 +259,14 @@ class APIClient:
         """Add movie to favorites"""
         # First get movie title by ID
         movie_result = APIClient.get_movie_by_id(movie_id)
+        st.write(f"DEBUG: Movie result for {movie_id}: {movie_result}")
         if movie_result.get('success'):
             title = movie_result.get('data', {}).get('Title', '')
+            st.write(f"DEBUG: Movie title: {title}")
             if title:
-                return APIClient.make_request('POST', f"{API_URLS['user']}/api/favorites/movies/{email}/{title}?imdb_id={movie_id}")
+                url = f"{API_URLS['user']}/api/favorites/movies/{email}/{title}?imdb_id={movie_id}"
+                st.write(f"DEBUG: Calling URL: {url}")
+                return APIClient.make_request('POST', url)
         return {'success': False, 'message': 'Could not get movie title'}
 
     @staticmethod
@@ -270,10 +274,14 @@ class APIClient:
         """Add series to favorites"""
         # First get series title by ID
         series_result = APIClient.get_series_by_id(series_id)
+        st.write(f"DEBUG: Series result for {series_id}: {series_result}")
         if series_result.get('success'):
             title = series_result.get('data', {}).get('Title', '')
+            st.write(f"DEBUG: Series title: {title}")
             if title:
-                return APIClient.make_request('POST', f"{API_URLS['user']}/api/favorites/series/{email}/{title}?imdb_id={series_id}")
+                url = f"{API_URLS['user']}/api/favorites/series/{email}/{title}?imdb_id={series_id}"
+                st.write(f"DEBUG: Calling URL: {url}")
+                return APIClient.make_request('POST', url)
         return {'success': False, 'message': 'Could not get series title'}
 
     @staticmethod
