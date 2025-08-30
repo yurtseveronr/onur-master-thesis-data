@@ -104,6 +104,7 @@ jobs:
           echo "agent_id=$AGENT_ID" >> $GITHUB_OUTPUT
 
       - name: Start Data Ingestion Job
+        id: ingestion-job
         run: |
           echo "Starting data ingestion job..."
           
@@ -142,10 +143,17 @@ jobs:
         run: |
           echo "Waiting for ingestion job to complete..."
           
-          INGESTION_JOB_ID="${{ steps.rag-outputs.outputs.ingestion_job_id }}"
+          # Get ingestion job ID from previous step
+          INGESTION_JOB_ID="${{ steps.ingestion-job.outputs.ingestion_job_id }}"
           
-          if [ -z "$INGESTION_JOB_ID" ]; then
-            echo "No ingestion job ID found"
+          echo "DEBUG: Ingestion Job ID from outputs: $INGESTION_JOB_ID"
+          
+          if [ -z "$INGESTION_JOB_ID" ] || [ "$INGESTION_JOB_ID" = "None" ]; then
+            echo "ERROR: No valid ingestion job ID found"
+            echo "Available outputs:"
+            echo "knowledge_base_id: ${{ steps.rag-outputs.outputs.knowledge_base_id }}"
+            echo "data_source_id: ${{ steps.rag-outputs.outputs.data_source_id }}"
+            echo "agent_id: ${{ steps.rag-outputs.outputs.agent_id }}"
             exit 1
           fi
           
