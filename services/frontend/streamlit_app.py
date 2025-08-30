@@ -304,13 +304,11 @@ def show_signup_page():
     st.markdown('<div class="auth-container">', unsafe_allow_html=True)
     st.subheader("📝 Create New Account")
     
-    with st.form("signup_form"):
-        email = st.text_input("Email Address", placeholder="Enter your email address")
-        password = st.text_input("Password", type="password", placeholder="Minimum 8 characters")
-        confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password")
-        signup_button = st.form_submit_button("Create Account", use_container_width=True)
-        
-        if signup_button:
+    email = st.text_input("Email Address", placeholder="Enter your email address")
+    password = st.text_input("Password", type="password", placeholder="Minimum 8 characters")
+    confirm_password = st.text_input("Confirm Password", type="password", placeholder="Confirm your password")
+    
+    if st.button("Create Account", use_container_width=True):
             st.write("DEBUG: Button clicked!")
             st.write(f"DEBUG: Email = {email}")
             st.write(f"DEBUG: Password = {password}")
