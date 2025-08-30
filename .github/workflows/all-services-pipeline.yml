@@ -692,13 +692,13 @@ jobs:
       run: |
         cd services/bedrock_backend
         aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 708778582346.dkr.ecr.us-east-1.amazonaws.com
-        docker tag bedrock-backend:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/bedrock-backend:latest
-        docker push 708778582346.dkr.ecr.us-east-1.amazonaws.com/bedrock-backend:latest
+        docker tag bedrock-backend:latest 708778582346.dkr.ecr.us-east-1.amazonaws.com/chatbot-service:latest
+        docker push 708778582346.dkr.ecr.us-east-1.amazonaws.com/chatbot-service:latest
     
     - name: Deploy to Kubernetes
       run: |
         aws eks update-kubeconfig --region us-east-1 --name onur-master-eks
-        kubectl set image deployment/bedrock-backend bedrock-backend=708778582346.dkr.ecr.us-east-1.amazonaws.com/bedrock-backend:latest -n ai
+        kubectl set image deployment/bedrock-backend bedrock-backend=708778582346.dkr.ecr.us-east-1.amazonaws.com/chatbot-service:latest -n ai
         kubectl rollout restart deployment/bedrock-backend -n ai
         kubectl rollout status deployment/bedrock-backend -n ai --timeout=300s
 
