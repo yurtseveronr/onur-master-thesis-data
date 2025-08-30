@@ -649,8 +649,12 @@ def show_recommendations_page(email: str):
                         
                         col1, col2, col3 = st.columns([2, 2, 1])
                         with col1:
-                            # Show poster if available (series might not have poster)
-                            st.write("📺 Series")
+                            # Show poster if available
+                            poster_url = series_data.get('Poster', '')
+                            if poster_url and poster_url != 'N/A':
+                                st.image(poster_url, width=150, caption=title)
+                            else:
+                                st.write("📺 No poster available")
                         with col2:
                             st.write(f"**{title}**")
                             st.write(f"Year: {series_data.get('Year', 'N/A')}")
