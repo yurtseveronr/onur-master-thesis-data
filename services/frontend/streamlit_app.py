@@ -677,10 +677,10 @@ def show_recommendations_page(email: str):
                                 st.write(f"**{title}**")
                         with col2:
                             st.write(f"**{title}**")
-                            st.write(f"Year: {series_data.get('Year', 'N/A')}")
-                            st.write(f"Genre: {series_data.get('Genre', 'N/A')}")
-                            st.write(f"Rating: {series_data.get('imdbRating', 'N/A')}")
-                            st.write(f"Seasons: {series_data.get('TotalSeasons', 'N/A')}")
+                            st.write(f"Year: {search_data.get('Year', 'N/A')}")
+                            st.write(f"Genre: {search_data.get('Genre', 'N/A')}")
+                            st.write(f"Rating: {search_data.get('imdbRating', 'N/A')}")
+                            st.write(f"Seasons: {search_data.get('totalSeasons', 'N/A')}")
                             st.write(f"Score: {rec.get('score', 0)}")
                         with col3:
                             if st.button(f"❤️ Add to Favorites", key=f"series_{rec['item_id']}"):
