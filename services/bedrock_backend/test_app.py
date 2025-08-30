@@ -89,7 +89,7 @@ def test_chat_success(mock_agent, client):
     response = client.post('/chat', json={'message': 'Hi'})
     assert response.status_code == 200
     data = json.loads(response.data)
-    assert data['reply'] == 'Hello!'
+    assert data['response'] == 'Hello!'
 
 
 
@@ -125,7 +125,7 @@ def test_chat_multiple_chunks(mock_agent, client):
     response = client.post('/chat', json={'message': 'Hi'})
     assert response.status_code == 200
     data = json.loads(response.data)
-    assert data['reply'] == 'Hello World!'
+    assert data['response'] == 'Hello World!'
 
 def test_chat_invalid_json(client):
     response = client.post('/chat', 

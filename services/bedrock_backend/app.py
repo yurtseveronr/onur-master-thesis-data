@@ -28,11 +28,15 @@ def load_credentials():
     global AGENT_ID, AGENT_ALIAS_ARN, AGENT_ALIAS_ID
     resp = sm.get_secret_value(SecretId=SECRET_NAME)
     creds = json.loads(resp["SecretString"])
-    
-    
+
+    print(f"DEBUG: Creds: {creds}")
     AGENT_ID = creds["BEDROCK_AGENT_ID"]  
     AGENT_ALIAS_ARN = creds["BEDROCK_AGENT_ALIAS_ARN"]
     AGENT_ALIAS_ID = AGENT_ALIAS_ARN.split("/")[-1] 
+
+    print(f"DEBUG: AGENT_ID: {AGENT_ID}")
+    print(f"DEBUG: AGENT_ALIAS_ARN: {AGENT_ALIAS_ARN}")
+    print(f"DEBUG: AGENT_ALIAS_ID: {AGENT_ALIAS_ID}")
 
 def wait_for_alias(alias_arn, timeout=600, interval=10):
     start = time.time()
@@ -54,17 +58,22 @@ print("Skipping alias check - assuming agent is active")
 def invoke_with_retry(message, max_retries=3):
     for attempt in range(1, max_retries + 1):
         try:
-            return agent_rt.invoke_agent(
+            print(f"DEBUG: Attempt {attempt} - Invoking agent with ID: {AGENT_ID}, Alias ID: {AGENT_ALIAS_ID}")
+            result = agent_rt.invoke_agent(
                 agentId=AGENT_ID,
                 agentAliasId=AGENT_ALIAS_ID,
                 sessionId=str(uuid.uuid4()),
                 inputText=message
             )
-        except ReadTimeoutError:
+            print(f"DEBUG: Agent invocation successful: {result}")
+            return result
+        except ReadTimeoutError as e:
+            print(f"DEBUG: ReadTimeoutError on attempt {attempt}: {e}")
             if attempt == max_retries:
                 raise
             time.sleep(2 ** attempt)
         except Exception as e:
+            print(f"DEBUG: Exception on attempt {attempt}: {e}")
             if attempt == max_retries:
                 raise
             print(f"Attempt {attempt} failed: {e}")
@@ -92,24 +101,42 @@ def health():
 
 @app.route('/chat', methods=['POST'])
 def chat():
+    print("DEBUG: Chat endpoint called")
     if not request.is_json:
+        print("DEBUG: Request is not JSON")
         return jsonify(error="JSON required"), 400
+    
     body = request.get_json()
+    print(f"DEBUG: Request body: {body}")
     msg = body.get("message")
+    print(f"DEBUG: Message: {msg}")
+    
     if not msg or not isinstance(msg, str) or not msg.strip():
+        print("DEBUG: Invalid message format")
         return jsonify(error="message must be a non-empty string"), 400
+    
     if not AGENT_ID:
+        print("DEBUG: Agent not configured")
         return jsonify(error="Agent not configured"), 503
+    
     try:
+        print(f"DEBUG: Calling invoke_with_retry with message: {msg}")
         raw = invoke_with_retry(msg)
+        print(f"DEBUG: Raw response: {raw}")
         reply = parse_reply(raw)
+        print(f"DEBUG: Parsed reply: {reply}")
         return jsonify(response=reply)
-    except ReadTimeoutError:
+    except ReadTimeoutError as e:
+        print(f"DEBUG: ReadTimeoutError: {e}")
         return jsonify(error="Timeout invoking agent"), 504
     except ClientError as e:
+        print(f"DEBUG: ClientError: {e}")
         err = e.response.get("Error", {})
         return jsonify(error=err.get("Code", "ClientError") + ": " + err.get("Message", str(e))), 500
     except Exception as e:
+        print(f"DEBUG: Unexpected error: {e}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
         return jsonify(error=str(e)), 500
 #startup
 if __name__ == "__main__":
