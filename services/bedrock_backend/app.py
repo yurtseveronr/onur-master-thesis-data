@@ -28,10 +28,14 @@ def load_credentials():
     global AGENT_ID, AGENT_ALIAS_ARN, AGENT_ALIAS_ID
     resp = sm.get_secret_value(SecretId=SECRET_NAME)
     creds = json.loads(resp["SecretString"])
+    print(f"DEBUG: Full agent ID: {creds['BEDROCK_AGENT_ID']}")
     AGENT_ID = creds["BEDROCK_AGENT_ID"].split("/")[-1]
+    print(f"DEBUG: Agent ID: {AGENT_ID}")
     AGENT_ALIAS_ARN = creds["BEDROCK_AGENT_ALIAS_ARN"]
+    print(f"DEBUG: Alias ARN: {AGENT_ALIAS_ARN}")
     # Use DRAFT instead of the alias from secrets
     AGENT_ALIAS_ID = "DRAFT"
+    print(f"DEBUG: Using Alias ID: {AGENT_ALIAS_ID}")
 
 def wait_for_alias(alias_arn, timeout=600, interval=10):
     start = time.time()
