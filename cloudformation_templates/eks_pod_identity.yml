@@ -279,6 +279,30 @@ Resources:
       ServiceAccount: !Ref StreamingServiceAccount
       RoleArn: !GetAtt StreamingRole.Arn
 
+  # ==================== MONITORING ====================
+  MonitoringRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ClusterName}-monitoring-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: pods.eks.amazonaws.com }
+            Action:
+              - sts:AssumeRole
+              - sts:TagSession
+      ManagedPolicyArns:
+        - !Ref CommonPolicy
+
+  MonitoringPodIdentity:
+    Type: AWS::EKS::PodIdentityAssociation
+    Properties:
+      ClusterName: !Ref ClusterName
+      Namespace: amazon-cloudwatch
+      ServiceAccount: cloudwatch-agent
+      RoleArn: !GetAtt MonitoringRole.Arn
+
   # ==================== LOAD BALANCER CONTROLLER ====================
   LBCRole:
     Type: AWS::IAM::Role

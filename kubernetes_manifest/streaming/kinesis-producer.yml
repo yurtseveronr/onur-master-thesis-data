@@ -14,6 +14,8 @@ spec:
     metadata:
       labels:
         app: kinesis-producer
+      annotations:
+        linkerd.io/inject: enabled
     spec:
       serviceAccountName: streaming-sa
       nodeSelector:

@@ -16,6 +16,8 @@ spec:
     metadata:
       labels:
         app: chatbot
+      annotations:
+        linkerd.io/inject: enabled
     spec:
       serviceAccountName: ai-sa
       nodeSelector:

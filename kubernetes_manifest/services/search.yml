@@ -14,6 +14,8 @@ spec:
     metadata:
       labels:
         app: search
+      annotations:
+        linkerd.io/inject: enabled
     spec:
       serviceAccountName: services-sa   # SA zaten mevcut
       nodeSelector:

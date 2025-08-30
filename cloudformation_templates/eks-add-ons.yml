@@ -101,15 +101,13 @@ Resources:
       ServiceAccountRoleArn: !GetAtt ADOTRole.Arn
       ResolveConflicts: OVERWRITE
 
-  # Amazon CloudWatch Observability Add-on
+  # Amazon CloudWatch Observability Add-on (Pod Identity)
   CloudWatchObservabilityAddon:
     Type: AWS::EKS::Addon
-    DependsOn: MonitoringRole
     Properties:
       ClusterName: !Ref ClusterName
       AddonName: amazon-cloudwatch-observability
       AddonVersion: v4.3.1-eksbuild.1
-      ServiceAccountRoleArn: !GetAtt MonitoringRole.Arn
       ResolveConflicts: OVERWRITE
 
   # Amazon EKS Pod Identity Agent Add-on
