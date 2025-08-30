@@ -3,7 +3,7 @@ import os, json, time, uuid, logging
 import boto3
 from botocore.exceptions import ClientError, ReadTimeoutError
 from botocore.config import Config
-#FLASK APP
+
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 

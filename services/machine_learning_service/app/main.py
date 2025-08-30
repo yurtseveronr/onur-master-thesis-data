@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.routes import movies, series  # ✅ app.api.routes değil!
+from app.routes import movies, series  
 from app.core.config import settings
 import logging
 
