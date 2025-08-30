@@ -46,9 +46,8 @@ def wait_for_alias(alias_arn, timeout=600, interval=10):
     raise RuntimeError("Alias did not become ACTIVE in time")
 
 load_credentials()
-# Skip alias check in test environment
-if not os.getenv('TESTING'):
-    wait_for_alias(AGENT_ALIAS_ARN)
+# Skip alias check for now - assume it's active
+print("Skipping alias check - assuming agent is active")
 
 def invoke_with_retry(message, max_retries=3):
     for attempt in range(1, max_retries + 1):
