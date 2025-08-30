@@ -28,6 +28,7 @@ type Series struct {
 	ITEM_ID      string `json:"ITEM_ID"`
 	Language     string `json:"Language"`
 	Plot         string `json:"Plot"`
+	Poster       string `json:"Poster"`
 	TotalSeasons string `json:"TotalSeasons"`
 }
 
