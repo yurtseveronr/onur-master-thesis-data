@@ -217,6 +217,22 @@ class APIClient:
             return {'success': False, 'message': f'Error: {str(e)}'}
 
     @staticmethod
+    def search_series_by_id(imdb_id: str) -> Dict[str, Any]:
+        """Search series by IMDB ID"""
+        # Search service doesn't need authentication
+        try:
+            response = requests.get(f"{API_URLS['search']}/api/search?i={imdb_id}&type=series", timeout=10)
+            if response.status_code in [200, 201]:
+                try:
+                    return {'success': True, 'data': response.json()}
+                except:
+                    return {'success': True, 'data': {'message': 'Success'}}
+            else:
+                return {'success': False, 'message': f'HTTP {response.status_code}'}
+        except Exception as e:
+            return {'success': False, 'message': f'Error: {str(e)}'}
+
+    @staticmethod
     def get_recommendations(email: str) -> Dict[str, Any]:
         """Get personalized recommendations"""
         # Get movie recommendations
@@ -544,12 +560,12 @@ def show_series_page(email: str):
                 with cols[i % 3]:
                     st.write(f"**{show.get('Title', 'Unknown')}**")
                     
-                    # Try to get poster from series service by ID
-                    series_result = APIClient.get_series_by_id(show.get('imdbID', ''))
-                    if series_result.get('success'):
-                        series_data = series_result.get('data', {})
-                        poster_url = series_data.get('Poster', '')
-                        if poster_url and poster_url != "N/A" and poster_url != "No poster available":
+                    # Try to get poster from search service by ID
+                    search_result = APIClient.search_series_by_id(show.get('imdbID', ''))
+                    if search_result.get('success'):
+                        search_data = search_result.get('data', {}).get('data', {})
+                        poster_url = search_data.get('Poster', '')
+                        if poster_url and poster_url != "N/A":
                             st.image(poster_url, width=150, caption=show.get('Title', ''))
                         else:
                             st.write("📺 No poster available")
@@ -642,17 +658,17 @@ def show_recommendations_page(email: str):
         if series_recommendations and isinstance(series_recommendations, list):
             for rec in series_recommendations:
                 if isinstance(rec, dict) and rec.get('item_id'):
-                    # Get series details by ID
-                    series_result = APIClient.get_series_by_id(rec['item_id'])
+                    # Get series details by ID from search service
+                    search_result = APIClient.search_series_by_id(rec['item_id'])
                     
-                    if series_result.get('success'):
-                        series_data = series_result.get('data', {})
-                        title = series_data.get('Title', 'Unknown Series')
+                    if search_result.get('success'):
+                        search_data = search_result.get('data', {}).get('data', {})
+                        title = search_data.get('Title', 'Unknown Series')
                         
                         col1, col2, col3 = st.columns([2, 2, 1])
                         with col1:
                             # Show poster if available, otherwise show icon
-                            poster_url = series_data.get('Poster', '')
+                            poster_url = search_data.get('Poster', '')
                             if poster_url and poster_url != 'N/A':
                                 st.image(poster_url, width=150, caption=title)
                             else:
