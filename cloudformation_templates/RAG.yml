@@ -17,9 +17,9 @@ Parameters:
   EnrichmentModelArn:
     Type: String
     Default: arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-5-haiku-20241022-v1:0
-  AgentModelArn:
+  AgentModelId:
     Type: String
-    Default: arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-5-haiku-20241022-v1:0
+    Default: anthropic.claude-3-5-haiku-20241022-v1:0
 
 Resources:
   BedrockAgentRole:
@@ -116,7 +116,7 @@ Resources:
     Properties:
       AgentName: !Sub "${CollectionName}-agent-test"
       AgentResourceRoleArn: !GetAtt BedrockAgentRole.Arn
-      FoundationModel: !Ref AgentModelArn
+      FoundationModel: !Ref AgentModelId
       Description: "RAG assistant"
       Instruction: |
         You are a retrieval-augmented assistant. Use the knowledge base to answer user queries as helpfully as possible.
