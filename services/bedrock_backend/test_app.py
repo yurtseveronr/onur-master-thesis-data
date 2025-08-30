@@ -59,7 +59,7 @@ def test_chat_no_message(client):
     response = client.post('/chat', json={})
     assert response.status_code == 400
     data = json.loads(response.data)
-    assert 'required' in data['error']
+    assert 'message must be a non-empty string' in data['error']
 
 def test_chat_empty_message(client):
     response = client.post('/chat', json={'message': ''})
