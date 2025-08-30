@@ -787,10 +787,17 @@ def show_search_page(email: str):
                         # Add to favorites button
                         if email:
                             if st.button(f"❤️ Add to Favorites"):
+                                imdb_id = data.get('imdbID', '')
                                 if search_type == "movie":
-                                    add_result = APIClient.add_favorite_movie(email, data.get('Title', ''))
+                                    if imdb_id:
+                                        add_result = APIClient.add_movie_to_favorites(email, imdb_id)
+                                    else:
+                                        add_result = APIClient.add_favorite_movie(email, data.get('Title', ''))
                                 else:
-                                    add_result = APIClient.add_favorite_series(email, data.get('Title', ''))
+                                    if imdb_id:
+                                        add_result = APIClient.add_series_to_favorites(email, imdb_id)
+                                    else:
+                                        add_result = APIClient.add_favorite_series(email, data.get('Title', ''))
                                 
                                 if add_result.get('success'):
                                     st.success("Added to favorites!")
