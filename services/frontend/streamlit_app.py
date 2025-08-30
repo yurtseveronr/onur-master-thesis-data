@@ -3,7 +3,7 @@ import requests
 import json
 from datetime import datetime
 from typing import Optional, Dict, Any
-# STREAMLIT APP
+
 st.set_page_config(
     page_title="Movie & Series Recommendation App",
     page_icon="🎬",
@@ -560,7 +560,7 @@ def show_series_page(email: str):
                 with cols[i % 3]:
                     st.write(f"**{show.get('Title', 'Unknown')}**")
                     
-                    # Try to get poster from search service by ID
+                    # Try to get poster from search service by ID (OMDB API)
                     search_result = APIClient.search_series_by_id(show.get('imdbID', ''))
                     if search_result.get('success'):
                         search_data = search_result.get('data', {}).get('data', {})
