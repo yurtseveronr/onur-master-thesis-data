@@ -310,6 +310,20 @@ class APIClient:
         data = {'message': message}
         return APIClient.make_request('POST', f"{API_URLS['chatbot']}/chat", data)
 
+    @staticmethod
+    def test_add_movie_favorite(email: str, movie_id: str, title: str) -> Dict[str, Any]:
+        """Test function to add movie to favorites"""
+        url = f"{API_URLS['user']}/api/favorites/movies/{email}/{title}?imdb_id={movie_id}"
+        st.write(f"TEST: Calling URL: {url}")
+        return APIClient.make_request('POST', url)
+
+    @staticmethod
+    def test_add_series_favorite(email: str, series_id: str, title: str) -> Dict[str, Any]:
+        """Test function to add series to favorites"""
+        url = f"{API_URLS['user']}/api/favorites/series/{email}/{title}?imdb_id={series_id}"
+        st.write(f"TEST: Calling URL: {url}")
+        return APIClient.make_request('POST', url)
+
 def show_custom_message(message_type: str, message: str):
     """Show custom styled messages"""
     if message_type == "success":
@@ -594,6 +608,20 @@ def show_recommendations_page(email: str):
     if not email:
         st.warning("Please login to view recommendations")
         return
+    
+    # Test butonları
+    st.write("---")
+    st.write("**TEST BUTTONS:**")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🧪 Test Add Movie", key="test_movie"):
+            result = APIClient.test_add_movie_favorite(email, "tt0126029", "Shrek")
+            st.write(f"TEST RESULT: {result}")
+    with col2:
+        if st.button("🧪 Test Add Series", key="test_series"):
+            result = APIClient.test_add_series_favorite(email, "tt0436992", "Doctor Who")
+            st.write(f"TEST RESULT: {result}")
+    st.write("---")
     
     # Get recommendations
     recommendations_result = APIClient.get_recommendations(email)
