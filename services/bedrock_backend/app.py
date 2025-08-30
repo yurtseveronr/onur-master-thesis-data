@@ -7,7 +7,7 @@ from botocore.config import Config
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
-REGION = os.getenv("AWS_REGION", "us-east-1")
+REGION = "us-east-1"  # Force US-EAST-1
 SECRET_NAME = os.getenv("SECRET_NAME", "movies-series-agent-creds-v2")
 
 boto_config = Config(
@@ -35,10 +35,13 @@ def load_credentials():
 def wait_for_alias(alias_arn, timeout=600, interval=10):
     start = time.time()
     while time.time() - start < timeout:
-        resp = bedrock_agent.describe_agent_alias(AgentAliasArn=alias_arn)
-        status = resp["AgentAlias"]["Status"]
-        if status == "ACTIVE":
-            return
+        try:
+            resp = bedrock_agent.get_agent_alias(AgentAliasArn=alias_arn)
+            status = resp["AgentAlias"]["Status"]
+            if status == "ACTIVE":
+                return
+        except Exception as e:
+            print(f"Error checking alias status: {e}")
         time.sleep(interval)
     raise RuntimeError("Alias did not become ACTIVE in time")
 
@@ -57,6 +60,11 @@ def invoke_with_retry(message, max_retries=3):
         except ReadTimeoutError:
             if attempt == max_retries:
                 raise
+            time.sleep(2 ** attempt)
+        except Exception as e:
+            if attempt == max_retries:
+                raise
+            print(f"Attempt {attempt} failed: {e}")
             time.sleep(2 ** attempt)
 
 def parse_reply(response):
