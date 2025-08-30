@@ -146,7 +146,13 @@ jobs:
           # Get ingestion job ID from previous step
           INGESTION_JOB_ID="${{ steps.ingestion-job.outputs.ingestion_job_id }}"
           
+          # Get the data source ID and knowledge base ID from previous step
+          DATA_SOURCE_ID="${{ steps.rag-outputs.outputs.data_source_id }}"
+          KNOWLEDGE_BASE_ID="${{ steps.rag-outputs.outputs.knowledge_base_id }}"
+          
           echo "DEBUG: Ingestion Job ID from outputs: $INGESTION_JOB_ID"
+          echo "DEBUG: Data Source ID: $DATA_SOURCE_ID"
+          echo "DEBUG: Knowledge Base ID: $KNOWLEDGE_BASE_ID"
           
           if [ -z "$INGESTION_JOB_ID" ] || [ "$INGESTION_JOB_ID" = "None" ]; then
             echo "ERROR: No valid ingestion job ID found"
@@ -154,6 +160,11 @@ jobs:
             echo "knowledge_base_id: ${{ steps.rag-outputs.outputs.knowledge_base_id }}"
             echo "data_source_id: ${{ steps.rag-outputs.outputs.data_source_id }}"
             echo "agent_id: ${{ steps.rag-outputs.outputs.agent_id }}"
+            exit 1
+          fi
+          
+          if [ -z "$DATA_SOURCE_ID" ] || [ -z "$KNOWLEDGE_BASE_ID" ]; then
+            echo "ERROR: Missing Data Source ID or Knowledge Base ID"
             exit 1
           fi
           
