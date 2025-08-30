@@ -11,18 +11,7 @@ Parameters:
   CollectionName:
     Type: String
     Default: movies-series
-
-  # Embedding model ARN (region-dynamic Titan v1)
-  EmbeddingModelArn:
-    Type: String
-    Default: !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/amazon.titan-embed-text-v1"
-
-  # Enrichment model ARN (GraphRAG destekli, region-dynamic Claude 3 Haiku 20240307)
-  EnrichmentModelArn:
-    Type: String
-    Default: !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0"
-
-  # Agent foundation model ID (MODEL ID! — Claude 3.5 Haiku)
+  # Agent foundation model *ID* (STRING literal!)
   AgentModelId:
     Type: String
     Default: anthropic.claude-3-5-haiku-20241022-v1:0
@@ -79,7 +68,8 @@ Resources:
       KnowledgeBaseConfiguration:
         Type: VECTOR
         VectorKnowledgeBaseConfiguration:
-          EmbeddingModelArn: !Ref EmbeddingModelArn
+          # Titan Embed Text v1 (region-dinamik ARN)
+          EmbeddingModelArn: !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/amazon.titan-embed-text-v1"
       StorageConfiguration:
         Type: NEPTUNE_ANALYTICS
         NeptuneAnalyticsConfiguration:
@@ -111,7 +101,8 @@ Resources:
         ContextEnrichmentConfiguration:
           Type: BEDROCK_FOUNDATION_MODEL
           BedrockFoundationModelConfiguration:
-            ModelArn: !Ref EnrichmentModelArn
+            # Claude 3 Haiku 20240307 (region-dinamik ARN) — Graph enrichment ile uyumlu
+            ModelArn: !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0"
             EnrichmentStrategyConfiguration:
               Method: CHUNK_ENTITY_EXTRACTION
 
@@ -122,6 +113,7 @@ Resources:
     Properties:
       AgentName: !Sub "${CollectionName}-agent-test"
       AgentResourceRoleArn: !GetAtt BedrockAgentRole.Arn
+      # Agent için MODEL ID (Claude 3.5 Haiku)
       FoundationModel: !Ref AgentModelId
       Description: "RAG assistant"
       Instruction: |
@@ -150,7 +142,7 @@ Resources:
       - BedrockAgentAlias
     Properties:
       Name: !Sub "${CollectionName}-agent-creds-v2"
-      Description: "Stores Bedrock Agent ARN and Alias ARN plus Data Source and Knowledge Base IDs"
+      Description: "Stores Bedrock Agent and Alias plus Data Source and Knowledge Base IDs"
       SecretString:
         Fn::Sub:
           - |

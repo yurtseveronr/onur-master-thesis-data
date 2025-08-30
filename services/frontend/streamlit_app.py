@@ -311,6 +311,11 @@ def show_signup_page():
         signup_button = st.form_submit_button("Create Account", use_container_width=True)
         
         if signup_button:
+            st.write("DEBUG: Button clicked!")
+            st.write(f"DEBUG: Email = {email}")
+            st.write(f"DEBUG: Password = {password}")
+            st.write(f"DEBUG: Confirm = {confirm_password}")
+            
             if email and password and confirm_password:
                 if password != confirm_password:
                     show_custom_message("error", "Passwords don't match!")
