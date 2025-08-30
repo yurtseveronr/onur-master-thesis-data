@@ -107,16 +107,18 @@ jobs:
         run: |
           echo "Starting data ingestion job..."
           
-          # Get the data source ID
+          # Get the data source ID and knowledge base ID
           DATA_SOURCE_ID="${{ steps.rag-outputs.outputs.data_source_id }}"
+          KNOWLEDGE_BASE_ID="${{ steps.rag-outputs.outputs.knowledge_base_id }}"
           
-          if [ -z "$DATA_SOURCE_ID" ]; then
-            echo "Failed to get Data Source ID"
+          if [ -z "$DATA_SOURCE_ID" ] || [ -z "$KNOWLEDGE_BASE_ID" ]; then
+            echo "Failed to get Data Source ID or Knowledge Base ID"
             exit 1
           fi
           
           # Start ingestion job
           INGESTION_JOB_ID=$(aws bedrock-agent start-ingestion-job \
+            --knowledge-base-id "$KNOWLEDGE_BASE_ID" \
             --data-source-id "$DATA_SOURCE_ID" \
             --region ${{ env.AWS_REGION }} \
             --query 'IngestionJob.IngestionJobId' \
@@ -148,6 +150,8 @@ jobs:
             sleep 30
             
             STATUS=$(aws bedrock-agent get-ingestion-job \
+              --knowledge-base-id "$KNOWLEDGE_BASE_ID" \
+              --data-source-id "$DATA_SOURCE_ID" \
               --ingestion-job-id "$INGESTION_JOB_ID" \
               --region ${{ env.AWS_REGION }} \
               --query 'IngestionJob.Status' \
