@@ -18,7 +18,7 @@ boto_config = Config(
 
 sm = boto3.client("secretsmanager", region_name=REGION, config=boto_config)
 agent_rt = boto3.client("bedrock-agent-runtime", region_name=REGION, config=boto_config)
-bedrock = boto3.client("bedrock", region_name=REGION, config=boto_config)
+bedrock_agent = boto3.client("bedrock-agent", region_name=REGION, config=boto_config)
 
 AGENT_ID = None
 AGENT_ALIAS_ARN = None
@@ -35,7 +35,7 @@ def load_credentials():
 def wait_for_alias(alias_arn, timeout=600, interval=10):
     start = time.time()
     while time.time() - start < timeout:
-        resp = bedrock.describe_agent_alias(AgentAliasArn=alias_arn)
+        resp = bedrock_agent.describe_agent_alias(AgentAliasArn=alias_arn)
         status = resp["AgentAlias"]["Status"]
         if status == "ACTIVE":
             return

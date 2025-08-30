@@ -110,7 +110,7 @@ if "Error" in df.columns:
     print("Dropped Error column")
 
 # Fill null values with appropriate defaults to avoid issues in Personalize
-string_columns = ["Title", "Year", "Genre", "Director", "Actors", "Plot", "Language", "Country", "imdbVotes"]
+string_columns = ["Title", "Year", "Genre", "Director", "Actors", "Plot", "Language", "Country", "imdbVotes", "Poster"]
 for col_name in string_columns:
     if col_name in df.columns:
         df = df.withColumn(col_name, F.coalesce(F.col(col_name), F.lit("")))
