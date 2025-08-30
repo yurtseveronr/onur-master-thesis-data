@@ -236,13 +236,17 @@ class APIClient:
     def get_recommendations(email: str) -> Dict[str, Any]:
         """Get personalized recommendations"""
         # Get movie recommendations
-        return APIClient.make_request('GET', f"{API_URLS['personalize']}/api/movies/recommendations/?user_id={email}&num_results=5")
+        url = f"{API_URLS['personalize']}/api/movies/recommendations/?user_id={email}&num_results=5"
+        st.write(f"DEBUG: Calling movies API URL: {url}")
+        return APIClient.make_request('GET', url)
 
     @staticmethod
     def get_series_recommendations(email: str) -> Dict[str, Any]:
         """Get personalized series recommendations"""
         # Get series recommendations
-        return APIClient.make_request('GET', f"{API_URLS['personalize']}/api/series/recommendations/?user_id={email}&num_results=5")
+        url = f"{API_URLS['personalize']}/api/series/recommendations/?user_id={email}&num_results=5"
+        st.write(f"DEBUG: Calling series API URL: {url}")
+        return APIClient.make_request('GET', url)
 
     @staticmethod
     def get_movie_by_id(movie_id: str) -> Dict[str, Any]:
@@ -587,8 +591,13 @@ def show_recommendations_page(email: str):
         st.warning("Please login to view recommendations")
         return
     
+    # Debug: Show email being used
+    st.write(f"DEBUG: Using email: {email}")
+    
     # Get recommendations
     recommendations_result = APIClient.get_recommendations(email)
+    st.write(f"DEBUG: Movies API Response: {recommendations_result}")
+    
     # Handle nested data structure
     if recommendations_result.get('success'):
         nested_data = recommendations_result.get('data', {})
@@ -599,8 +608,12 @@ def show_recommendations_page(email: str):
     else:
         recommendations = []
     
+    st.write(f"DEBUG: Processed movies recommendations: {recommendations}")
+    
     # Get series recommendations
     series_recommendations_result = APIClient.get_series_recommendations(email)
+    st.write(f"DEBUG: Series API Response: {series_recommendations_result}")
+    
     # Handle nested data structure for series
     if series_recommendations_result.get('success'):
         nested_data = series_recommendations_result.get('data', {})
@@ -610,6 +623,8 @@ def show_recommendations_page(email: str):
             series_recommendations = nested_data if isinstance(nested_data, list) else []
     else:
         series_recommendations = []
+    
+    st.write(f"DEBUG: Processed series recommendations: {series_recommendations}")
     
     # Movies and Series recommendations in tabs
     rec_tab1, rec_tab2 = st.tabs(["🎬 Movies", "📺 Series"])
