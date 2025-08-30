@@ -121,12 +121,18 @@ jobs:
             --knowledge-base-id "$KNOWLEDGE_BASE_ID" \
             --data-source-id "$DATA_SOURCE_ID" \
             --region ${{ env.AWS_REGION }} \
-            --query 'IngestionJob.IngestionJobId' \
+            --query 'ingestionJob.ingestionJobId' \
             --output text)
           
           if [ $? -eq 0 ]; then
             echo "Ingestion job started with ID: $INGESTION_JOB_ID"
             echo "ingestion_job_id=$INGESTION_JOB_ID" >> $GITHUB_OUTPUT
+            
+            # Debug: Check if ID is valid
+            if [ "$INGESTION_JOB_ID" = "None" ] || [ -z "$INGESTION_JOB_ID" ]; then
+              echo "ERROR: Invalid ingestion job ID: $INGESTION_JOB_ID"
+              exit 1
+            fi
           else
             echo "Failed to start ingestion job"
             exit 1
@@ -154,7 +160,7 @@ jobs:
               --data-source-id "$DATA_SOURCE_ID" \
               --ingestion-job-id "$INGESTION_JOB_ID" \
               --region ${{ env.AWS_REGION }} \
-              --query 'IngestionJob.Status' \
+              --query 'ingestionJob.status' \
               --output text)
           done
           
