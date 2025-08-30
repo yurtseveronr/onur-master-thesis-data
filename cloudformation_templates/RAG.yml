@@ -136,7 +136,6 @@ Resources:
     Properties:
       AgentAliasName: !Sub "${CollectionName}-agent-alias-v2"
       AgentId: !Ref BedrockAgent
-      AgentVersion: "DRAFT"
       Description: "Stable alias for agent"
 
   BedrockAgentCredentialsSecret:

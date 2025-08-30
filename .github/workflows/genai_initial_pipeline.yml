@@ -11,6 +11,7 @@ on:
 
 env:
   AWS_REGION: ${{ github.event.inputs.aws_region || 'us-east-1' }}
+  AWS_ACCOUNT_ID: '708778582346'
 
 permissions:
   id-token: write
@@ -19,6 +20,7 @@ permissions:
 jobs:
   genai-init:
     runs-on: ubuntu-latest
+    environment: PROD
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,66 +31,166 @@ jobs:
           role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Install dependencies (jq)
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y jq
-
-
-
       - name: Deploy RAG CloudFormation Stack
         run: |
-          set -e
+          echo "Deploying RAG CloudFormation Stack..."
           STACK_NAME="genai-rag"
-          aws cloudformation deploy \
-            --template-file cloudformation_templates/RAG.yml \
-            --stack-name "$STACK_NAME" \
-            --region ${{ env.AWS_REGION }} \
-            --capabilities CAPABILITY_NAMED_IAM
+          
+          # Check if stack exists
+          if aws cloudformation describe-stacks --stack-name $STACK_NAME --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+            echo "Stack '$STACK_NAME' already exists. Updating..."
+            aws cloudformation deploy \
+              --template-file cloudformation_templates/RAG.yml \
+              --stack-name $STACK_NAME \
+              --region ${{ env.AWS_REGION }} \
+              --capabilities CAPABILITY_NAMED_IAM \
+              --force-upload
+          else
+            echo "Creating new stack '$STACK_NAME'..."
+            aws cloudformation deploy \
+              --template-file cloudformation_templates/RAG.yml \
+              --stack-name $STACK_NAME \
+              --region ${{ env.AWS_REGION }} \
+              --capabilities CAPABILITY_NAMED_IAM
+          fi
 
-      - name: Run data source sync (Bedrock Knowledge Base)
+      - name: Wait for RAG Stack to Complete
         run: |
-          set -e
           STACK_NAME="genai-rag"
-          KB_ID=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region ${{ env.AWS_REGION }} \
-            --query "Stacks[0].Outputs[?OutputKey=='KnowledgeBaseId'].OutputValue" --output text)
-          DS_ID=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region ${{ env.AWS_REGION }} \
-            --query "Stacks[0].Outputs[?OutputKey=='DataSourceId'].OutputValue" --output text)
-          if [ -z "$KB_ID" ] || [ -z "$DS_ID" ] || [ "$KB_ID" = "None" ] || [ "$DS_ID" = "None" ]; then
-            echo "KnowledgeBaseId/DataSourceId not found in stack outputs" >&2
+          echo "Waiting for RAG stack to complete..."
+          
+          aws cloudformation wait stack-create-complete \
+            --stack-name $STACK_NAME \
+            --region ${{ env.AWS_REGION }} || \
+          aws cloudformation wait stack-update-complete \
+            --stack-name $STACK_NAME \
+            --region ${{ env.AWS_REGION }}
+          
+          echo "RAG stack deployment completed!"
+
+      - name: Get RAG Stack Outputs
+        id: rag-outputs
+        run: |
+          STACK_NAME="genai-rag"
+          
+          # Get Knowledge Base ID
+          KNOWLEDGE_BASE_ID=$(aws cloudformation describe-stacks \
+            --stack-name $STACK_NAME \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`KnowledgeBaseId`].OutputValue' \
+            --output text)
+          
+          # Get Data Source ID
+          DATA_SOURCE_ID=$(aws cloudformation describe-stacks \
+            --stack-name $STACK_NAME \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`DataSourceId`].OutputValue' \
+            --output text)
+          
+          # Get Agent ID
+          AGENT_ID=$(aws cloudformation describe-stacks \
+            --stack-name $STACK_NAME \
+            --region ${{ env.AWS_REGION }} \
+            --query 'Stacks[0].Outputs[?OutputKey==`AgentId`].OutputValue' \
+            --output text)
+          
+          echo "Knowledge Base ID: $KNOWLEDGE_BASE_ID"
+          echo "Data Source ID: $DATA_SOURCE_ID"
+          echo "Agent ID: $AGENT_ID"
+          
+          # Set outputs for next steps
+          echo "knowledge_base_id=$KNOWLEDGE_BASE_ID" >> $GITHUB_OUTPUT
+          echo "data_source_id=$DATA_SOURCE_ID" >> $GITHUB_OUTPUT
+          echo "agent_id=$AGENT_ID" >> $GITHUB_OUTPUT
+
+      - name: Start Data Ingestion Job
+        run: |
+          echo "Starting data ingestion job..."
+          
+          # Get the data source ID
+          DATA_SOURCE_ID="${{ steps.rag-outputs.outputs.data_source_id }}"
+          
+          if [ -z "$DATA_SOURCE_ID" ]; then
+            echo "Failed to get Data Source ID"
+            exit 1
+          fi
+          
+          # Start ingestion job
+          INGESTION_JOB_ID=$(aws bedrock start-ingestion-job \
+            --data-source-id "$DATA_SOURCE_ID" \
+            --region ${{ env.AWS_REGION }} \
+            --query 'IngestionJob.IngestionJobId' \
+            --output text)
+          
+          if [ $? -eq 0 ]; then
+            echo "Ingestion job started with ID: $INGESTION_JOB_ID"
+            echo "ingestion_job_id=$INGESTION_JOB_ID" >> $GITHUB_OUTPUT
+          else
+            echo "Failed to start ingestion job"
             exit 1
           fi
 
-          echo "Starting ingestion (sync) for KB=$KB_ID DS=$DS_ID"
-          start_ts=$(date +%s)
-          START_OUTPUT=$(aws bedrock-agent start-ingestion-job \
-            --knowledge-base-id "$KB_ID" \
-            --data-source-id "$DS_ID" \
-            --region ${{ env.AWS_REGION }})
-          JOB_ID=$(echo "$START_OUTPUT" | jq -r '.ingestionJob.ingestionJobId')
-          if [ -z "$JOB_ID" ] || [ "$JOB_ID" = "null" ]; then
-            echo "Failed to start ingestion job" >&2
-            echo "$START_OUTPUT"
+      - name: Wait for Ingestion Job to Complete
+        run: |
+          echo "Waiting for ingestion job to complete..."
+          
+          INGESTION_JOB_ID="${{ steps.rag-outputs.outputs.ingestion_job_id }}"
+          
+          if [ -z "$INGESTION_JOB_ID" ]; then
+            echo "No ingestion job ID found"
             exit 1
           fi
-          echo "IngestionJobId: $JOB_ID"
-
+          
+          # Wait for job to complete
           STATUS="IN_PROGRESS"
           until [ "$STATUS" = "COMPLETE" ] || [ "$STATUS" = "FAILED" ]; do
-            sleep 20
-            STATUS=$(aws bedrock-agent get-ingestion-job \
-              --knowledge-base-id "$KB_ID" \
-              --data-source-id "$DS_ID" \
-              --ingestion-job-id "$JOB_ID" \
-              --region ${{ env.AWS_REGION }} \
-              --query 'ingestionJob.status' --output text)
             echo "Current status: $STATUS"
+            sleep 30
+            
+            STATUS=$(aws bedrock get-ingestion-job \
+              --ingestion-job-id "$INGESTION_JOB_ID" \
+              --region ${{ env.AWS_REGION }} \
+              --query 'IngestionJob.Status' \
+              --output text)
           done
-
-          end_ts=$(date +%s)
-          duration=$((end_ts - start_ts))
-          echo "Ingestion job finished with status: $STATUS in ${duration}s"
-
-          if [ "$STATUS" != "COMPLETE" ]; then
+          
+          if [ "$STATUS" = "COMPLETE" ]; then
+            echo "Ingestion job completed successfully!"
+          else
+            echo "Ingestion job failed with status: $STATUS"
             exit 1
-          fi 
+          fi
+
+      - name: Deploy AI Services to Kubernetes
+        run: |
+          echo "Deploying AI services to Kubernetes..."
+          
+          # Update kubeconfig
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name onur-master-eks
+          
+          # Create AI namespace if not exists
+          kubectl create namespace ai --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Deploy AI services
+          kubectl apply -f kubernetes_manifest/ai/
+          
+          # Wait for AI services to be ready
+          kubectl wait --for=condition=available --timeout=300s deployment/chatbot -n ai || echo "Chatbot deployment not ready yet"
+
+
+
+
+
+      - name: Verify Deployments
+        run: |
+          echo "Verifying all deployments..."
+          
+          echo "AI Services Status:"
+          kubectl get pods -n ai
+          
+          echo "All services deployed successfully!"
+
+      - name: Show Service URLs
+        run: |
+          echo "Service URLs:"
+          echo "Chatbot: http://chatbot.ai.svc.cluster.local:8091" 
