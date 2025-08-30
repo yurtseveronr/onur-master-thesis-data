@@ -17,7 +17,7 @@ with patch('boto3.client') as mock_boto3:
     
     # Mock bedrock_agent
     mock_bedrock_agent = Mock()
-    mock_bedrock_agent.describe_agent_alias.return_value = {
+    mock_bedrock_agent.get_agent_alias.return_value = {
         "AgentAlias": {"Status": "ACTIVE"}
     }
     
