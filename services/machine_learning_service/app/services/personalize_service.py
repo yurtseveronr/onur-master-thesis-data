@@ -71,6 +71,9 @@ class PersonalizeService:
             logger.info(f"Creating event for user {user_id}, item {item_id}, type: {event_type}")
             
             event_id = f"{user_id}_{item_id}_{int(time.time())}"
+            timestamp = datetime.utcnow().timestamp()
+            
+            # Create event according to Personalize Events API
             event = {
                 'eventId': event_id,
                 'eventType': event_type,

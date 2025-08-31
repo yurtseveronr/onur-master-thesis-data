@@ -13,18 +13,22 @@ app.post('/produce', async (req, res) => {
     streamName,
     partitionKey,
     region,
+    event_type,
     data
   } = req.body;
 
-  if (!streamName || !partitionKey || !region || !data) {
-    return res.status(400).json({ error: 'streamName, partitionKey, region, and data are required.' });
+  if (!streamName || !partitionKey || !region || !event_type || !data) {
+    return res.status(400).json({ error: 'streamName, partitionKey, region, event_type, and data are required.' });
   }
 
   AWS.config.update({ region });
   const kinesis = new AWS.Kinesis();
 
   const params = {
-    Data: Buffer.from(JSON.stringify(data)),
+    Data: Buffer.from(JSON.stringify({
+      event_type: event_type,
+      ...data
+    })),
     PartitionKey: partitionKey,
     StreamName: streamName
   };

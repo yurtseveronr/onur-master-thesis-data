@@ -40,7 +40,7 @@ app.include_router(series.router, prefix="/api/series", tags=["series"])
 @app.get("/")
 async def root():
     return {
-        "message": "Machine Learning API çalışıyor! 🚀",
+        "message": "Machine Learning API is working! 🚀",
         "docs": "/docs",
         "health": "/health"
     }

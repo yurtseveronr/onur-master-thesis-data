@@ -146,6 +146,33 @@ if os.path.exists(temp_file):
 else:
     print("ERROR: Failed to create CSV file")
 
+# PART 1.5: Write full DynamoDB data to S3 as CSV for knowledge base
+# ------------------------------------------------------------------
+print("Writing full DynamoDB data to S3 for knowledge base...")
+knowledge_base_folder = "/tmp/movies_knowledge_base_" + str(uuid.uuid4())
+os.makedirs(knowledge_base_folder, exist_ok=True)
+knowledge_base_file = os.path.join(knowledge_base_folder, "movies.csv")
+
+# Write full dataframe to CSV
+df_pandas_full = df.toPandas()
+df_pandas_full.to_csv(knowledge_base_file, index=False)
+
+# Upload to S3 knowledge base folder
+if os.path.exists(knowledge_base_file):
+    knowledge_base_size = os.path.getsize(knowledge_base_file)
+    print(f"Created knowledge base CSV file of size {knowledge_base_size} bytes")
+    
+    # Upload to dataset/knowledge_base/movies.csv
+    knowledge_base_key = "dataset/knowledge_base/movies.csv"
+    s3_client.upload_file(
+        Filename=knowledge_base_file,
+        Bucket=output_bucket,
+        Key=knowledge_base_key
+    )
+    print(f"Successfully uploaded knowledge base to s3://{output_bucket}/{knowledge_base_key}")
+else:
+    print("ERROR: Failed to create knowledge base CSV file")
+
 # Convert the full dataframe to pandas for DynamoDB
 df_pandas = df.toPandas()
 

@@ -26,6 +26,19 @@ describe('POST /produce', () => {
     expect(response.body.error).toMatch(/required/);
   });
 
+  it('should return 400 if event_type is missing', async () => {
+    const response = await request(app)
+      .post('/produce')
+      .send({
+        streamName: "test-stream",
+        partitionKey: "abc",
+        region: "us-east-1",
+        data: { test: true }
+      });
+    expect(response.statusCode).toBe(400);
+    expect(response.body.error).toMatch(/event_type.*required/);
+  });
+
   it('should return 500 if Kinesis fails (mocked)', async () => {
     const response = await request(app)
       .post('/produce')
@@ -33,6 +46,7 @@ describe('POST /produce', () => {
         streamName: "test-stream",
         partitionKey: "abc",
         region: "us-east-1",
+        event_type: "user_login",
         data: { test: true }
       });
 
