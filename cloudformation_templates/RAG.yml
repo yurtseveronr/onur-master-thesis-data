@@ -7,7 +7,7 @@ Parameters:
     Default: onur-master-dataset
   DataSourcePrefix:
     Type: String
-    Default: dataset/processed/
+    Default: dataset/knowledge-base/
   CollectionName:
     Type: String
     Default: movies-series
