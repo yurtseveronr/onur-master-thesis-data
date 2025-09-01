@@ -103,6 +103,7 @@ Resources:
 
   # Amazon EKS Pod Identity Agent Add-on
   PodIdentityAddon:
+  
     Type: AWS::EKS::Addon
     Properties:
       ClusterName: !Ref ClusterName

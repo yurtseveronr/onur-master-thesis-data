@@ -109,10 +109,30 @@ API_URLS = {
     'series': 'http://series.services.svc.cluster.local:8082',
     'search': 'http://search.services.svc.cluster.local:8084',
     'chatbot': 'http://chatbot.ai.svc.cluster.local:8091',
-    'personalize': 'http://personalize.recommendation.svc.cluster.local:8000'
+    'personalize': 'http://personalize.recommendation.svc.cluster.local:8000',
+    'kinesis': 'http://kinesis-producer.streaming.svc.cluster.local:3000'
 }
 
 class APIClient:
+    @staticmethod
+    def send_kinesis_event(event_type: str, user_id: str, data: Dict) -> None:
+        """Send event to Kinesis - fire and forget"""
+        try:
+            event_data = {
+                "streamName": "onur-master-events-stream",
+                "partitionKey": user_id,
+                "region": "us-east-1",
+                "event_type": event_type,
+                "data": {
+                    "user_id": user_id,
+                    "time": datetime.now().isoformat(),
+                    **data
+                }
+            }
+            requests.post(f"{API_URLS['kinesis']}/produce", json=event_data, timeout=5)
+        except:
+            pass  # Silent fail for analytics
+
     @staticmethod
     def make_request(method: str, url: str, data: Optional[Dict] = None, headers: Optional[Dict] = None) -> Dict[str, Any]:
         """Helper function for API requests"""
@@ -154,7 +174,16 @@ class APIClient:
     def register_user(email: str, password: str) -> Dict[str, Any]:
         """User registration"""
         data = {'email': email, 'password': password}
-        return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/signup", data)
+        result = APIClient.make_request('POST', f"{API_URLS['auth']}/auth/signup", data)
+        
+        # Send signup event to Kinesis
+        if result.get('success'):
+            APIClient.send_kinesis_event("user_signup", email, {
+                "action": "signup",
+                "source": "frontend"
+            })
+        
+        return result
 
     @staticmethod
     def confirm_signup(email: str, code: str) -> Dict[str, Any]:
@@ -172,7 +201,16 @@ class APIClient:
     def login_user(email: str, password: str) -> Dict[str, Any]:
         """User login"""
         data = {'email': email, 'password': password}
-        return APIClient.make_request('POST', f"{API_URLS['auth']}/auth/login", data)
+        result = APIClient.make_request('POST', f"{API_URLS['auth']}/auth/login", data)
+        
+        # Send login event to Kinesis
+        if result.get('success'):
+            APIClient.send_kinesis_event("user_login", email, {
+                "action": "login",
+                "source": "frontend"
+            })
+        
+        return result
 
     @staticmethod
     def get_movies() -> Dict[str, Any]:
@@ -187,6 +225,14 @@ class APIClient:
     @staticmethod
     def search_movies(query: str) -> Dict[str, Any]:
         """Search movies"""
+        # Send search event to Kinesis
+        user_email = st.session_state.get('username', 'anonymous')
+        APIClient.send_kinesis_event("movies_search", user_email, {
+            "query": query,
+            "type": "movie",
+            "source": "frontend"
+        })
+        
         # Search service doesn't need authentication
         try:
             response = requests.get(f"{API_URLS['search']}/api/search?title={query}&type=movie", timeout=10)
@@ -203,6 +249,14 @@ class APIClient:
     @staticmethod
     def search_series(query: str) -> Dict[str, Any]:
         """Search series"""
+        # Send search event to Kinesis
+        user_email = st.session_state.get('username', 'anonymous')
+        APIClient.send_kinesis_event("series_search", user_email, {
+            "query": query,
+            "type": "series",
+            "source": "frontend"
+        })
+        
         # Search service doesn't need authentication
         try:
             response = requests.get(f"{API_URLS['search']}/api/search?title={query}&type=series", timeout=10)
@@ -266,7 +320,18 @@ class APIClient:
             if title:
                 url = f"{API_URLS['user']}/api/favorites/movies/{email}/{title}?imdb_id={movie_id}"
                 st.write(f"DEBUG: Calling URL: {url}")
-                return APIClient.make_request('POST', url)
+                result = APIClient.make_request('POST', url)
+                
+                # Send like event to Kinesis
+                if result.get('success') or 'added to favorites' in str(result):
+                    APIClient.send_kinesis_event("movies_likes", email, {
+                        "imdbID": movie_id,
+                        "title": title,
+                        "action": "like",
+                        "source": "frontend"
+                    })
+                
+                return result
         return {'success': False, 'message': 'Could not get movie title'}
 
     @staticmethod
@@ -281,7 +346,18 @@ class APIClient:
             if title:
                 url = f"{API_URLS['user']}/api/favorites/series/{email}/{title}?imdb_id={series_id}"
                 st.write(f"DEBUG: Calling URL: {url}")
-                return APIClient.make_request('POST', url)
+                result = APIClient.make_request('POST', url)
+                
+                # Send like event to Kinesis
+                if result.get('success') or 'added to favorites' in str(result):
+                    APIClient.send_kinesis_event("series_likes", email, {
+                        "imdbID": series_id,
+                        "title": title,
+                        "action": "like",
+                        "source": "frontend"
+                    })
+                
+                return result
         return {'success': False, 'message': 'Could not get series title'}
 
     @staticmethod
