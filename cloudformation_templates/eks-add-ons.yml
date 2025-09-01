@@ -90,16 +90,7 @@ Resources:
                   - xray:GetTraceSummaries
                 Resource: '*'
 
-  # AWS Distro for OpenTelemetry Add-on
-  ADOTAddon:
-    Type: AWS::EKS::Addon
-    DependsOn: ADOTRole
-    Properties:
-      ClusterName: !Ref ClusterName
-      AddonName: adot
-      AddonVersion: v0.117.0-eksbuild.1
-      ServiceAccountRoleArn: !GetAtt ADOTRole.Arn
-      ResolveConflicts: OVERWRITE
+  
 
   # Amazon CloudWatch Observability Add-on (Pod Identity)
   CloudWatchObservabilityAddon:
@@ -146,14 +137,7 @@ Resources:
       AddonVersion: v1.16.0-eksbuild.1
       ResolveConflicts: OVERWRITE
 
-  # Cert Manager Add-on
-  CertManagerAddon:
-    Type: AWS::EKS::Addon
-    Properties:
-      ClusterName: !Ref ClusterName
-      AddonName: cert-manager
-      AddonVersion: v1.18.2-eksbuild.1
-      ResolveConflicts: OVERWRITE
+ 
 
 Outputs:
   ADOTRoleArn:
