@@ -162,13 +162,6 @@ jobs:
         role-to-assume: arn:aws:iam::708778582346:role/onur-github-role
         aws-region: us-east-1
     
-    - name: Install AWS CLI
-      run: |
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-        unzip -o awscliv2.zip
-        sudo ./aws/install --update
-        export PATH="/usr/local/aws-cli/v2/current/bin:$PATH"
-        aws --version
     
     - name: Setup Environment
       run: |
