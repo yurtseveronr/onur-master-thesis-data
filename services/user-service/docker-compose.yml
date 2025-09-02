@@ -18,7 +18,7 @@ services:
     depends_on:
       - dynamodb
     environment:
-      - DYNAMODB_URL=http://dynamodb:8000  # DynamoDB’ye bağlanmak için
+      - DYNAMODB_URL=http://dynamodb:8000  
     networks:
       - mynetwork
 

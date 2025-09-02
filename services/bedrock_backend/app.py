@@ -7,7 +7,7 @@ from botocore.config import Config
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
-REGION = "us-east-1"  # Force US-EAST-1
+REGION = "us-east-1"  
 SECRET_NAME = os.getenv("SECRET_NAME", "movies-series-agent-creds-v2")
 
 boto_config = Config(

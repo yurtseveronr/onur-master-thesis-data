@@ -8,7 +8,7 @@ app.use(express.json());
 
 
 app.use((req, res, next) => {
-  // Skip authentication for search service
+  
   next();
 });
 

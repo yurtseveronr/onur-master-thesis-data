@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
-// Movie Struct
 type Movie struct {
 	Title      string `json:"Title"`
 	ImdbID     string `json:"imdbID"`
