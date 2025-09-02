@@ -1,6 +1,6 @@
 import { search } from '../src/service/searchService';
 
-// Mock the dependencies
+
 jest.mock('../src/dynamodb/search', () => ({
   searchDynamo: jest.fn(),
 }));
