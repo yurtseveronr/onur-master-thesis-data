@@ -17,7 +17,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Mock for empty/not found responses
 type mockDynamoDBClient struct {
 	dynamodbiface.DynamoDBAPI
 	shouldReturnItem  bool
