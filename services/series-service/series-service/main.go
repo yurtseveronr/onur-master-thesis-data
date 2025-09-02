@@ -15,7 +15,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8082" // Default port
+		port = "8082"
 	}
 
 	router := routes.SetupRouter()

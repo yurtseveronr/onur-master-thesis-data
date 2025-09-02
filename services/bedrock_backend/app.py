@@ -6,7 +6,7 @@ from botocore.config import Config
 #FLASK APP
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
-##pipeline test
+
 REGION = "us-east-1"  # Force US-EAST-1
 SECRET_NAME = os.getenv("SECRET_NAME", "movies-series-agent-creds-v2")
 
