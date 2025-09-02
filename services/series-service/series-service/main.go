@@ -10,8 +10,8 @@ import (
 )
 
 func main() {
-	// Initialize DynamoDB Connection
-	repository.InitSeriesDynamoDB() // InitDynamoDB() değil
+
+	repository.InitSeriesDynamoDB()
 
 	port := os.Getenv("PORT")
 	if port == "" {
