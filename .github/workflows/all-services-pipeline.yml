@@ -834,7 +834,7 @@ jobs:
     
     - name: Unit Tests
       run: |
-        cd services/kinesis-producer:latest
+        cd services/kinesis-producer
     
         npm install
         npm test
