@@ -41,12 +41,12 @@ app.post('/produce', async (req, res) => {
   }
 });
 
-// Eğer bu dosya doğrudan çalıştırılıyorsa, sunucuyu başlat
+
 if (require.main === module) {
   app.listen(port, () => {
     console.log(`Kinesis producer API running on port ${port}`);
   });
 }
 
-// Testlerde kullanılmak üzere dışa aktar
+
 module.exports = app;
