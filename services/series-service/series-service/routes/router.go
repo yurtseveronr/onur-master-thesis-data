@@ -8,7 +8,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// ✅ Setup Router
 func SetupRouter() *mux.Router {
 	router := mux.NewRouter()
 
@@ -22,7 +21,6 @@ func SetupRouter() *mux.Router {
 	return router
 }
 
-// ✅ Middleware for Logging Requests
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("🔥 Incoming Request: %s %s\n", r.Method, r.URL.Path)
