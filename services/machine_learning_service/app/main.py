@@ -5,7 +5,7 @@ from app.routes import movies, series
 from app.core.config import settings
 import logging
 
-# Configure logging
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
