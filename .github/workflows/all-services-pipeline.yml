@@ -398,7 +398,7 @@ jobs:
     - name: Build Docker Image
       run: |
         cd services/movie-service/movie-service
-        docker build -t movie-service:latest .
+        docker build -t movies-service:latest .
     
     - name: Security Scan
       run: |
