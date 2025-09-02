@@ -48,7 +48,7 @@ class FavoritesRepository:
 
     @staticmethod
     def add_favorite_movie(email: str, title: str, imdb_id: str = None):
-        # If imdb_id is provided, use it directly
+        
         if imdb_id:
             dynamodb.put_item(
                 TableName=USER_MOVIES_TABLE,
