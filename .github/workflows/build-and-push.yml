@@ -535,4 +535,56 @@ jobs:
           
           # Show application status
           echo "ArgoCD application status:"
-          kubectl get application -n gitops 
+          kubectl get application -n gitops
+      
+      - name: Install Linkerd Service Mesh
+        run: |
+          echo "Installing Linkerd..."
+          
+          # Download and install Linkerd CLI
+          curl -sL https://run.linkerd.io/install | sh
+          export PATH=$PATH:$HOME/.linkerd2/bin
+          
+          # Check Linkerd version
+          linkerd version
+          
+          # Install Gateway API CRDs
+          kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+          
+          # Pre-flight checks
+          linkerd check --pre
+          
+          # Install Linkerd CRDs
+          linkerd install --crds | kubectl apply -f -
+          
+          # Install Linkerd control plane
+          linkerd install | kubectl apply -f -
+          
+          # Verify Linkerd installation
+          linkerd check
+          
+          # Install Linkerd Viz extension
+          linkerd viz install | kubectl apply -f -
+          
+          # Verify Linkerd Viz
+          linkerd viz check
+          
+          echo "✅ Linkerd installation completed!"
+      
+      - name: Restart Deployments with Linkerd Injection
+        run: |
+          echo "Restarting deployments to inject Linkerd proxy..."
+          
+          # Restart deployments in services namespace
+          kubectl rollout restart deployment -n services
+          
+          # Restart deployments in ai namespace
+          kubectl rollout restart deployment -n ai
+          
+          # Restart deployments in streaming namespace
+          kubectl rollout restart deployment -n streaming
+          
+          # Restart deployments in recommendation namespace
+          kubectl rollout restart deployment -n recommendation
+          
+          echo "✅ All deployments restarted with Linkerd injection!" 
