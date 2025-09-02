@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Machine Learning API başlatılıyor...")
     yield
     # Shutdown
-    logger.info("🛑 Machine Learning API kapanıyor...")
+    logger.info("🛑 Machine Learning API is shutting down...")
 
 app = FastAPI(
     title="Machine Learning API",
